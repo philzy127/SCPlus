@@ -66,16 +66,21 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_enable_hover_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'enable_hover_card', 'desc' => 'Enable a floating card with ticket details on hover.' ] );
 		add_settings_field( 'scp_hover_card_delay', __( 'Hover Delay (ms)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'hover_card_delay', 'desc' => 'Time to wait before showing the card. Default: 1000.', 'default' => 1000 ] );
 
+		add_settings_section( 'scp_separator_1', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
+
 		// Section: General Cleanup
 		add_settings_section( 'scp_general_cleanup_section', __( 'General Cleanup', 'supportcandy-plus' ), null, 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_hide_empty_columns', __( 'Hide Empty Columns', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_empty_columns', 'desc' => 'Automatically hide any column in the ticket list that is completely empty.' ] );
 
+		add_settings_section( 'scp_separator_2', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
 		// Section: Ticket Type Hiding
 		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_ticket_type_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'enable_ticket_type_hiding', 'desc' => 'Hide specific ticket types from non-agent users.' ] );
 		add_settings_field( 'scp_ticket_type_custom_field_name', __( 'Custom Field Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_type_custom_field_name', 'desc' => 'The name of the custom field for ticket types (e.g., "Ticket Category"). The plugin will find the ID dynamically.' ] );
 		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
+
+		add_settings_section( 'scp_separator_3', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
 		// Section: Conditional Column Hiding
 		add_settings_section(
@@ -102,13 +107,6 @@ class SCP_Admin_Settings {
 	}
 
 	/**
-	 * Render the description for the Automatic Column Cleanup section.
-	 */
-	public function render_column_cleanup_description() {
-		echo '<p>' . esc_html__( 'This feature automatically hides any column in the ticket list that is completely empty, creating a cleaner interface.', 'supportcandy-plus' ) . '</p>';
-	}
-
-	/**
 	 * Render the description for the Hide Ticket Types section.
 	 */
 	public function render_ticket_type_hiding_description() {
@@ -120,6 +118,13 @@ class SCP_Admin_Settings {
 	 */
 	public function render_conditional_hiding_description() {
 		echo '<p>' . esc_html__( 'Create rules to show or hide columns based on the selected ticket view. This allows for powerful customization of the ticket list for different contexts.', 'supportcandy-plus' ) . '</p>';
+	}
+
+	/**
+	 * Renders a horizontal rule separator.
+	 */
+	public function render_hr_separator() {
+		echo '<hr>';
 	}
 
 	/**
@@ -167,9 +172,9 @@ class SCP_Admin_Settings {
 				<option value="hide" <?php selected( $action, 'hide' ); ?>><?php esc_html_e( 'HIDE', 'supportcandy-plus' ); ?></option>
 			</select>
 
-			<select name="scp_settings[conditional_hiding_rules][<?php echo esc_attr( $index ); ?>][columns][]" multiple class="scp-rule-columns">
+			<select name="scp_settings[conditional_hiding_rules][<?php echo esc_attr( $index ); ?>][columns]" class="scp-rule-columns">
 				<?php foreach ( $columns as $key => $label ) : ?>
-					<option value="<?php echo esc_attr( $key ); ?>" <?php echo in_array( (string) $key, $selected_cols, true ) ? 'selected' : ''; ?>>
+					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $rule['columns'] ?? '', $key ); ?>>
 						<?php echo esc_html( $label ); ?>
 					</option>
 				<?php endforeach; ?>
@@ -304,11 +309,7 @@ class SCP_Admin_Settings {
 				$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ] ) ? $rule['condition'] : 'in_view';
 				$sanitized_rule['view'] = isset( $rule['view'] ) ? absint( $rule['view'] ) : 0;
 
-				if ( isset( $rule['columns'] ) && is_array( $rule['columns'] ) ) {
-					$sanitized_rule['columns'] = array_map( 'sanitize_text_field', $rule['columns'] );
-				} else {
-					$sanitized_rule['columns'] = [];
-				}
+				$sanitized_rule['columns'] = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
 				$sanitized_rules[] = $sanitized_rule;
 			}
 			$sanitized_input['conditional_hiding_rules'] = $sanitized_rules;

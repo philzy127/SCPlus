@@ -210,11 +210,10 @@
 								 (rule.condition === 'not_in_view' && rule.view !== currentViewId);
 
 			if (ruleIsActive) {
-				rule.columns.forEach(columnKey => {
-					if (columnVisibility.hasOwnProperty(columnKey)) {
-						columnVisibility[columnKey] = rule.action; // 'show' or 'hide'
-					}
-				});
+				const columnKey = rule.columns;
+				if (columnKey && columnVisibility.hasOwnProperty(columnKey)) {
+					columnVisibility[columnKey] = rule.action; // 'show' or 'hide'
+				}
 			}
 		});
 
