@@ -44,12 +44,44 @@
 		if (features.hover_card?.enabled) {
 			feature_ticket_hover_card();
 		}
+		// Run general cleanup first.
+		if (features.hide_empty_columns?.enabled) {
+			feature_hide_empty_columns();
+		}
 		if (features.ticket_type_hiding?.enabled) {
 			feature_hide_ticket_types_for_non_agents();
 		}
+		// Run the advanced conditional hiding last so it can override.
 		if (features.conditional_hiding?.enabled) {
 			feature_conditional_column_hiding();
 		}
+	}
+
+	/**
+	 * Feature: Hide Empty Columns.
+	 * Hides any column that is completely empty.
+	 */
+	function feature_hide_empty_columns() {
+		const table = document.querySelector('table.wpsc-ticket-list-tbl');
+		if (!table?.querySelector('tbody')?.rows.length) return;
+
+		const headers = Array.from(table.querySelectorAll('thead tr th'));
+		const rows = Array.from(table.querySelectorAll('tbody tr'));
+		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
+		const columnsToHide = new Set();
+
+		headers.forEach((th, i) => {
+			if (matrix.every(row => !row[i] || row[i] === '')) {
+				columnsToHide.add(i);
+			}
+		});
+
+		columnsToHide.forEach(i => {
+			if (headers[i]) headers[i].style.display = 'none';
+			rows.forEach(row => {
+				if (row.children[i]) row.children[i].style.display = 'none';
+			});
+		});
 	}
 
 	/**

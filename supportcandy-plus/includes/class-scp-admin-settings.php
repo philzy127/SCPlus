@@ -66,6 +66,10 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_enable_hover_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'enable_hover_card', 'desc' => 'Enable a floating card with ticket details on hover.' ] );
 		add_settings_field( 'scp_hover_card_delay', __( 'Hover Delay (ms)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'hover_card_delay', 'desc' => 'Time to wait before showing the card. Default: 1000.', 'default' => 1000 ] );
 
+		// Section: General Cleanup
+		add_settings_section( 'scp_general_cleanup_section', __( 'General Cleanup', 'supportcandy-plus' ), null, 'supportcandy-plus' );
+		add_settings_field( 'scp_enable_hide_empty_columns', __( 'Hide Empty Columns', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_empty_columns', 'desc' => 'Automatically hide any column in the ticket list that is completely empty.' ] );
+
 
 		// Section: Ticket Type Hiding
 		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
@@ -260,7 +264,7 @@ class SCP_Admin_Settings {
 		$options         = get_option( 'scp_settings', [] );
 
 		// Checkboxes
-		$checkboxes = [ 'enable_hover_card', 'enable_column_hider', 'enable_ticket_type_hiding', 'enable_conditional_hiding' ];
+		$checkboxes = [ 'enable_hover_card', 'enable_hide_empty_columns', 'enable_ticket_type_hiding', 'enable_conditional_hiding' ];
 		foreach ( $checkboxes as $key ) {
 			if ( ! empty( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = 1;

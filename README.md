@@ -1,7 +1,7 @@
 # SupportCandy Plus
 
 **Contributors:** Jules
-**Version:** 2.1.0
+**Version:** 2.2.0
 **Requires at least:** 5.0
 **Tested up to:** 6.0
 **Requires PHP:** 7.0
@@ -32,6 +32,12 @@ All features are controlled from the **SupportCandy Plus** page in your WordPres
 
 -   **Enable Feature:** Check this to enable a floating card with ticket details when you hover over a ticket in the list.
 -   **Hover Delay (ms):** Set the time in milliseconds to wait before the hover card appears (e.g., `1000` for 1 second).
+
+---
+
+### General Cleanup
+
+-   **Hide Empty Columns:** Check this to automatically hide any column in the ticket list that has no content in any of its rows. This runs before the conditional hiding rules, so you can still use rules to show a column that was hidden for being empty.
 
 ---
 

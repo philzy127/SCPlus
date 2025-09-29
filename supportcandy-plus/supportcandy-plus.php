@@ -126,6 +126,9 @@ final class SupportCandy_Plus {
 					'enabled' => ! empty( $options['enable_hover_card'] ),
 					'delay'   => ! empty( $options['hover_card_delay'] ) ? absint( $options['hover_card_delay'] ) : 1000,
 				],
+				'hide_empty_columns' => [
+					'enabled' => ! empty( $options['enable_hide_empty_columns'] ),
+				],
 				'ticket_type_hiding' => [
 					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
 					'field_id'      => $this->get_custom_field_id_by_name( ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '' ),
@@ -188,14 +191,16 @@ final class SupportCandy_Plus {
 			'date'        => __( 'Date', 'supportcandy-plus' ),
 		];
 
-		// The user has confirmed the table name is always prefixed with the WP prefix.
-		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		// Use the literal table name as specified by the user and fetch the correct columns.
+		$custom_fields_table = 'wpya_psmsc_custom_fields';
 
 		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) === $custom_fields_table ) {
-			$custom_fields = $wpdb->get_results( "SELECT name, label FROM `{$custom_fields_table}`", ARRAY_A );
+			// Correctly select the ID for the key and the LABEL for the display text.
+			$custom_fields = $wpdb->get_results( "SELECT id, label FROM `{$custom_fields_table}`", ARRAY_A );
 			if ( $custom_fields ) {
 				foreach ( $custom_fields as $field ) {
-					$columns[ 'cust_' . $field['name'] ] = $field['label'];
+					// The key must be in the format 'cust_ID' to match SupportCandy's internal identifiers.
+					$columns[ 'cust_' . $field['id'] ] = $field['label'];
 				}
 			}
 		}
