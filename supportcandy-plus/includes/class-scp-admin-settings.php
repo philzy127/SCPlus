@@ -89,14 +89,6 @@ class SCP_Admin_Settings {
 			[ 'id' => 'enable_conditional_hiding', 'desc' => 'Enable the rule-based system to show or hide columns.' ]
 		);
 		add_settings_field(
-			'scp_views_table_name',
-			__( 'Filters Table Name', 'supportcandy-plus' ),
-			array( $this, 'render_text_field' ),
-			'supportcandy-plus',
-			'scp_conditional_hiding_section',
-			[ 'id' => 'views_table_name', 'desc' => 'Enter the exact database table name for SupportCandy filters (e.g., `wp_psmsc_filters`).', 'default' => 'psmsc_filters' ]
-		);
-		add_settings_field(
 			'scp_conditional_hiding_rules',
 			__( 'Rules', 'supportcandy-plus' ),
 			array( $this, 'render_conditional_hiding_rules_builder' ),
@@ -195,31 +187,27 @@ class SCP_Admin_Settings {
 	}
 
 	/**
-	 * Gets the list of available SupportCandy views/filters.
+	 * Gets the list of available SupportCandy views/filters from the wp_options table.
 	 */
 	private function get_supportcandy_views() {
-		global $wpdb;
-		$options    = get_option( 'scp_settings', [] );
-		$table_name = isset( $options['views_table_name'] ) ? sanitize_text_field( $options['views_table_name'] ) : 'psmsc_filters';
+		$views = [ '0' => __( 'Default View (All Tickets)', 'supportcandy-plus' ) ];
 
-		// It's possible the user provides the name with the prefix, or without.
-		// We check for both, but prefer the non-prefixed version for our logic.
-		if ( strpos( $table_name, $wpdb->prefix ) === 0 ) {
-			$table_name = substr( $table_name, strlen( $wpdb->prefix ) );
-		}
-		$full_table_name = $wpdb->prefix . $table_name;
-
-		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $full_table_name ) ) !== $full_table_name ) {
-			return [ '0' => __( 'Default View (All Tickets)', 'supportcandy-plus' ) ];
+		$raw_filters = get_option( 'wpsc-atl-default-filters' );
+		if ( empty( $raw_filters ) ) {
+			return $views;
 		}
 
-		$results = $wpdb->get_results( "SELECT id, name FROM `{$full_table_name}`", ARRAY_A );
-		$views   = [ '0' => __( 'Default View (All Tickets)', 'supportcandy-plus' ) ];
-		if ( $results ) {
-			foreach ( $results as $view ) {
-				$views[ $view['id'] ] = $view['name'];
+		$filter_data = maybe_unserialize( $raw_filters );
+		if ( ! is_array( $filter_data ) ) {
+			return $views;
+		}
+
+		foreach ( $filter_data as $id => $details ) {
+			if ( ! empty( $details['is_enable'] ) && ! empty( $details['label'] ) ) {
+				$views[ $id ] = $details['label'];
 			}
 		}
+
 		return $views;
 	}
 
@@ -280,7 +268,7 @@ class SCP_Admin_Settings {
 		}
 
 		// Text fields
-		$text_fields = [ 'ticket_type_custom_field_name', 'views_table_name' ];
+		$text_fields = [ 'ticket_type_custom_field_name' ];
 		foreach ( $text_fields as $key ) {
 			if ( isset( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = sanitize_text_field( $input[ $key ] );

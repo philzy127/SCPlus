@@ -50,7 +50,6 @@ This allows you to restrict which ticket types are available to non-agent users 
 This powerful feature allows you to create a set of rules to control the visibility of columns in the ticket list. You can define rules to show or hide specific columns based on the currently selected ticket view (filter).
 
 -   **Enable Feature:** Check this to activate the rule-based system.
--   **Filters Table Name:** Enter the exact database table name where SupportCandy stores its ticket views/filters. The plugin will try to guess (`psmsc_filters`), but if your table uses a different name or prefix, you must specify it here (e.g., `wp_psmsc_filters`).
 
 #### How the Rule Builder Works
 
