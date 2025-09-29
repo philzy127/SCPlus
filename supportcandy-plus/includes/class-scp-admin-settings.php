@@ -68,9 +68,7 @@ class SCP_Admin_Settings {
 
 		// Section: Automatic Column Cleanup
 		add_settings_section( 'scp_dynamic_hiding_section', __( 'Automatic Column Cleanup', 'supportcandy-plus' ), array( $this, 'render_column_cleanup_description' ), 'supportcandy-plus' );
-		add_settings_field( 'scp_enable_column_hider', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'enable_column_hider', 'desc' => 'Enable automatic hiding of empty or low-priority columns.' ] );
-		add_settings_field( 'scp_priority_column_name', __( 'Priority Column Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'priority_column_name', 'desc' => 'The exact name of the priority column. Default: Priority.', 'default' => 'Priority' ] );
-		add_settings_field( 'scp_low_priority_text', __( 'Low Priority Text', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'low_priority_text', 'desc' => 'The text for low priority tickets. Default: Low.', 'default' => 'Low' ] );
+		add_settings_field( 'scp_enable_column_hider', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'enable_column_hider', 'desc' => 'Enable automatic hiding of empty columns.' ] );
 
 		// Section: Ticket Type Hiding
 		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
@@ -89,7 +87,7 @@ class SCP_Admin_Settings {
 	 * Render the description for the Automatic Column Cleanup section.
 	 */
 	public function render_column_cleanup_description() {
-		echo '<p>' . esc_html__( 'This feature automatically hides columns to create a cleaner ticket list. It hides any column that is completely empty, and it also hides the Priority column if all tickets have the same low priority value.', 'supportcandy-plus' ) . '</p>';
+		echo '<p>' . esc_html__( 'This feature automatically hides any column in the ticket list that is completely empty, creating a cleaner interface.', 'supportcandy-plus' ) . '</p>';
 	}
 
 	/**

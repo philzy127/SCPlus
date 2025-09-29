@@ -123,8 +123,8 @@
 	}
 
 	/**
-	 * Feature: Dynamic Column Hider.
-	 * Hides empty columns and a configurable priority column if all values match.
+	 * Feature: Automatic Column Cleanup.
+	 * Hides any column that is completely empty.
 	 */
 	function feature_dynamic_column_hider() {
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
@@ -134,17 +134,9 @@
 		const rows = Array.from(table.querySelectorAll('tbody tr'));
 		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
 		const columnsToHide = new Set();
-		const priorityColumnName = features.column_hider.priority_column.toLowerCase();
-		const lowPriorityText = features.column_hider.low_priority_text.toLowerCase();
 
 		headers.forEach((th, i) => {
-			const headerText = th.textContent.trim().toLowerCase();
-			if (headerText === priorityColumnName) {
-				if (!matrix.some(row => row[i]?.toLowerCase() !== lowPriorityText)) {
-					columnsToHide.add(i);
-				}
-			}
-			if (matrix.every(row => !row[i])) {
+			if (matrix.every(row => !row[i] || row[i] === '')) {
 				columnsToHide.add(i);
 			}
 		});

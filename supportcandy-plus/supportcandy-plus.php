@@ -102,8 +102,6 @@ final class SupportCandy_Plus {
 				],
 				'column_hider'       => [
 					'enabled'         => ! empty( $options['enable_column_hider'] ),
-					'priority_column' => ! empty( $options['priority_column_name'] ) ? $options['priority_column_name'] : 'Priority',
-					'low_priority_text' => ! empty( $options['low_priority_text'] ) ? $options['low_priority_text'] : 'Low',
 				],
 				'ticket_type_hiding' => [
 					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
