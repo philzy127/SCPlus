@@ -188,12 +188,13 @@ final class SupportCandy_Plus {
 			'date'        => __( 'Date', 'supportcandy-plus' ),
 		];
 
+		// The user has confirmed the table name is always prefixed with the WP prefix.
 		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+
 		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) === $custom_fields_table ) {
-			$custom_fields = $wpdb->get_results( "SELECT name, label FROM {$custom_fields_table}", ARRAY_A );
+			$custom_fields = $wpdb->get_results( "SELECT name, label FROM `{$custom_fields_table}`", ARRAY_A );
 			if ( $custom_fields ) {
 				foreach ( $custom_fields as $field ) {
-					// The key passed to JS should match what's in the rule settings.
 					$columns[ 'cust_' . $field['name'] ] = $field['label'];
 				}
 			}
