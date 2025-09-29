@@ -67,13 +67,13 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_hover_card_delay', __( 'Hover Delay (ms)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'hover_card_delay', 'desc' => 'Time to wait before showing the card. Default: 1000.', 'default' => 1000 ] );
 
 		// Section: Automatic Column Cleanup
-		add_settings_section( 'scp_dynamic_hiding_section', __( 'Automatic Column Cleanup', 'supportcandy-plus' ), '<p>' . __( 'This feature automatically hides columns to create a cleaner ticket list. It hides any column that is completely empty, and it also hides the Priority column if all tickets have the same low priority value.', 'supportcandy-plus' ) . '</p>', 'supportcandy-plus' );
+		add_settings_section( 'scp_dynamic_hiding_section', __( 'Automatic Column Cleanup', 'supportcandy-plus' ), array( $this, 'render_column_cleanup_description' ), 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_column_hider', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'enable_column_hider', 'desc' => 'Enable automatic hiding of empty or low-priority columns.' ] );
 		add_settings_field( 'scp_priority_column_name', __( 'Priority Column Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'priority_column_name', 'desc' => 'The exact name of the priority column. Default: Priority.', 'default' => 'Priority' ] );
 		add_settings_field( 'scp_low_priority_text', __( 'Low Priority Text', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'low_priority_text', 'desc' => 'The text for low priority tickets. Default: Low.', 'default' => 'Low' ] );
 
 		// Section: Ticket Type Hiding
-		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), '<p>' . __( 'This feature hides specified ticket categories from the dropdown menu for any user who is not an agent.', 'supportcandy-plus' ) . '</p>', 'supportcandy-plus' );
+		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_ticket_type_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'enable_ticket_type_hiding', 'desc' => 'Hide specific ticket types from non-agent users.' ] );
 		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
 
@@ -83,6 +83,20 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_view_filter_name', __( 'Filter Name for Special View', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'view_filter_name', 'desc' => 'The exact name of the filter to trigger this rule, e.g., "Network Access Requests".' ] );
 		add_settings_field( 'scp_columns_to_hide_in_view', __( 'Columns to HIDE in Special View', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'columns_to_hide_in_view', 'desc' => 'Columns to hide when the special filter is active. One per line.' ] );
 		add_settings_field( 'scp_columns_to_show_in_view', __( 'Columns to SHOW ONLY in Special View', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'columns_to_show_in_view', 'desc' => 'Columns that are normally hidden but should appear for this view. One per line.' ] );
+	}
+
+	/**
+	 * Render the description for the Automatic Column Cleanup section.
+	 */
+	public function render_column_cleanup_description() {
+		echo '<p>' . esc_html__( 'This feature automatically hides columns to create a cleaner ticket list. It hides any column that is completely empty, and it also hides the Priority column if all tickets have the same low priority value.', 'supportcandy-plus' ) . '</p>';
+	}
+
+	/**
+	 * Render the description for the Hide Ticket Types section.
+	 */
+	public function render_ticket_type_hiding_description() {
+		echo '<p>' . esc_html__( 'This feature hides specified ticket categories from the dropdown menu for any user who is not an agent.', 'supportcandy-plus' ) . '</p>';
 	}
 
 	/**
