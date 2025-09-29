@@ -1,0 +1,45 @@
+/* SupportCandy Plus Admin Styles */
+
+.scp-rule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background-color: #f6f7f7;
+}
+
+.scp-rule select {
+    min-width: 150px;
+}
+
+.scp-rule-columns {
+    flex-grow: 1;
+}
+
+.scp-remove-rule {
+    background: #f8f9fa;
+    border: 1px solid #d1d1d1;
+    color: #b02a2a;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    line-height: 26px;
+    text-align: center;
+    padding: 0;
+}
+
+.scp-remove-rule:hover {
+    background: #e9eaeb;
+    border-color: #b1b1b1;
+    color: #a01a1a;
+}
+
+#scp-no-rules-message {
+    color: #666;
+    font-style: italic;
+}

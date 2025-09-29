@@ -44,9 +44,6 @@
 		if (features.hover_card?.enabled) {
 			feature_ticket_hover_card();
 		}
-		if (features.column_hider?.enabled) {
-			feature_dynamic_column_hider();
-		}
 		if (features.ticket_type_hiding?.enabled) {
 			feature_hide_ticket_types_for_non_agents();
 		}
@@ -123,31 +120,6 @@
 	}
 
 	/**
-	 * Feature: Automatic Column Cleanup.
-	 * Hides any column that is completely empty.
-	 */
-	function feature_dynamic_column_hider() {
-		const table = document.querySelector('table.wpsc-ticket-list-tbl');
-		if (!table?.querySelector('tbody')?.rows.length) return;
-
-		const headers = Array.from(table.querySelectorAll('thead tr th'));
-		const rows = Array.from(table.querySelectorAll('tbody tr'));
-		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
-		const columnsToHide = new Set();
-
-		headers.forEach((th, i) => {
-			if (matrix.every(row => !row[i] || row[i] === '')) {
-				columnsToHide.add(i);
-			}
-		});
-
-		headers.forEach((th, i) => th.style.display = columnsToHide.has(i) ? 'none' : '');
-		rows.forEach(row => {
-			Array.from(row.children).forEach((td, i) => td.style.display = columnsToHide.has(i) ? 'none' : '');
-		});
-	}
-
-	/**
 	 * Feature: Hide Ticket Types from Non-Agents.
 	 * Uses a dynamic field ID and a configurable list of types to hide.
 	 */
@@ -178,6 +150,7 @@
 	/**
 	 * Feature: Advanced Conditional Column Hiding Rule Engine.
 	 * Processes a set of rules to show or hide columns based on the current view.
+	 * This version uses case-insensitive text matching for robustness.
 	 */
 	function feature_conditional_column_hiding() {
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
@@ -213,17 +186,18 @@
 			}
 		});
 
-		// 3. Create a map of header text to header index for quick lookup.
+		// 3. Create a map of lowercase header text to header index for robust matching.
 		const headerIndexMap = {};
 		headers.forEach((th, index) => {
-			headerIndexMap[th.textContent.trim()] = index;
+			headerIndexMap[th.textContent.trim().toLowerCase()] = index;
 		});
 
-		// 4. Apply the final state to the table columns.
+		// 4. Apply the final state to the table columns by matching labels case-insensitively.
 		for (const columnKey in columnVisibility) {
 			const columnLabel = columnMap[columnKey];
-			if (headerIndexMap.hasOwnProperty(columnLabel)) {
-				const columnIndex = headerIndexMap[columnLabel];
+			const columnIndex = headerIndexMap[columnLabel.toLowerCase()];
+
+			if (columnIndex !== undefined) {
 				const shouldHide = columnVisibility[columnKey] === 'hide';
 
 				if (headers[columnIndex]) {

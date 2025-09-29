@@ -66,9 +66,6 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_enable_hover_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'enable_hover_card', 'desc' => 'Enable a floating card with ticket details on hover.' ] );
 		add_settings_field( 'scp_hover_card_delay', __( 'Hover Delay (ms)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'hover_card_delay', 'desc' => 'Time to wait before showing the card. Default: 1000.', 'default' => 1000 ] );
 
-		// Section: Automatic Column Cleanup
-		add_settings_section( 'scp_dynamic_hiding_section', __( 'Automatic Column Cleanup', 'supportcandy-plus' ), array( $this, 'render_column_cleanup_description' ), 'supportcandy-plus' );
-		add_settings_field( 'scp_enable_column_hider', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'enable_column_hider', 'desc' => 'Enable automatic hiding of empty columns.' ] );
 
 		// Section: Ticket Type Hiding
 		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
@@ -90,6 +87,14 @@ class SCP_Admin_Settings {
 			'supportcandy-plus',
 			'scp_conditional_hiding_section',
 			[ 'id' => 'enable_conditional_hiding', 'desc' => 'Enable the rule-based system to show or hide columns.' ]
+		);
+		add_settings_field(
+			'scp_views_table_name',
+			__( 'Filters Table Name', 'supportcandy-plus' ),
+			array( $this, 'render_text_field' ),
+			'supportcandy-plus',
+			'scp_conditional_hiding_section',
+			[ 'id' => 'views_table_name', 'desc' => 'Enter the exact database table name for SupportCandy filters (e.g., `wp_psmsc_filters`).', 'default' => 'psmsc_filters' ]
 		);
 		add_settings_field(
 			'scp_conditional_hiding_rules',
@@ -128,7 +133,7 @@ class SCP_Admin_Settings {
 		$options = get_option( 'scp_settings', [] );
 		$rules   = isset( $options['conditional_hiding_rules'] ) && is_array( $options['conditional_hiding_rules'] ) ? $options['conditional_hiding_rules'] : [];
 		$views   = $this->get_supportcandy_views();
-		$columns = $this->get_supportcandy_columns();
+		$columns = supportcandy_plus()->get_supportcandy_columns();
 		?>
 		<div id="scp-rules-container">
 			<?php
@@ -194,12 +199,21 @@ class SCP_Admin_Settings {
 	 */
 	private function get_supportcandy_views() {
 		global $wpdb;
-		// This table name is a best-guess based on SupportCandy's conventions.
-		$table_name = $wpdb->prefix . 'psmsc_filters';
-		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
+		$options    = get_option( 'scp_settings', [] );
+		$table_name = isset( $options['views_table_name'] ) ? sanitize_text_field( $options['views_table_name'] ) : 'psmsc_filters';
+
+		// It's possible the user provides the name with the prefix, or without.
+		// We check for both, but prefer the non-prefixed version for our logic.
+		if ( strpos( $table_name, $wpdb->prefix ) === 0 ) {
+			$table_name = substr( $table_name, strlen( $wpdb->prefix ) );
+		}
+		$full_table_name = $wpdb->prefix . $table_name;
+
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $full_table_name ) ) !== $full_table_name ) {
 			return [ '0' => __( 'Default View (All Tickets)', 'supportcandy-plus' ) ];
 		}
-		$results = $wpdb->get_results( "SELECT id, name FROM {$table_name}", ARRAY_A );
+
+		$results = $wpdb->get_results( "SELECT id, name FROM `{$full_table_name}`", ARRAY_A );
 		$views   = [ '0' => __( 'Default View (All Tickets)', 'supportcandy-plus' ) ];
 		if ( $results ) {
 			foreach ( $results as $view ) {
@@ -209,34 +223,6 @@ class SCP_Admin_Settings {
 		return $views;
 	}
 
-	/**
-	 * Gets a list of available columns (standard + custom).
-	 */
-	private function get_supportcandy_columns() {
-		global $wpdb;
-		$columns = [
-			'id'          => __( 'Ticket ID', 'supportcandy-plus' ),
-			'subject'     => __( 'Subject', 'supportcandy-plus' ),
-			'status'      => __( 'Status', 'supportcandy-plus' ),
-			'category'    => __( 'Category', 'supportcandy-plus' ),
-			'priority'    => __( 'Priority', 'supportcandy-plus' ),
-			'customer'    => __( 'Customer', 'supportcandy-plus' ),
-			'agent'       => __( 'Agent', 'supportcandy-plus' ),
-			'last_reply'  => __( 'Last Reply', 'supportcandy-plus' ),
-			'date'        => __( 'Date', 'supportcandy-plus' ),
-		];
-
-		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
-		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) === $custom_fields_table ) {
-			$custom_fields = $wpdb->get_results( "SELECT name, label FROM {$custom_fields_table}", ARRAY_A );
-			if ( $custom_fields ) {
-				foreach ( $custom_fields as $field ) {
-					$columns[ 'cust_' . $field['name'] ] = $field['label'];
-				}
-			}
-		}
-		return $columns;
-	}
 
 	/**
 	 * Render a checkbox field.
@@ -294,7 +280,7 @@ class SCP_Admin_Settings {
 		}
 
 		// Text fields
-		$text_fields = [ 'priority_column_name', 'low_priority_text', 'ticket_type_custom_field_name', 'view_filter_name' ];
+		$text_fields = [ 'ticket_type_custom_field_name', 'views_table_name' ];
 		foreach ( $text_fields as $key ) {
 			if ( isset( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = sanitize_text_field( $input[ $key ] );

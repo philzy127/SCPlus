@@ -54,6 +54,7 @@ final class SupportCandy_Plus {
 		define( 'SCP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 		define( 'SCP_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 		define( 'SCP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+		define( 'SCP_VERSION', '2.1.0' );
 	}
 
 	/**
@@ -113,7 +114,7 @@ final class SupportCandy_Plus {
 			'supportcandy-plus-frontend',
 			SCP_PLUGIN_URL . 'assets/js/supportcandy-plus-frontend.js',
 			array( 'jquery' ),
-			'2.0.0',
+			SCP_VERSION,
 			true
 		);
 
@@ -125,9 +126,6 @@ final class SupportCandy_Plus {
 					'enabled' => ! empty( $options['enable_hover_card'] ),
 					'delay'   => ! empty( $options['hover_card_delay'] ) ? absint( $options['hover_card_delay'] ) : 1000,
 				],
-				'column_hider'       => [
-					'enabled'         => ! empty( $options['enable_column_hider'] ),
-				],
 				'ticket_type_hiding' => [
 					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
 					'field_id'      => $this->get_custom_field_id_by_name( ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '' ),
@@ -136,7 +134,7 @@ final class SupportCandy_Plus {
 				'conditional_hiding' => [
 					'enabled' => ! empty( $options['enable_conditional_hiding'] ),
 					'rules'   => isset( $options['conditional_hiding_rules'] ) ? $options['conditional_hiding_rules'] : [],
-					'columns' => $this->get_supportcandy_columns_for_frontend(),
+					'columns' => $this->get_supportcandy_columns(),
 				],
 			],
 		];
@@ -157,19 +155,26 @@ final class SupportCandy_Plus {
 			return;
 		}
 
+		wp_enqueue_style(
+			'supportcandy-plus-admin',
+			SCP_PLUGIN_URL . 'assets/admin/css/supportcandy-plus-admin.css',
+			array(),
+			SCP_VERSION
+		);
+
 		wp_enqueue_script(
 			'supportcandy-plus-admin',
 			SCP_PLUGIN_URL . 'assets/admin/js/supportcandy-plus-admin.js',
 			array( 'jquery' ),
-			'2.2.0', // Version for admin script
+			SCP_VERSION,
 			true
 		);
 	}
 
 	/**
-	 * Gets a list of available columns for the frontend.
+	 * Gets a list of available columns (standard + custom).
 	 */
-	public function get_supportcandy_columns_for_frontend() {
+	public function get_supportcandy_columns() {
 		global $wpdb;
 		$columns = [
 			'id'          => __( 'Ticket ID', 'supportcandy-plus' ),
