@@ -79,39 +79,6 @@ final class SupportCandy_Plus {
 	}
 
 	/**
-	 * Get the ID of a SupportCandy custom field by its name.
-	 *
-	 * @param string $field_name The name of the custom field.
-	 * @return int The ID of the custom field, or 0 if not found.
-	 */
-	public function get_custom_field_id_by_name( $field_name ) {
-		global $wpdb;
-		if ( empty( $field_name ) ) {
-			return 0;
-		}
-		// The user specified the table name might be wpya_psmsc_custom_fields.
-		// Standard WordPress table names are prefixed with $wpdb->prefix.
-		// Assuming the table is psmsc_custom_fields.
-		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
-
-		// Check if table exists to prevent errors.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
-			return 0;
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$field_id = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT id FROM {$table_name} WHERE extra_info = %s",
-				$field_name
-			)
-		);
-
-		return $field_id ? (int) $field_id : 0;
-	}
-
-	/**
 	 * Enqueue scripts and styles.
 	 */
 	public function enqueue_scripts() {
@@ -124,9 +91,6 @@ final class SupportCandy_Plus {
 			'2.0.0',
 			true
 		);
-
-		$ticket_type_field_name = ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '';
-		$ticket_type_field_id   = $this->get_custom_field_id_by_name( $ticket_type_field_name );
 
 		$localized_data = [
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
@@ -143,7 +107,6 @@ final class SupportCandy_Plus {
 				],
 				'ticket_type_hiding' => [
 					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
-					'field_id'      => $ticket_type_field_id,
 					'types_to_hide' => ! empty( $options['ticket_types_to_hide'] ) ? array_map( 'trim', explode( "\n", $options['ticket_types_to_hide'] ) ) : [],
 				],
 				'conditional_hiding' => [

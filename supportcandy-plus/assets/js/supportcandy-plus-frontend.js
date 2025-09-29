@@ -157,15 +157,14 @@
 
 	/**
 	 * Feature: Hide Ticket Types from Non-Agents.
-	 * Uses a dynamic field ID and a configurable list of types to hide.
+	 * Uses a hardcoded selector and a configurable list of types to hide.
 	 */
 	function feature_hide_ticket_types_for_non_agents() {
 		const isAgent = document.querySelector('.wpsc-menu-list.agent-profile, #menu-item-8128');
-		const fieldId = features.ticket_type_hiding.field_id;
 		const typesToHide = features.ticket_type_hiding.types_to_hide;
 
-		if (!isAgent && fieldId && typesToHide.length) {
-			const select = document.querySelector(`select[name="cust_${fieldId}"]`);
+		if (!isAgent && typesToHide.length) {
+			const select = document.querySelector('select[name="cust_39"]');
 			if (select && $.fn.select2) {
 				const $select = $(select);
 				let changesMade = false;
