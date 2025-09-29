@@ -1,6 +1,6 @@
 <?php
 /**
- * SupportCandy Plus Admin Settings
+ * SupportCandy Plus Admin Settings (Advanced)
  *
  * @package SupportCandy_Plus
  */
@@ -26,12 +26,14 @@ class SCP_Admin_Settings {
 	 * Add the admin menu item.
 	 */
 	public function add_admin_menu() {
-		add_options_page(
+		add_menu_page(
 			__( 'SupportCandy Plus Settings', 'supportcandy-plus' ),
 			__( 'SupportCandy Plus', 'supportcandy-plus' ),
 			'manage_options',
 			'supportcandy-plus',
-			array( $this, 'settings_page_content' )
+			array( $this, 'settings_page_content' ),
+			'dashicons-plus-alt',
+			3
 		);
 	}
 
@@ -54,163 +56,109 @@ class SCP_Admin_Settings {
 	}
 
 	/**
-	 * Register the settings.
+	 * Register the settings sections and fields.
 	 */
 	public function register_settings() {
 		register_setting( 'scp_settings', 'scp_settings', array( $this, 'sanitize_settings' ) );
 
-		// General Settings Section.
-		add_settings_section(
-			'scp_general_section',
-			__( 'General Settings', 'supportcandy-plus' ),
-			null,
-			'supportcandy-plus'
-		);
+		// Section: Ticket Hover Card
+		add_settings_section( 'scp_hover_card_section', __( 'Ticket Hover Card', 'supportcandy-plus' ), null, 'supportcandy-plus' );
+		add_settings_field( 'scp_enable_hover_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'enable_hover_card', 'desc' => 'Enable a floating card with ticket details on hover.' ] );
+		add_settings_field( 'scp_hover_card_delay', __( 'Hover Delay (ms)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'hover_card_delay', 'desc' => 'Time to wait before showing the card. Default: 1000.', 'default' => 1000 ] );
 
-		// Feature Toggles.
-		add_settings_field(
-			'scp_enable_hover_card',
-			__( 'Enable Ticket Hover Card', 'supportcandy-plus' ),
-			array( $this, 'render_checkbox_field' ),
-			'supportcandy-plus',
-			'scp_general_section',
-			array(
-				'label_for' => 'scp_enable_hover_card',
-				'id'        => 'scp_enable_hover_card',
-				'name'      => 'enable_hover_card',
-				'desc'      => __( 'Enable a floating card with ticket details on hover.', 'supportcandy-plus' ),
-			)
-		);
+		// Section: Dynamic Column Hider
+		add_settings_section( 'scp_dynamic_hiding_section', __( 'Dynamic Column Hider', 'supportcandy-plus' ), null, 'supportcandy-plus' );
+		add_settings_field( 'scp_enable_column_hider', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'enable_column_hider', 'desc' => 'Hide columns that are empty or meet specific criteria.' ] );
+		add_settings_field( 'scp_priority_column_name', __( 'Priority Column Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'priority_column_name', 'desc' => 'The exact name of the priority column. Default: Priority.', 'default' => 'Priority' ] );
+		add_settings_field( 'scp_low_priority_text', __( 'Low Priority Text', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_dynamic_hiding_section', [ 'id' => 'low_priority_text', 'desc' => 'The text for low priority tickets. Default: Low.', 'default' => 'Low' ] );
 
-		add_settings_field(
-			'scp_enable_column_hider',
-			__( 'Enable Dynamic Column Hiding', 'supportcandy-plus' ),
-			array( $this, 'render_checkbox_field' ),
-			'supportcandy-plus',
-			'scp_general_section',
-			array(
-				'label_for' => 'scp_enable_column_hider',
-				'id'        => 'scp_enable_column_hider',
-				'name'      => 'enable_column_hider',
-				'desc'      => __( 'Hide empty columns and the "Priority" column when all are low.', 'supportcandy-plus' ),
-			)
-		);
+		// Section: Ticket Type Hiding
+		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), null, 'supportcandy-plus' );
+		add_settings_field( 'scp_enable_ticket_type_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'enable_ticket_type_hiding', 'desc' => 'Hide specific ticket types from non-agent users.' ] );
+		add_settings_field( 'scp_ticket_type_custom_field_name', __( 'Custom Field Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_type_custom_field_name', 'desc' => 'The name of the custom field for ticket types (e.g., "Ticket Category"). The plugin will find the ID dynamically.' ] );
+		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
 
-		add_settings_field(
-			'scp_enable_ticket_type_hiding',
-			__( 'Enable Ticket Type Hiding for Non-Agents', 'supportcandy-plus' ),
-			array( $this, 'render_checkbox_field' ),
-			'supportcandy-plus',
-			'scp_general_section',
-			array(
-				'label_for' => 'scp_enable_ticket_type_hiding',
-				'id'        => 'scp_enable_ticket_type_hiding',
-				'name'      => 'enable_ticket_type_hiding',
-				'desc'      => __( 'Hide specific ticket types from non-agent users.', 'supportcandy-plus' ),
-			)
-		);
-
-		// Column Hiding Settings Section.
-		add_settings_section(
-			'scp_column_hiding_section',
-			__( 'Conditional Column Hiding', 'supportcandy-plus' ),
-			null,
-			'supportcandy-plus'
-		);
-
-		add_settings_field(
-			'scp_view_filter_name',
-			__( 'Filter Name to Trigger Hiding', 'supportcandy-plus' ),
-			array( $this, 'render_text_field' ),
-			'supportcandy-plus',
-			'scp_column_hiding_section',
-			array(
-				'label_for' => 'scp_view_filter_name',
-				'id'        => 'scp_view_filter_name',
-				'name'      => 'view_filter_name',
-				'desc'      => __( 'e.g., "Network Access Requests"', 'supportcandy-plus' ),
-			)
-		);
-
-		add_settings_field(
-			'scp_columns_to_hide_in_view',
-			__( 'Columns to Hide in Special View', 'supportcandy-plus' ),
-			array( $this, 'render_text_field' ),
-			'supportcandy-plus',
-			'scp_column_hiding_section',
-			array(
-				'label_for' => 'scp_columns_to_hide_in_view',
-				'id'        => 'scp_columns_to_hide_in_view',
-				'name'      => 'columns_to_hide_in_view',
-				'desc'      => __( 'Comma-separated list of column names (e.g., "Name").', 'supportcandy-plus' ),
-			)
-		);
-
-		add_settings_field(
-			'scp_columns_to_show_in_view',
-			__( 'Columns to Show Only in Special View', 'supportcandy-plus' ),
-			array( $this, 'render_text_field' ),
-			'supportcandy-plus',
-			'scp_column_hiding_section',
-			array(
-				'label_for' => 'scp_columns_to_show_in_view',
-				'id'        => 'scp_columns_to_show_in_view',
-				'name'      => 'columns_to_show_in_view',
-				'desc'      => __( 'Comma-separated list of column names (e.g., "Anticipated Start Date").', 'supportcandy-plus' ),
-			)
-		);
+		// Section: Conditional Column Hiding
+		add_settings_section( 'scp_conditional_hiding_section', __( 'Conditional Column Hiding by Filter', 'supportcandy-plus' ), null, 'supportcandy-plus' );
+		add_settings_field( 'scp_enable_conditional_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'enable_conditional_hiding', 'desc' => 'Show or hide columns based on the selected view filter.' ] );
+		add_settings_field( 'scp_view_filter_name', __( 'Filter Name for Special View', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'view_filter_name', 'desc' => 'The exact name of the filter to trigger this rule, e.g., "Network Access Requests".' ] );
+		add_settings_field( 'scp_columns_to_hide_in_view', __( 'Columns to HIDE in Special View', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'columns_to_hide_in_view', 'desc' => 'Columns to hide when the special filter is active. One per line.' ] );
+		add_settings_field( 'scp_columns_to_show_in_view', __( 'Columns to SHOW ONLY in Special View', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'columns_to_show_in_view', 'desc' => 'Columns that are normally hidden but should appear for this view. One per line.' ] );
 	}
 
 	/**
 	 * Render a checkbox field.
-	 *
-	 * @param array $args The field arguments.
 	 */
 	public function render_checkbox_field( $args ) {
-		$options = get_option( 'scp_settings' );
-		$value   = isset( $options[ $args['name'] ] ) ? 1 : 0;
-		echo '<input type="checkbox" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['name'] ) . ']" value="1" ' . checked( 1, $value, false ) . '>';
-		if ( ! empty( $args['desc'] ) ) {
-			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
-		}
+		$options = get_option( 'scp_settings', [] );
+		$value   = isset( $options[ $args['id'] ] ) ? 1 : 0;
+		echo '<input type="checkbox" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="1" ' . checked( 1, $value, false ) . '>';
+		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
 	}
 
 	/**
 	 * Render a text field.
-	 *
-	 * @param array $args The field arguments.
 	 */
 	public function render_text_field( $args ) {
-		$options = get_option( 'scp_settings' );
-		$value   = isset( $options[ $args['name'] ] ) ? $options[ $args['name'] ] : '';
-		echo '<input type="text" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['name'] ) . ']" value="' . esc_attr( $value ) . '" class="regular-text">';
-		if ( ! empty( $args['desc'] ) ) {
-			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
-		}
+		$options = get_option( 'scp_settings', [] );
+		$value   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : ( $args['default'] ?? '' );
+		echo '<input type="text" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="' . esc_attr( $value ) . '" class="regular-text">';
+		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+	}
+
+	/**
+	 * Render a number field.
+	 */
+	public function render_number_field( $args ) {
+		$options = get_option( 'scp_settings', [] );
+		$value   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : ( $args['default'] ?? '' );
+		echo '<input type="number" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="' . esc_attr( $value ) . '" class="small-text">';
+		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+	}
+
+	/**
+	 * Render a textarea field.
+	 */
+	public function render_textarea_field( $args ) {
+		$options = get_option( 'scp_settings', [] );
+		$value   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '';
+		echo '<textarea id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" rows="5" class="large-text">' . esc_textarea( $value ) . '</textarea>';
+		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
 	}
 
 	/**
 	 * Sanitize the settings.
-	 *
-	 * @param array $input The input settings.
-	 * @return array The sanitized settings.
 	 */
 	public function sanitize_settings( $input ) {
-		$sanitized_input = array();
+		$sanitized_input = [];
+		$options         = get_option( 'scp_settings', [] );
 
-		// Sanitize checkboxes.
-		$checkboxes = array( 'enable_hover_card', 'enable_column_hider', 'enable_ticket_type_hiding' );
+		// Checkboxes
+		$checkboxes = [ 'enable_hover_card', 'enable_column_hider', 'enable_ticket_type_hiding', 'enable_conditional_hiding' ];
 		foreach ( $checkboxes as $key ) {
 			if ( ! empty( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = 1;
 			}
 		}
 
-		// Sanitize text fields.
-		$text_fields = array( 'view_filter_name', 'columns_to_hide_in_view', 'columns_to_show_in_view' );
+		// Text fields
+		$text_fields = [ 'priority_column_name', 'low_priority_text', 'ticket_type_custom_field_name', 'view_filter_name' ];
 		foreach ( $text_fields as $key ) {
 			if ( isset( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = sanitize_text_field( $input[ $key ] );
+			}
+		}
+
+		// Number fields
+		if ( isset( $input['hover_card_delay'] ) ) {
+			$sanitized_input['hover_card_delay'] = absint( $input['hover_card_delay'] );
+		}
+
+		// Textarea fields
+		$textarea_fields = [ 'ticket_types_to_hide', 'columns_to_hide_in_view', 'columns_to_show_in_view' ];
+		foreach ( $textarea_fields as $key ) {
+			if ( isset( $input[ $key ] ) ) {
+				$sanitized_input[ $key ] = sanitize_textarea_field( $input[ $key ] );
 			}
 		}
 

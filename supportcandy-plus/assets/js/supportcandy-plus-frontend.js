@@ -1,8 +1,9 @@
 /**
- * SupportCandy Plus Frontend Script
+ * SupportCandy Plus Frontend Script (v2.0.0 - Advanced)
  *
- * This script contains all the frontend functionality for the SupportCandy Plus plugin.
- * It is loaded on pages where SupportCandy tickets are displayed.
+ * This script is fully configurable via the admin settings page.
+ * It uses a single MutationObserver for efficiency and is driven by the
+ * `scp_settings` object localized from PHP.
  *
  * @package SupportCandy_Plus
  */
@@ -10,196 +11,110 @@
 (function ($) {
 	'use strict';
 
-	// Will be populated by wp_localize_script
-	const scp_settings = window.scp_settings || {};
+	// `scp_settings` is localized from PHP in the main plugin file.
+	const settings = window.scp_settings || {};
+	const features = settings.features || {};
 
 	/**
-	 * Main function to initialize all features.
+	 * Main initializer. Sets up a MutationObserver to watch for DOM changes,
+	 * ensuring features are applied even on AJAX-loaded content.
 	 */
 	function init() {
-		// A single observer for all DOM mutations.
 		const observer = new MutationObserver(function (mutations) {
-			mutations.forEach(function (mutation) {
-				if (mutation.addedNodes.length) {
-					run_features();
-				}
-			});
+			// A simple check is enough, as run_features() is idempotent.
+			if (mutations.length) {
+				run_features();
+			}
 		});
 
-		// Start observing the document body.
 		observer.observe(document.body, {
 			childList: true,
 			subtree: true,
 		});
 
-		// Initial run.
+		// Initial run on page load.
 		run_features();
 	}
 
 	/**
-	 * Run all enabled features.
+	 * Central dispatcher. Checks if features are enabled in the settings
+	 * and calls the corresponding function.
 	 */
 	function run_features() {
-		if (scp_settings.enable_column_hider) {
-			feature_dynamic_column_hider();
-		}
-		if (scp_settings.enable_ticket_type_hiding) {
-			feature_hide_ticket_types_for_non_agents();
-		}
-		if (scp_settings.enable_hover_card) {
+		if (features.hover_card?.enabled) {
 			feature_ticket_hover_card();
 		}
-        feature_conditional_column_hiding(); // This one has its own internal checks
-	}
-
-	/**
-	 * Feature: Dynamically hides columns.
-	 */
-	function feature_dynamic_column_hider() {
-		const table = document.querySelector('table.wpsc-ticket-list-tbl');
-		const tbody = table?.querySelector('tbody');
-		if (!table || !tbody || !tbody.rows.length) return;
-
-		const headers = table.querySelectorAll('thead tr th');
-		const rows = Array.from(tbody.querySelectorAll('tr'));
-
-		if (!headers.length || !rows.length) return;
-
-		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
-		const columnsToHide = new Set();
-
-		headers.forEach((th, i) => {
-			const headerText = th.textContent.trim().toLowerCase();
-
-			if (headerText === 'priority') {
-				const hasNonLow = matrix.some(row => row[i] && row[i].toLowerCase() !== 'low');
-				if (!hasNonLow) {
-					columnsToHide.add(i);
-				}
-				return;
-			}
-
-			const allEmpty = matrix.every(row => !row[i]);
-			if (allEmpty) {
-				columnsToHide.add(i);
-			}
-		});
-
-		// Reset: Show all first
-		headers.forEach((th, i) => th.style.display = '');
-		rows.forEach(row => {
-			Array.from(row.children).forEach(td => td.style.display = '');
-		});
-
-		// Apply hiding
-		columnsToHide.forEach(i => {
-			if (headers[i]) headers[i].style.display = 'none';
-			rows.forEach(row => {
-				if (row.children[i]) row.children[i].style.display = 'none';
-			});
-		});
-	}
-
-	/**
-	 * Feature: Hide ticket types from non-agents.
-	 */
-	function feature_hide_ticket_types_for_non_agents() {
-		const isAgent = !!document.querySelector('.wpsc-menu-list.agent-profile') || !!document.querySelector('#menu-item-8128');
-
-		if (!isAgent) {
-			const select = document.querySelector('select[name="cust_39"]');
-			if (select && window.jQuery && window.jQuery.fn.select2) {
-				const $select = window.jQuery(select);
-				$select.find('option').each(function () {
-					const optionText = $(this).text().trim();
-					if (optionText === 'Network Access Request' || optionText === 'Video Archive Request') {
-						$(this).remove();
-					}
-				});
-				$select.trigger('change.select2');
-			}
+		if (features.column_hider?.enabled) {
+			feature_dynamic_column_hider();
+		}
+		if (features.ticket_type_hiding?.enabled) {
+			feature_hide_ticket_types_for_non_agents();
+		}
+		if (features.conditional_hiding?.enabled) {
+			feature_conditional_column_hiding();
 		}
 	}
 
 	/**
 	 * Feature: Ticket Hover Card.
+	 * Configurable delay and uses a dynamic nonce.
 	 */
 	function feature_ticket_hover_card() {
 		let floatingCard = document.getElementById('floatingTicketCard');
 		if (!floatingCard) {
 			floatingCard = document.createElement('div');
 			floatingCard.id = 'floatingTicketCard';
-			floatingCard.style.position = 'absolute';
-			floatingCard.style.zIndex = '9999';
-			floatingCard.style.background = '#fff';
-			floatingCard.style.border = '1px solid #ccc';
-			floatingCard.style.padding = '10px';
-			floatingCard.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-			floatingCard.style.maxWidth = '400px';
-			floatingCard.style.display = 'none';
+			Object.assign(floatingCard.style, {
+				position: 'absolute', zIndex: '9999', background: '#fff',
+				border: '1px solid #ccc', padding: '10px',
+				boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)', maxWidth: '400px',
+				display: 'none'
+			});
 			document.body.appendChild(floatingCard);
 		}
 
 		const cache = {};
+		const delay = features.hover_card.delay || 1000;
 
 		async function fetchTicketDetails(ticketId) {
-			if (cache[ticketId]) {
-				return cache[ticketId];
-			}
-
+			if (cache[ticketId]) return cache[ticketId];
 			try {
-				const response = await fetch(scp_settings.ajax_url, {
+				const response = await fetch(settings.ajax_url, {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-					},
+					headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 					body: new URLSearchParams({
 						action: 'wpsc_get_individual_ticket',
-						nonce: scp_settings.nonce,
+						nonce: settings.nonce,
 						ticket_id: ticketId
 					})
 				});
-
-				if (!response.ok) {
-					return '<div>Error fetching ticket info.</div>';
-				}
-
+				if (!response.ok) return '<div>Error fetching ticket info.</div>';
 				const html = await response.text();
-				const parser = new DOMParser();
-				const doc = parser.parseFromString(html, 'text/html');
-				const widget = doc.querySelector('.wpsc-it-widget.wpsc-itw-ticket-fields');
-				const content = widget ? widget.outerHTML : '<div>No details found.</div>';
-				cache[ticketId] = content;
-				return content;
-
+				const doc = new DOMParser().parseFromString(html, 'text/html');
+				const content = doc.querySelector('.wpsc-it-widget.wpsc-itw-ticket-fields')?.outerHTML || '<div>No details found.</div>';
+				return (cache[ticketId] = content);
 			} catch (error) {
 				return '<div>Error fetching ticket info.</div>';
 			}
 		}
 
-		document.querySelectorAll('tr.wpsc_tl_tr').forEach(row => {
-			if (row._hoverAttached) return;
-			row._hoverAttached = true;
-
+		document.querySelectorAll('tr.wpsc_tl_tr:not(._hoverAttached)').forEach(row => {
+			row.classList.add('_hoverAttached');
 			let hoverTimeout;
 			row.addEventListener('mouseenter', () => {
 				clearTimeout(hoverTimeout);
 				hoverTimeout = setTimeout(async () => {
-					const onclickText = row.getAttribute('onclick');
-					const match = onclickText && onclickText.match(/wpsc_tl_handle_click\(.*?,\s*(\d+),/);
-					const ticketId = match && match[1];
+					const ticketId = row.getAttribute('onclick')?.match(/wpsc_tl_handle_click\(.*?,\s*(\d+),/)?.[1];
 					if (ticketId) {
 						floatingCard.innerHTML = 'Loading...';
 						floatingCard.style.display = 'block';
-						const content = await fetchTicketDetails(ticketId);
-						floatingCard.innerHTML = content;
+						floatingCard.innerHTML = await fetchTicketDetails(ticketId);
 						const rect = row.getBoundingClientRect();
 						floatingCard.style.top = `${rect.bottom + window.scrollY + 5}px`;
 						floatingCard.style.left = `${rect.left + window.scrollX}px`;
 					}
-				}, 1000);
+				}, delay);
 			});
-
 			row.addEventListener('mouseleave', () => {
 				clearTimeout(hoverTimeout);
 				floatingCard.style.display = 'none';
@@ -207,80 +122,112 @@
 		});
 	}
 
-    /**
-     * Feature: Conditionally hide/show columns based on filter.
-     */
-    function feature_conditional_column_hiding() {
-        const table = document.querySelector('.wpsc-ticket-list-tbl');
-        const filter = document.querySelector('#wpsc-input-filter');
+	/**
+	 * Feature: Dynamic Column Hider.
+	 * Hides empty columns and a configurable priority column if all values match.
+	 */
+	function feature_dynamic_column_hider() {
+		const table = document.querySelector('table.wpsc-ticket-list-tbl');
+		if (!table?.querySelector('tbody')?.rows.length) return;
 
-        if (!table || !filter) {
-            return;
-        }
+		const headers = Array.from(table.querySelectorAll('thead tr th'));
+		const rows = Array.from(table.querySelectorAll('tbody tr'));
+		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
+		const columnsToHide = new Set();
+		const priorityColumnName = features.column_hider.priority_column.toLowerCase();
+		const lowPriorityText = features.column_hider.low_priority_text.toLowerCase();
 
-        const selectedText = filter.options[filter.selectedIndex].text.trim();
-        const viewFilterName = scp_settings.view_filter_name || '';
-        const columnsToHideStr = scp_settings.columns_to_hide_in_view || '';
-        const columnsToShowStr = scp_settings.columns_to_show_in_view || '';
+		headers.forEach((th, i) => {
+			const headerText = th.textContent.trim().toLowerCase();
+			if (headerText === priorityColumnName) {
+				if (!matrix.some(row => row[i]?.toLowerCase() !== lowPriorityText)) {
+					columnsToHide.add(i);
+				}
+			}
+			if (matrix.every(row => !row[i])) {
+				columnsToHide.add(i);
+			}
+		});
 
-        const columnsToHide = columnsToHideStr.split(',').map(s => s.trim()).filter(Boolean);
-        const columnsToShow = columnsToShowStr.split(',').map(s => s.trim()).filter(Boolean);
+		headers.forEach((th, i) => th.style.display = columnsToHide.has(i) ? 'none' : '');
+		rows.forEach(row => {
+			Array.from(row.children).forEach((td, i) => td.style.display = columnsToHide.has(i) ? 'none' : '');
+		});
+	}
 
-        const allRows = Array.from(table.querySelectorAll('tr'));
-        const headerRow = allRows[0];
-        if (!headerRow) {
-            return;
-        }
+	/**
+	 * Feature: Hide Ticket Types from Non-Agents.
+	 * Uses a dynamic field ID and a configurable list of types to hide.
+	 */
+	function feature_hide_ticket_types_for_non_agents() {
+		const isAgent = document.querySelector('.wpsc-menu-list.agent-profile, #menu-item-8128');
+		const fieldId = features.ticket_type_hiding.field_id;
+		const typesToHide = features.ticket_type_hiding.types_to_hide;
 
-        const headers = Array.from(headerRow.querySelectorAll('th'));
+		if (!isAgent && fieldId && typesToHide.length) {
+			const select = document.querySelector(`select[name="cust_${fieldId}"]`);
+			if (select && $.fn.select2) {
+				const $select = $(select);
+				let changesMade = false;
+				$select.find('option').each(function () {
+					const optionText = $(this).text().trim();
+					if (typesToHide.includes(optionText)) {
+						$(this).remove();
+						changesMade = true;
+					}
+				});
+				if (changesMade) {
+					$select.trigger('change.select2');
+				}
+			}
+		}
+	}
 
-        // First, reset all columns that this feature might touch
-        const allManagedColumns = [...columnsToHide, ...columnsToShow];
-        const allManagedIndices = allManagedColumns.map(headerName =>
-            headers.findIndex(h => h.innerText.trim() === headerName)
-        ).filter(index => index !== -1);
+	/**
+	 * Feature: Conditional Column Hiding by Filter.
+	 * Shows/hides columns based on the selected filter view. Fully configurable.
+	 */
+	function feature_conditional_column_hiding() {
+		const table = document.querySelector('.wpsc-ticket-list-tbl');
+		const filter = document.querySelector('#wpsc-input-filter');
+		if (!table || !filter) return;
 
-        allRows.forEach(row => {
-            allManagedIndices.forEach(index => {
-                if (row.cells[index]) {
-                    row.cells[index].style.display = '';
-                }
-            });
-        });
+		const config = features.conditional_hiding;
+		const selectedText = filter.options[filter.selectedIndex].text.trim();
+		const headers = Array.from(table.querySelectorAll('thead tr th'));
+		const allManagedColumns = [...config.hide_in_view, ...config.show_only_in_view];
 
-        // Now, apply the specific logic
-        if (selectedText === viewFilterName) {
-            // HIDE columns that should NOT be in this view
-            const hideIndices = columnsToHide.map(headerName =>
-                headers.findIndex(h => h.innerText.trim() === headerName)
-            ).filter(index => index !== -1);
+		const getColumnIndices = (columnNames) =>
+			columnNames.map(name => headers.findIndex(h => h.textContent.trim() === name)).filter(i => i !== -1);
 
-            allRows.forEach(row => {
-                hideIndices.forEach(index => {
-                    if (row.cells[index]) {
-                        row.cells[index].style.display = 'none';
-                    }
-                });
-            });
-        } else {
-            // HIDE columns that should ONLY be in the special view
-            const showIndices = columnsToShow.map(headerName =>
-                headers.findIndex(h => h.innerText.trim() === headerName)
-            ).filter(index => index !== -1);
+		const allManagedIndices = getColumnIndices(allManagedColumns);
 
-            allRows.forEach(row => {
-                showIndices.forEach(index => {
-                    if (row.cells[index]) {
-                        row.cells[index].style.display = 'none';
-                    }
-                });
-            });
-        }
-    }
+		// Reset styles for all managed columns first
+		table.querySelectorAll('tr').forEach(row => {
+			allManagedIndices.forEach(index => {
+				if (row.cells[index]) row.cells[index].style.display = '';
+			});
+		});
+
+		let indicesToHide = [];
+		if (selectedText === config.filter_name) {
+			// We are in the special view, hide the "hide_in_view" columns
+			indicesToHide = getColumnIndices(config.hide_in_view);
+		} else {
+			// We are in a normal view, hide the "show_only_in_view" columns
+			indicesToHide = getColumnIndices(config.show_only_in_view);
+		}
+
+		if (indicesToHide.length) {
+			table.querySelectorAll('tr').forEach(row => {
+				indicesToHide.forEach(index => {
+					if (row.cells[index]) row.cells[index].style.display = 'none';
+				});
+			});
+		}
+	}
 
 	// Wait for the DOM to be ready before initializing.
-	$(document).ready(function () {
-		init();
-	});
+	$(document).ready(init);
 
 })(jQuery);

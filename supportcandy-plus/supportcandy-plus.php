@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SupportCandy Plus
  * Description: A collection of enhancements for the SupportCandy plugin.
- * Version: 1.0.0
+ * Version: 2.0.0
  * Author: Jules
  * Author URI: https://example.com
  * Text Domain: supportcandy-plus
@@ -75,38 +75,85 @@ final class SupportCandy_Plus {
 	 * On plugins loaded.
 	 */
 	public function on_plugins_loaded() {
-		// Initialization logic here.
+		// Main initialization logic.
+	}
+
+	/**
+	 * Get the ID of a SupportCandy custom field by its name.
+	 *
+	 * @param string $field_name The name of the custom field.
+	 * @return int The ID of the custom field, or 0 if not found.
+	 */
+	public function get_custom_field_id_by_name( $field_name ) {
+		global $wpdb;
+		if ( empty( $field_name ) ) {
+			return 0;
+		}
+		// The user specified the table name might be wpya_psmsc_custom_fields.
+		// Standard WordPress table names are prefixed with $wpdb->prefix.
+		// Assuming the table is psmsc_custom_fields.
+		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
+
+		// Check if table exists to prevent errors.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$field_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$table_name} WHERE extra_info = %s",
+				$field_name
+			)
+		);
+
+		return $field_id ? (int) $field_id : 0;
 	}
 
 	/**
 	 * Enqueue scripts and styles.
 	 */
 	public function enqueue_scripts() {
-		// We only want to load our script on pages where SupportCandy is active.
-		// A simple check could be for a SupportCandy-specific body class,
-		// but for now, we'll assume it should load on the frontend.
-		// A more robust check can be added if needed.
-
-		$options = get_option( 'scp_settings' );
+		$options = get_option( 'scp_settings', [] );
 
 		wp_register_script(
 			'supportcandy-plus-frontend',
 			SCP_PLUGIN_URL . 'assets/js/supportcandy-plus-frontend.js',
 			array( 'jquery' ),
-			'1.0.0',
+			'2.0.0',
 			true
 		);
 
-		$localized_data = array(
-			'ajax_url'                   => admin_url( 'admin-ajax.php' ),
-			'nonce'                      => wp_create_nonce( 'wpsc_get_individual_ticket' ), // Nonce for the hover card feature
-			'enable_hover_card'          => ! empty( $options['enable_hover_card'] ),
-			'enable_column_hider'        => ! empty( $options['enable_column_hider'] ),
-			'enable_ticket_type_hiding'  => ! empty( $options['enable_ticket_type_hiding'] ),
-			'view_filter_name'           => ! empty( $options['view_filter_name'] ) ? $options['view_filter_name'] : '',
-			'columns_to_hide_in_view'    => ! empty( $options['columns_to_hide_in_view'] ) ? $options['columns_to_hide_in_view'] : '',
-			'columns_to_show_in_view'    => ! empty( $options['columns_to_show_in_view'] ) ? $options['columns_to_show_in_view'] : '',
-		);
+		$ticket_type_field_name = ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '';
+		$ticket_type_field_id   = $this->get_custom_field_id_by_name( $ticket_type_field_name );
+
+		$localized_data = [
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'nonce'    => wp_create_nonce( 'wpsc_get_individual_ticket' ),
+			'features' => [
+				'hover_card'         => [
+					'enabled' => ! empty( $options['enable_hover_card'] ),
+					'delay'   => ! empty( $options['hover_card_delay'] ) ? absint( $options['hover_card_delay'] ) : 1000,
+				],
+				'column_hider'       => [
+					'enabled'         => ! empty( $options['enable_column_hider'] ),
+					'priority_column' => ! empty( $options['priority_column_name'] ) ? $options['priority_column_name'] : 'Priority',
+					'low_priority_text' => ! empty( $options['low_priority_text'] ) ? $options['low_priority_text'] : 'Low',
+				],
+				'ticket_type_hiding' => [
+					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
+					'field_id'      => $ticket_type_field_id,
+					'types_to_hide' => ! empty( $options['ticket_types_to_hide'] ) ? array_map( 'trim', explode( "\n", $options['ticket_types_to_hide'] ) ) : [],
+				],
+				'conditional_hiding' => [
+					'enabled'           => ! empty( $options['enable_conditional_hiding'] ),
+					'filter_name'       => ! empty( $options['view_filter_name'] ) ? $options['view_filter_name'] : '',
+					'hide_in_view'      => ! empty( $options['columns_to_hide_in_view'] ) ? array_map( 'trim', explode( "\n", $options['columns_to_hide_in_view'] ) ) : [],
+					'show_only_in_view' => ! empty( $options['columns_to_show_in_view'] ) ? array_map( 'trim', explode( "\n", $options['columns_to_show_in_view'] ) ) : [],
+				],
+			],
+		];
 
 		wp_localize_script( 'supportcandy-plus-frontend', 'scp_settings', $localized_data );
 
