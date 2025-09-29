@@ -133,16 +133,16 @@ final class SupportCandy_Plus {
 		global $wpdb;
 		$columns = []; // Start with an empty array.
 
-		// Use the literal table name as specified by the user and fetch ONLY the custom fields.
+		// Use the literal table name as specified by the user and fetch the correct columns.
 		$custom_fields_table = 'wpya_psmsc_custom_fields';
 
 		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
-			// Correctly select the ID for the key and the LABEL for the display text.
-			$custom_fields = $wpdb->get_results( "SELECT id, label FROM `{$custom_fields_table}`", ARRAY_A );
+			// Correctly select the SLUG for the key and the NAME for the display text.
+			$custom_fields = $wpdb->get_results( "SELECT slug, name FROM `{$custom_fields_table}`", ARRAY_A );
 			if ( $custom_fields ) {
 				foreach ( $custom_fields as $field ) {
-					// The key must be in the format 'cust_ID' to match SupportCandy's internal identifiers.
-					$columns[ 'cust_' . $field['id'] ] = $field['label'];
+					// The key is the slug, and the value is the display name.
+					$columns[ $field['slug'] ] = $field['name'];
 				}
 			}
 		}
