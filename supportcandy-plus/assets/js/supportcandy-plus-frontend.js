@@ -149,14 +149,15 @@
 
 	/**
 	 * Feature: Hide Ticket Types from Non-Agents.
-	 * Uses a hardcoded selector and a configurable list of types to hide.
+	 * Uses a dynamic field ID and a configurable list of types to hide.
 	 */
 	function feature_hide_ticket_types_for_non_agents() {
 		const isAgent = document.querySelector('.wpsc-menu-list.agent-profile, #menu-item-8128');
+		const fieldId = features.ticket_type_hiding.field_id;
 		const typesToHide = features.ticket_type_hiding.types_to_hide;
 
-		if (!isAgent && typesToHide.length) {
-			const select = document.querySelector('select[name="cust_39"]');
+		if (!isAgent && fieldId && typesToHide.length) {
+			const select = document.querySelector(`select[name="cust_${fieldId}"]`);
 			if (select && $.fn.select2) {
 				const $select = $(select);
 				let changesMade = false;
@@ -175,46 +176,66 @@
 	}
 
 	/**
-	 * Feature: Conditional Column Hiding by Filter.
-	 * Shows/hides columns based on the selected filter view. Fully configurable.
+	 * Feature: Advanced Conditional Column Hiding Rule Engine.
+	 * Processes a set of rules to show or hide columns based on the current view.
 	 */
 	function feature_conditional_column_hiding() {
-		const table = document.querySelector('.wpsc-ticket-list-tbl');
+		const table = document.querySelector('table.wpsc-ticket-list-tbl');
 		const filter = document.querySelector('#wpsc-input-filter');
 		if (!table || !filter) return;
 
 		const config = features.conditional_hiding;
-		const selectedText = filter.options[filter.selectedIndex].text.trim();
+		const rules = config.rules;
+		const columnMap = config.columns; // Map of 'key' => 'Label'
+
+		if (!rules || !rules.length || !columnMap) return;
+
+		const currentViewId = filter.value || '0';
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
-		const allManagedColumns = [...config.hide_in_view, ...config.show_only_in_view];
+		const columnVisibility = {}; // Final state for each column *key*
 
-		const getColumnIndices = (columnNames) =>
-			columnNames.map(name => headers.findIndex(h => h.textContent.trim() === name)).filter(i => i !== -1);
-
-		const allManagedIndices = getColumnIndices(allManagedColumns);
-
-		// Reset styles for all managed columns first
-		table.querySelectorAll('tr').forEach(row => {
-			allManagedIndices.forEach(index => {
-				if (row.cells[index]) row.cells[index].style.display = '';
-			});
-		});
-
-		let indicesToHide = [];
-		if (selectedText === config.filter_name) {
-			// We are in the special view, hide the "hide_in_view" columns
-			indicesToHide = getColumnIndices(config.hide_in_view);
-		} else {
-			// We are in a normal view, hide the "show_only_in_view" columns
-			indicesToHide = getColumnIndices(config.show_only_in_view);
+		// 1. Initialize visibility state for all known columns to 'show'.
+		for (const key in columnMap) {
+			columnVisibility[key] = 'show';
 		}
 
-		if (indicesToHide.length) {
-			table.querySelectorAll('tr').forEach(row => {
-				indicesToHide.forEach(index => {
-					if (row.cells[index]) row.cells[index].style.display = 'none';
+		// 2. Process rules to determine the final visibility state for each column key.
+		rules.forEach(rule => {
+			const ruleIsActive = (rule.condition === 'in_view' && rule.view === currentViewId) ||
+								 (rule.condition === 'not_in_view' && rule.view !== currentViewId);
+
+			if (ruleIsActive) {
+				rule.columns.forEach(columnKey => {
+					if (columnVisibility.hasOwnProperty(columnKey)) {
+						columnVisibility[columnKey] = rule.action; // 'show' or 'hide'
+					}
 				});
-			});
+			}
+		});
+
+		// 3. Create a map of header text to header index for quick lookup.
+		const headerIndexMap = {};
+		headers.forEach((th, index) => {
+			headerIndexMap[th.textContent.trim()] = index;
+		});
+
+		// 4. Apply the final state to the table columns.
+		for (const columnKey in columnVisibility) {
+			const columnLabel = columnMap[columnKey];
+			if (headerIndexMap.hasOwnProperty(columnLabel)) {
+				const columnIndex = headerIndexMap[columnLabel];
+				const shouldHide = columnVisibility[columnKey] === 'hide';
+
+				if (headers[columnIndex]) {
+					headers[columnIndex].style.display = shouldHide ? 'none' : '';
+				}
+
+				table.querySelectorAll('tbody tr').forEach(row => {
+					if (row.cells[columnIndex]) {
+						row.cells[columnIndex].style.display = shouldHide ? 'none' : '';
+					}
+				});
+			}
 		}
 	}
 

@@ -73,14 +73,31 @@ class SCP_Admin_Settings {
 		// Section: Ticket Type Hiding
 		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_ticket_type_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'enable_ticket_type_hiding', 'desc' => 'Hide specific ticket types from non-agent users.' ] );
+		add_settings_field( 'scp_ticket_type_custom_field_name', __( 'Custom Field Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_type_custom_field_name', 'desc' => 'The name of the custom field for ticket types (e.g., "Ticket Category"). The plugin will find the ID dynamically.' ] );
 		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
 
 		// Section: Conditional Column Hiding
-		add_settings_section( 'scp_conditional_hiding_section', __( 'Conditional Column Hiding by Filter', 'supportcandy-plus' ), null, 'supportcandy-plus' );
-		add_settings_field( 'scp_enable_conditional_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'enable_conditional_hiding', 'desc' => 'Show or hide columns based on the selected view filter.' ] );
-		add_settings_field( 'scp_view_filter_name', __( 'Filter Name for Special View', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'view_filter_name', 'desc' => 'The exact name of the filter to trigger this rule, e.g., "Network Access Requests".' ] );
-		add_settings_field( 'scp_columns_to_hide_in_view', __( 'Columns to HIDE in Special View', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'columns_to_hide_in_view', 'desc' => 'Columns to hide when the special filter is active. One per line.' ] );
-		add_settings_field( 'scp_columns_to_show_in_view', __( 'Columns to SHOW ONLY in Special View', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_conditional_hiding_section', [ 'id' => 'columns_to_show_in_view', 'desc' => 'Columns that are normally hidden but should appear for this view. One per line.' ] );
+		add_settings_section(
+			'scp_conditional_hiding_section',
+			__( 'Conditional Column Hiding Rules', 'supportcandy-plus' ),
+			array( $this, 'render_conditional_hiding_description' ),
+			'supportcandy-plus'
+		);
+		add_settings_field(
+			'scp_enable_conditional_hiding',
+			__( 'Enable Feature', 'supportcandy-plus' ),
+			array( $this, 'render_checkbox_field' ),
+			'supportcandy-plus',
+			'scp_conditional_hiding_section',
+			[ 'id' => 'enable_conditional_hiding', 'desc' => 'Enable the rule-based system to show or hide columns.' ]
+		);
+		add_settings_field(
+			'scp_conditional_hiding_rules',
+			__( 'Rules', 'supportcandy-plus' ),
+			array( $this, 'render_conditional_hiding_rules_builder' ),
+			'supportcandy-plus',
+			'scp_conditional_hiding_section'
+		);
 	}
 
 	/**
@@ -95,6 +112,130 @@ class SCP_Admin_Settings {
 	 */
 	public function render_ticket_type_hiding_description() {
 		echo '<p>' . esc_html__( 'This feature hides specified ticket categories from the dropdown menu for any user who is not an agent.', 'supportcandy-plus' ) . '</p>';
+	}
+
+	/**
+	 * Render the description for the Conditional Hiding section.
+	 */
+	public function render_conditional_hiding_description() {
+		echo '<p>' . esc_html__( 'Create rules to show or hide columns based on the selected ticket view. This allows for powerful customization of the ticket list for different contexts.', 'supportcandy-plus' ) . '</p>';
+	}
+
+	/**
+	 * Render the rule builder interface.
+	 */
+	public function render_conditional_hiding_rules_builder() {
+		$options = get_option( 'scp_settings', [] );
+		$rules   = isset( $options['conditional_hiding_rules'] ) && is_array( $options['conditional_hiding_rules'] ) ? $options['conditional_hiding_rules'] : [];
+		$views   = $this->get_supportcandy_views();
+		$columns = $this->get_supportcandy_columns();
+		?>
+		<div id="scp-rules-container">
+			<?php
+			if ( ! empty( $rules ) ) {
+				foreach ( $rules as $index => $rule ) {
+					$this->render_rule_template( $index, $rule, $views, $columns );
+				}
+			} else {
+				echo '<p id="scp-no-rules-message">' . esc_html__( 'No rules defined yet. Click "Add New Rule" to start.', 'supportcandy-plus' ) . '</p>';
+			}
+			?>
+		</div>
+		<button type="button" class="button" id="scp-add-rule"><?php esc_html_e( 'Add New Rule', 'supportcandy-plus' ); ?></button>
+
+		<div class="scp-rule-template-wrapper" style="display: none;">
+			<script type="text/template" id="scp-rule-template">
+				<?php $this->render_rule_template( '__INDEX__', [], $views, $columns ); ?>
+			</script>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Renders the HTML for a single rule row.
+	 */
+	private function render_rule_template( $index, $rule, $views, $columns ) {
+		$action    = $rule['action'] ?? 'hide';
+		$condition = $rule['condition'] ?? 'in_view';
+		$view_id   = $rule['view'] ?? '';
+		$selected_cols = $rule['columns'] ?? [];
+		?>
+		<div class="scp-rule">
+			<select name="scp_settings[conditional_hiding_rules][<?php echo esc_attr( $index ); ?>][action]">
+				<option value="show" <?php selected( $action, 'show' ); ?>><?php esc_html_e( 'SHOW', 'supportcandy-plus' ); ?></option>
+				<option value="hide" <?php selected( $action, 'hide' ); ?>><?php esc_html_e( 'HIDE', 'supportcandy-plus' ); ?></option>
+			</select>
+
+			<select name="scp_settings[conditional_hiding_rules][<?php echo esc_attr( $index ); ?>][columns][]" multiple class="scp-rule-columns">
+				<?php foreach ( $columns as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>" <?php echo in_array( (string) $key, $selected_cols, true ) ? 'selected' : ''; ?>>
+						<?php echo esc_html( $label ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+
+			<select name="scp_settings[conditional_hiding_rules][<?php echo esc_attr( $index ); ?>][condition]">
+				<option value="in_view" <?php selected( $condition, 'in_view' ); ?>><?php esc_html_e( 'WHEN IN VIEW', 'supportcandy-plus' ); ?></option>
+				<option value="not_in_view" <?php selected( $condition, 'not_in_view' ); ?>><?php esc_html_e( 'WHEN NOT IN VIEW', 'supportcandy-plus' ); ?></option>
+			</select>
+
+			<select name="scp_settings[conditional_hiding_rules][<?php echo esc_attr( $index ); ?>][view]">
+				<?php foreach ( $views as $id => $name ) : ?>
+					<option value="<?php echo esc_attr( $id ); ?>" <?php selected( $view_id, $id ); ?>><?php echo esc_html( $name ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<button type="button" class="button scp-remove-rule">&times;</button>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Gets the list of available SupportCandy views/filters.
+	 */
+	private function get_supportcandy_views() {
+		global $wpdb;
+		// This table name is a best-guess based on SupportCandy's conventions.
+		$table_name = $wpdb->prefix . 'psmsc_filters';
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
+			return [ '0' => __( 'Default View (All Tickets)', 'supportcandy-plus' ) ];
+		}
+		$results = $wpdb->get_results( "SELECT id, name FROM {$table_name}", ARRAY_A );
+		$views   = [ '0' => __( 'Default View (All Tickets)', 'supportcandy-plus' ) ];
+		if ( $results ) {
+			foreach ( $results as $view ) {
+				$views[ $view['id'] ] = $view['name'];
+			}
+		}
+		return $views;
+	}
+
+	/**
+	 * Gets a list of available columns (standard + custom).
+	 */
+	private function get_supportcandy_columns() {
+		global $wpdb;
+		$columns = [
+			'id'          => __( 'Ticket ID', 'supportcandy-plus' ),
+			'subject'     => __( 'Subject', 'supportcandy-plus' ),
+			'status'      => __( 'Status', 'supportcandy-plus' ),
+			'category'    => __( 'Category', 'supportcandy-plus' ),
+			'priority'    => __( 'Priority', 'supportcandy-plus' ),
+			'customer'    => __( 'Customer', 'supportcandy-plus' ),
+			'agent'       => __( 'Agent', 'supportcandy-plus' ),
+			'last_reply'  => __( 'Last Reply', 'supportcandy-plus' ),
+			'date'        => __( 'Date', 'supportcandy-plus' ),
+		];
+
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) === $custom_fields_table ) {
+			$custom_fields = $wpdb->get_results( "SELECT name, label FROM {$custom_fields_table}", ARRAY_A );
+			if ( $custom_fields ) {
+				foreach ( $custom_fields as $field ) {
+					$columns[ 'cust_' . $field['name'] ] = $field['label'];
+				}
+			}
+		}
+		return $columns;
 	}
 
 	/**
@@ -166,11 +307,33 @@ class SCP_Admin_Settings {
 		}
 
 		// Textarea fields
-		$textarea_fields = [ 'ticket_types_to_hide', 'columns_to_hide_in_view', 'columns_to_show_in_view' ];
+		$textarea_fields = [ 'ticket_types_to_hide' ];
 		foreach ( $textarea_fields as $key ) {
 			if ( isset( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = sanitize_textarea_field( $input[ $key ] );
 			}
+		}
+
+		// Sanitize the conditional hiding rules array
+		if ( isset( $input['conditional_hiding_rules'] ) && is_array( $input['conditional_hiding_rules'] ) ) {
+			$sanitized_rules = [];
+			foreach ( $input['conditional_hiding_rules'] as $rule ) {
+				if ( ! is_array( $rule ) ) {
+					continue;
+				}
+				$sanitized_rule = [];
+				$sanitized_rule['action'] = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide' ] ) ? $rule['action'] : 'hide';
+				$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ] ) ? $rule['condition'] : 'in_view';
+				$sanitized_rule['view'] = isset( $rule['view'] ) ? absint( $rule['view'] ) : 0;
+
+				if ( isset( $rule['columns'] ) && is_array( $rule['columns'] ) ) {
+					$sanitized_rule['columns'] = array_map( 'sanitize_text_field', $rule['columns'] );
+				} else {
+					$sanitized_rule['columns'] = [];
+				}
+				$sanitized_rules[] = $sanitized_rule;
+			}
+			$sanitized_input['conditional_hiding_rules'] = $sanitized_rules;
 		}
 
 		return $sanitized_input;

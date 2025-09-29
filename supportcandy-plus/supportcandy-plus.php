@@ -69,6 +69,7 @@ final class SupportCandy_Plus {
 	private function init_hooks() {
 		add_action( 'plugins_loaded', array( $this, 'on_plugins_loaded' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 	}
 
 	/**
@@ -76,6 +77,30 @@ final class SupportCandy_Plus {
 	 */
 	public function on_plugins_loaded() {
 		// Main initialization logic.
+	}
+
+	/**
+	 * Get the ID of a SupportCandy custom field by its name.
+	 *
+	 * @param string $field_name The name of the custom field.
+	 * @return int The ID of the custom field, or 0 if not found.
+	 */
+	public function get_custom_field_id_by_name( $field_name ) {
+		global $wpdb;
+		if ( empty( $field_name ) ) {
+			return 0;
+		}
+		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
+			return 0;
+		}
+		$field_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$table_name} WHERE name = %s",
+				$field_name
+			)
+		);
+		return $field_id ? (int) $field_id : 0;
 	}
 
 	/**
@@ -105,13 +130,13 @@ final class SupportCandy_Plus {
 				],
 				'ticket_type_hiding' => [
 					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
+					'field_id'      => $this->get_custom_field_id_by_name( ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '' ),
 					'types_to_hide' => ! empty( $options['ticket_types_to_hide'] ) ? array_map( 'trim', explode( "\n", $options['ticket_types_to_hide'] ) ) : [],
 				],
 				'conditional_hiding' => [
-					'enabled'           => ! empty( $options['enable_conditional_hiding'] ),
-					'filter_name'       => ! empty( $options['view_filter_name'] ) ? $options['view_filter_name'] : '',
-					'hide_in_view'      => ! empty( $options['columns_to_hide_in_view'] ) ? array_map( 'trim', explode( "\n", $options['columns_to_hide_in_view'] ) ) : [],
-					'show_only_in_view' => ! empty( $options['columns_to_show_in_view'] ) ? array_map( 'trim', explode( "\n", $options['columns_to_show_in_view'] ) ) : [],
+					'enabled' => ! empty( $options['enable_conditional_hiding'] ),
+					'rules'   => isset( $options['conditional_hiding_rules'] ) ? $options['conditional_hiding_rules'] : [],
+					'columns' => $this->get_supportcandy_columns_for_frontend(),
 				],
 			],
 		];
@@ -119,6 +144,56 @@ final class SupportCandy_Plus {
 		wp_localize_script( 'supportcandy-plus-frontend', 'scp_settings', $localized_data );
 
 		wp_enqueue_script( 'supportcandy-plus-frontend' );
+	}
+
+	/**
+	 * Enqueue admin scripts and styles.
+	 *
+	 * @param string $hook_suffix The current admin page.
+	 */
+	public function enqueue_admin_scripts( $hook_suffix ) {
+		// Our settings page hook is toplevel_page_supportcandy-plus
+		if ( 'toplevel_page_supportcandy-plus' !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'supportcandy-plus-admin',
+			SCP_PLUGIN_URL . 'assets/admin/js/supportcandy-plus-admin.js',
+			array( 'jquery' ),
+			'2.2.0', // Version for admin script
+			true
+		);
+	}
+
+	/**
+	 * Gets a list of available columns for the frontend.
+	 */
+	public function get_supportcandy_columns_for_frontend() {
+		global $wpdb;
+		$columns = [
+			'id'          => __( 'Ticket ID', 'supportcandy-plus' ),
+			'subject'     => __( 'Subject', 'supportcandy-plus' ),
+			'status'      => __( 'Status', 'supportcandy-plus' ),
+			'category'    => __( 'Category', 'supportcandy-plus' ),
+			'priority'    => __( 'Priority', 'supportcandy-plus' ),
+			'customer'    => __( 'Customer', 'supportcandy-plus' ),
+			'agent'       => __( 'Agent', 'supportcandy-plus' ),
+			'last_reply'  => __( 'Last Reply', 'supportcandy-plus' ),
+			'date'        => __( 'Date', 'supportcandy-plus' ),
+		];
+
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) === $custom_fields_table ) {
+			$custom_fields = $wpdb->get_results( "SELECT name, label FROM {$custom_fields_table}", ARRAY_A );
+			if ( $custom_fields ) {
+				foreach ( $custom_fields as $field ) {
+					// The key passed to JS should match what's in the rule settings.
+					$columns[ 'cust_' . $field['name'] ] = $field['label'];
+				}
+			}
+		}
+		return $columns;
 	}
 }
 

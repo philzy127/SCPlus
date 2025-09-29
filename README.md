@@ -55,11 +55,37 @@ This allows you to restrict which ticket types are available to non-agent users 
 
 ---
 
-### Conditional Column Hiding by Filter
+### Conditional Column Hiding Rules
 
-Create custom views by showing or hiding specific columns based on the active ticket filter. This is ideal for workflows where certain information is only relevant to a specific category of tickets.
+This powerful feature allows you to create a set of rules to control the visibility of columns in the ticket list. You can define rules to show or hide specific columns based on the currently selected ticket view (filter).
 
--   **Enable Feature:** Check this to enable conditional hiding rules.
--   **Filter Name for Special View:** Enter the exact name of the filter that will trigger this rule (e.g., `Network Access Requests`).
--   **Columns to HIDE in Special View:** List the columns that should be **hidden** when the special filter is active. Place each column name on a new line.
--   **Columns to SHOW ONLY in Special View:** List columns that are normally hidden but should **appear** only when the special filter is active. Place each column name on a new line.
+-   **Enable Feature:** Check this to activate the rule-based system.
+
+#### How the Rule Builder Works
+
+You can create multiple rules, which are processed from top to bottom. The last rule that applies to a specific column will determine its final visibility.
+
+Each rule consists of four parts:
+
+1.  **Action (SHOW/HIDE):**
+    -   `SHOW`: Make the selected columns visible.
+    -   `HIDE`: Make the selected columns invisible.
+
+2.  **Columns:**
+    -   Select one or more columns that this rule will affect. The list is populated automatically from your SupportCandy setup.
+
+3.  **Condition (WHEN IN VIEW / WHEN NOT IN VIEW):**
+    -   `WHEN IN VIEW`: The rule will only apply when the selected view is active.
+    -   `WHEN NOT IN VIEW`: The rule will apply when **any other** view is active.
+
+4.  **View:**
+    -   Select the SupportCandy ticket view (filter) that this rule is based on. This list is also populated automatically.
+
+**Example Scenario:**
+
+Imagine you want the "Onboarding Date" column to *only* be visible when you are looking at the "New Hire Tickets" view.
+
+-   **Rule 1:** `HIDE` | `Onboarding Date` | `WHEN NOT IN VIEW` | `New Hire Tickets`
+    -   This rule hides the "Onboarding Date" column for all views *except* "New Hire Tickets".
+-   **Rule 2:** `SHOW` | `Onboarding Date` | `WHEN IN VIEW` | `New Hire Tickets`
+    -   This rule explicitly shows the "Onboarding Date" column when the "New Hire Tickets" view is selected.
