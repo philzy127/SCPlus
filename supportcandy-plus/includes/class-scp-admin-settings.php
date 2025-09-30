@@ -97,6 +97,7 @@ class SCP_Admin_Settings {
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( 'scp_settings' );
+				echo '<input type="hidden" name="scp_settings[page_slug]" value="' . esc_attr( $page_slug ) . '">';
 				do_settings_sections( $page_slug );
 				submit_button( __( 'Save Settings', 'supportcandy-plus' ) );
 				?>
@@ -298,8 +299,13 @@ class SCP_Admin_Settings {
 	public function render_checkbox_field( $args ) {
 		$options = get_option( 'scp_settings', [] );
 		$value   = isset( $options[ $args['id'] ] ) ? 1 : 0;
+		// Add a hidden field with value 0. This ensures that when the checkbox is unchecked, a value of '0' is still submitted.
+		echo '<input type="hidden" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="0">';
+		// The actual checkbox. If checked, its value '1' will overwrite the hidden field's value.
 		echo '<input type="checkbox" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="1" ' . checked( 1, $value, false ) . '>';
-		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
 	}
 
 	/**
@@ -355,62 +361,112 @@ class SCP_Admin_Settings {
 	 * Sanitize the settings.
 	 */
 	public function sanitize_settings( $input ) {
-		$sanitized_input = [];
-		$options         = get_option( 'scp_settings', [] );
-
-		// Checkboxes
-		$checkboxes = [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends' ];
-		foreach ( $checkboxes as $key ) {
-			if ( ! empty( $input[ $key ] ) ) {
-				$sanitized_input[ $key ] = 1;
-			}
+		// Get the full array of currently saved settings.
+		$saved_settings = get_option( 'scp_settings', [] );
+		if ( ! is_array( $saved_settings ) ) {
+			$saved_settings = [];
 		}
 
-		// Text fields
-		$text_fields = [ 'ticket_type_custom_field_name' ];
-		foreach ( $text_fields as $key ) {
+		// Identify which page was submitted.
+		$page_slug = $input['page_slug'] ?? 'supportcandy-plus';
+
+		// Define which options belong to which page.
+		$page_options = [
+			'supportcandy-plus'      => [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'ticket_type_custom_field_name', 'ticket_types_to_hide' ],
+			'scp-conditional-hiding' => [ 'enable_conditional_hiding', 'conditional_hiding_rules' ],
+			'scp-after-hours'        => [ 'enable_after_hours_notice', 'after_hours_start', 'before_hours_end', 'include_all_weekends', 'after_hours_message' ],
+		];
+
+		// Get the list of options for the page that was just saved.
+		$current_page_options = $page_options[ $page_slug ] ?? [];
+
+		// Loop through the options for the CURRENT page and update them in our main settings array.
+		foreach ( $current_page_options as $key ) {
 			if ( isset( $input[ $key ] ) ) {
-				$sanitized_input[ $key ] = sanitize_text_field( $input[ $key ] );
-			}
-		}
-
-		// Number fields
-		$number_fields = [ 'after_hours_start', 'before_hours_end' ];
-		foreach ( $number_fields as $key ) {
-			if ( isset( $input[ $key ] ) ) {
-				$sanitized_input[ $key ] = absint( $input[ $key ] );
-			}
-		}
-
-		// Textarea fields
-		$textarea_fields = [ 'ticket_types_to_hide' ];
-		foreach ( $textarea_fields as $key ) {
-			if ( isset( $input[ $key ] ) ) {
-				$sanitized_input[ $key ] = sanitize_textarea_field( $input[ $key ] );
-			}
-		}
-
-		// WP Editor fields (allow safe HTML)
-		if ( isset( $input['after_hours_message'] ) ) {
-			$sanitized_input['after_hours_message'] = wp_kses_post( $input['after_hours_message'] );
-		}
-
-		// Sanitize the conditional hiding rules array
-		if ( isset( $input['conditional_hiding_rules'] ) && is_array( $input['conditional_hiding_rules'] ) ) {
-			$sanitized_rules = [];
-			foreach ( $input['conditional_hiding_rules'] as $rule ) {
-				if ( ! is_array( $rule ) ) {
-					continue;
+				// The field exists in the submitted form data.
+				$saved_settings[ $key ] = $input[ $key ];
+			} else {
+				// The field does not exist in the form data. This happens with unchecked checkboxes
+				// or fields that can be entirely removed (like the rules builder).
+				// We set it to a safe default (0 for checkboxes, empty array for rules).
+				if ( 'conditional_hiding_rules' === $key ) {
+					$saved_settings[ $key ] = [];
+				} elseif ( in_array( $key, [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends' ] ) ) {
+					$saved_settings[ $key ] = 0; // Handles all checkboxes.
 				}
-				$sanitized_rule = [];
-				$sanitized_rule['action'] = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide' ] ) ? $rule['action'] : 'hide';
-				$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ] ) ? $rule['condition'] : 'in_view';
-				$sanitized_rule['view'] = isset( $rule['view'] ) ? sanitize_text_field( $rule['view'] ) : '0';
-
-				$sanitized_rule['columns'] = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
-				$sanitized_rules[] = $sanitized_rule;
 			}
-			$sanitized_input['conditional_hiding_rules'] = $sanitized_rules;
+		}
+
+		// Now, sanitize the ENTIRE merged array.
+		$sanitized_input = [];
+		foreach ( $saved_settings as $key => $value ) {
+			switch ( $key ) {
+				// Checkboxes
+				case 'enable_right_click_card':
+				case 'enable_hide_empty_columns':
+				case 'enable_hide_priority_column':
+				case 'enable_ticket_type_hiding':
+				case 'enable_conditional_hiding':
+				case 'enable_after_hours_notice':
+				case 'include_all_weekends':
+					$sanitized_input[ $key ] = (int) $value;
+					break;
+
+				// Number fields
+				case 'after_hours_start':
+				case 'before_hours_end':
+					$sanitized_input[ $key ] = absint( $value );
+					break;
+
+				// Text fields
+				case 'ticket_type_custom_field_name':
+					$sanitized_input[ $key ] = sanitize_text_field( $value );
+					break;
+
+				// Textarea
+				case 'ticket_types_to_hide':
+					$sanitized_input[ $key ] = sanitize_textarea_field( $value );
+					break;
+
+				// WP Editor
+				case 'after_hours_message':
+					$sanitized_input[ $key ] = wp_kses_post( $value );
+					break;
+
+				// Array field (rules)
+				case 'conditional_hiding_rules':
+					if ( is_array( $value ) ) {
+						$sanitized_rules = [];
+						foreach ( $value as $rule ) {
+							if ( ! is_array( $rule ) ) {
+								continue;
+							}
+							$sanitized_rule            = [];
+							$sanitized_rule['action']    = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide' ], true ) ? $rule['action'] : 'hide';
+							$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ], true ) ? $rule['condition'] : 'in_view';
+							$sanitized_rule['view']      = isset( $rule['view'] ) ? sanitize_text_field( $rule['view'] ) : '0';
+							$sanitized_rule['columns']   = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
+							$sanitized_rules[]         = $sanitized_rule;
+						}
+						$sanitized_input[ $key ] = $sanitized_rules;
+					} else {
+						$sanitized_input[ $key ] = [];
+					}
+					break;
+
+				// We don't need to save the page slug itself.
+				case 'page_slug':
+					break;
+
+				// Default case for any other fields that might exist.
+				default:
+					if ( is_string( $value ) ) {
+						$sanitized_input[ $key ] = sanitize_text_field( $value );
+					} else {
+						$sanitized_input[ $key ] = $value;
+					}
+					break;
+			}
 		}
 
 		return $sanitized_input;
