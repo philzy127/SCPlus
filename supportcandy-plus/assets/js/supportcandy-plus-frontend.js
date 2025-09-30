@@ -148,6 +148,10 @@
 				clearTimeout(hoverTimeout);
 				floatingCard.style.display = 'none';
 			});
+			row.addEventListener('click', () => {
+				clearTimeout(hoverTimeout);
+				floatingCard.style.display = 'none';
+			});
 		});
 	}
 
