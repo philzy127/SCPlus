@@ -235,7 +235,6 @@
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
 		const filter = document.querySelector('#wpsc-input-filter');
 		if (!table || !filter) {
-			console.log('[SCP] Exiting: Table or filter not found.');
 			return;
 		}
 
@@ -244,14 +243,10 @@
 		const columnMap = config.columns;
 
 		if (!rules || !rules.length || !columnMap) {
-			console.log('[SCP] Exiting: No rules or column map defined.');
 			return;
 		}
-		console.log('[SCP] Settings:', { rules, columnMap });
 
 		const currentViewId = filter.value || '0';
-		console.log(`[SCP] Current View ID: ${currentViewId}`);
-
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
 		const columnVisibility = {};
 
@@ -262,8 +257,6 @@
 
 		// 2. Process rules.
 		rules.forEach(rule => {
-			console.log(`[SCP] Evaluating Rule:`, rule);
-
 			// Normalize view IDs to handle cases where the page uses 'default-3' and the rule uses '3'.
 			const pageView = currentViewId.replace('default-', '');
 			const ruleView = String(rule.view);
@@ -287,18 +280,14 @@
 			const headerText = th.textContent.trim().toLowerCase();
 			headerIndexMap[headerText] = index;
 		});
-		console.log('[SCP] Header Index Map:', headerIndexMap);
 
 		// 4. Apply visibility.
-		console.log('[SCP] Applying visibility states...');
 		for (const columnKey in columnVisibility) {
 			const columnLabel = columnMap[columnKey];
 			if (!columnLabel) continue;
 
 			const columnIndex = headerIndexMap[columnLabel.toLowerCase()];
 			const shouldHide = columnVisibility[columnKey] === 'hide';
-
-			console.log(`[SCP] Processing Column: Key='${columnKey}', Label='${columnLabel}', Index=${columnIndex}, Hide=${shouldHide}`);
 
 			if (columnIndex !== undefined) {
 				if (headers[columnIndex]) {
@@ -309,12 +298,8 @@
 						row.cells[columnIndex].style.display = shouldHide ? 'none' : '';
 					}
 				});
-				console.log(`[SCP]   -> ACTION: Set display to '${shouldHide ? 'none' : ''}' for column index ${columnIndex}`);
-			} else {
-				console.log(`[SCP]   -> SKIPPED: Column label '${columnLabel}' not found in table headers.`);
 			}
 		}
-		console.log('[SCP] Finished Conditional Column Hiding.');
 	}
 
 	// Wait for the DOM to be ready before initializing.
