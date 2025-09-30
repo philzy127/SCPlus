@@ -32,7 +32,8 @@
 			subtree: true,
 		});
 
-		// No initial run; let the observer handle it.
+		// Initial run on page load.
+		run_features();
 	}
 
 	/**
@@ -43,99 +44,106 @@
 		if (features.hover_card?.enabled) {
 			feature_ticket_hover_card();
 		}
-		// Run general cleanup first.
-		if (features.hide_empty_columns?.enabled || features.hide_empty_columns?.hide_priority) {
-			feature_hide_empty_columns();
+
+		// All column visibility logic is now consolidated.
+		const emptyColsConfig = features.hide_empty_columns || {};
+		const conditionalConfig = features.conditional_hiding || {};
+		if (emptyColsConfig.enabled || emptyColsConfig.hide_priority || conditionalConfig.enabled) {
+			feature_manage_column_visibility();
 		}
+
 		if (features.ticket_type_hiding?.enabled) {
 			feature_hide_ticket_types_for_non_agents();
-		}
-		// Run the advanced conditional hiding last so it can override.
-		if (features.conditional_hiding?.enabled) {
-			feature_conditional_column_hiding();
 		}
 	}
 
 	/**
-	 * Feature: Hide Empty Columns and Priority Column.
-	 * Hides any column that is completely empty, and optionally hides the Priority column if all values are 'Low'.
+	 * Feature: Unified Column Visibility Manager.
+	 * Consolidates all column hiding features to prevent conflicts. It processes rules for
+	 * empty columns, the priority column, and conditional view-based rules in a specific order.
 	 */
-	function feature_hide_empty_columns() {
-		const config = features.hide_empty_columns;
-		console.log('[SCP Debug - Priority] feature_hide_empty_columns triggered. Config:', config);
+	function feature_manage_column_visibility() {
+		// 1. Get configs for all relevant features
+		const emptyColsConfig = features.hide_empty_columns || {};
+		const conditionalConfig = features.conditional_hiding || {};
 
-		if (!config || (!config.enabled && !config.hide_priority)) {
-			console.log('[SCP Debug - Priority] Feature disabled or misconfigured. Exiting.');
-			return;
-		}
-
+		// 2. Get table elements
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
 		const tbody = table?.querySelector('tbody');
-		if (!table || !tbody || !tbody.rows.length) {
-			console.log('[SCP Debug - Priority] Table or table body not found, or no rows. Exiting.');
-			return;
-		}
+		if (!table || !tbody || !tbody.rows.length) return;
 
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
 		const rows = Array.from(tbody.querySelectorAll('tr'));
+		if (!headers.length || !rows.length) return;
 
-		if (!headers.length || !rows.length) {
-			console.log('[SCP Debug - Priority] No headers or rows found. Exiting.');
-			return;
+		// 3. Initialize visibility plan and data matrix
+		const visibilityPlan = {}; // index -> 'show' or 'hide'
+		headers.forEach((_, i) => {
+			visibilityPlan[i] = 'show'; // Default to show
+		});
+		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
+
+		// 4. Process "Hide Empty" and "Hide Priority" logic
+		if (emptyColsConfig.enabled || emptyColsConfig.hide_priority) {
+			headers.forEach((th, i) => {
+				const headerText = th.textContent.trim().toLowerCase();
+
+				// Priority column logic
+				if (emptyColsConfig.hide_priority && headerText === 'priority') {
+					const hasNonLow = matrix.some(row => row[i] && row[i].toLowerCase() !== 'low');
+					if (!hasNonLow) {
+						visibilityPlan[i] = 'hide';
+					}
+				}
+				// Empty column logic (run for other columns)
+				else if (emptyColsConfig.enabled) {
+					const allEmpty = matrix.every(row => !row[i] || row[i] === '');
+					if (allEmpty) {
+						visibilityPlan[i] = 'hide';
+					}
+				}
+			});
 		}
 
-		// Reset: Show all columns first to handle dynamic content changes.
-		headers.forEach(th => (th.style.display = ''));
-		rows.forEach(row => {
-			Array.from(row.children).forEach(td => (td.style.display = ''));
-		});
-		console.log('[SCP Debug - Priority] All columns reset to visible.');
+		// 5. Process "Conditional Hiding" rules, which can OVERRIDE the previous plan
+		if (conditionalConfig.enabled && conditionalConfig.rules && conditionalConfig.rules.length) {
+			const filter = document.querySelector('#wpsc-input-filter');
+			const currentViewId = filter ? filter.value || '0' : '0';
+			const pageView = currentViewId.replace('default-', '');
+			const columnKeyMap = conditionalConfig.columns || {}; // slug -> Name
 
-		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
-		const columnsToHide = new Set();
-		console.log('[SCP Debug - Priority] Created data matrix for table.');
+			const headerIndexMap = {};
+			headers.forEach((th, index) => {
+				headerIndexMap[th.textContent.trim().toLowerCase()] = index;
+			});
 
-		headers.forEach((th, i) => {
-			const headerText = th.textContent.trim().toLowerCase();
+			conditionalConfig.rules.forEach(rule => {
+				const ruleView = String(rule.view);
+				const ruleIsActive = (rule.condition === 'in_view' && pageView === ruleView) ||
+									 (rule.condition === 'not_in_view' && pageView !== ruleView);
 
-			// Condition 1: Hide Priority column if enabled and all priorities are 'Low'.
-			if (config.hide_priority && headerText === 'priority') {
-				console.log(`[SCP Debug - Priority] Found 'priority' column at index ${i}. Checking values.`);
-				const hasNonLow = matrix.some(row => {
-					const cellValue = row[i] ? row[i].toLowerCase() : '';
-					if (cellValue && cellValue !== 'low') {
-						console.log(`[SCP Debug - Priority] Found non-low priority: '${cellValue}'`);
-						return true;
+				if (ruleIsActive) {
+					const columnSlug = rule.columns;
+					const columnLabel = columnKeyMap[columnSlug];
+					if (columnLabel) {
+						const columnIndex = headerIndexMap[columnLabel.toLowerCase()];
+						if (columnIndex !== undefined) {
+							visibilityPlan[columnIndex] = rule.action; // Override with 'show' or 'hide'
+						}
 					}
-					return false;
-				});
-
-				console.log(`[SCP Debug - Priority] Has non-low priority? ${hasNonLow}`);
-				if (!hasNonLow) {
-					columnsToHide.add(i);
-					console.log(`[SCP Debug - Priority] Decision: HIDE priority column.`);
-				} else {
-					console.log(`[SCP Debug - Priority] Decision: SHOW priority column.`);
 				}
-				return; // Priority column is handled, move to the next header.
-			}
+			});
+		}
 
-			// Condition 2: Hide any other column if it's completely empty and the feature is enabled.
-			if (config.enabled) {
-				const allEmpty = matrix.every(row => !row[i] || row[i] === '');
-				if (allEmpty) {
-					columnsToHide.add(i);
-				}
-			}
+		// 6. Apply the final visibility plan
+		headers.forEach((th, i) => {
+			const action = visibilityPlan[i] || 'show';
+			th.style.display = action === 'hide' ? 'none' : '';
 		});
-
-		console.log('[SCP Debug - Priority] Final set of columns to hide (by index):', columnsToHide);
-
-		// Apply hiding
-		columnsToHide.forEach(i => {
-			if (headers[i]) headers[i].style.display = 'none';
-			rows.forEach(row => {
-				if (row.children[i]) row.children[i].style.display = 'none';
+		rows.forEach(row => {
+			Array.from(row.children).forEach((td, i) => {
+				const action = visibilityPlan[i] || 'show';
+				td.style.display = action === 'hide' ? 'none' : '';
 			});
 		});
 	}
@@ -280,83 +288,6 @@
 		}
 	}
 
-	/**
-	 * Feature: Advanced Conditional Column Hiding Rule Engine.
-	 * Processes a set of rules to show or hide columns based on the current view.
-	 * This version uses case-insensitive text matching for robustness.
-	 */
-	function feature_conditional_column_hiding() {
-		console.log('[SCP] Running Conditional Column Hiding...');
-
-		const table = document.querySelector('table.wpsc-ticket-list-tbl');
-		const filter = document.querySelector('#wpsc-input-filter');
-		if (!table || !filter) {
-			return;
-		}
-
-		const config = features.conditional_hiding;
-		const rules = config.rules;
-		const columnMap = config.columns;
-
-		if (!rules || !rules.length || !columnMap) {
-			return;
-		}
-
-		const currentViewId = filter.value || '0';
-		const headers = Array.from(table.querySelectorAll('thead tr th'));
-		const columnVisibility = {};
-
-		// 1. Initialize.
-		for (const key in columnMap) {
-			columnVisibility[key] = 'show';
-		}
-
-		// 2. Process rules.
-		rules.forEach(rule => {
-			// Normalize view IDs to handle cases where the page uses 'default-3' and the rule uses '3'.
-			const pageView = currentViewId.replace('default-', '');
-			const ruleView = String(rule.view);
-
-			const ruleIsActive = (rule.condition === 'in_view' && pageView === ruleView) ||
-								 (rule.condition === 'not_in_view' && pageView !== ruleView);
-
-			if (ruleIsActive) {
-				const columnKey = rule.columns;
-				if (columnKey && columnVisibility.hasOwnProperty(columnKey)) {
-					columnVisibility[columnKey] = rule.action;
-					console.log(`[SCP] Rule ACTIVE: Action=${rule.action}, Column=${columnKey}, View=${rule.view}`);
-				}
-			}
-		});
-		console.log('[SCP] Final Column Visibility Plan:', columnVisibility);
-
-		// 3. Create header map.
-		const headerIndexMap = {};
-		headers.forEach((th, index) => {
-			const headerText = th.textContent.trim().toLowerCase();
-			headerIndexMap[headerText] = index;
-		});
-
-		// 4. Apply visibility.
-		for (const columnKey in columnVisibility) {
-			const columnLabel = columnMap[columnKey];
-			if (!columnLabel) continue;
-
-			const columnIndex = headerIndexMap[columnLabel.toLowerCase()];
-			const shouldHide = columnVisibility[columnKey] === 'hide';
-
-			if (columnIndex !== undefined) {
-				if (headers[columnIndex]) {
-					headers[columnIndex].style.display = shouldHide ? 'none' : '';
-				}
-				table.querySelectorAll('tbody tr').forEach(row => {
-					if (row.cells[columnIndex]) {
-						row.cells[columnIndex].style.display = shouldHide ? 'none' : '';
-					}
-				});
-			}
-		}
-	}
 
 	// Wait for the DOM to be ready before initializing.
 	$(document).ready(init);
