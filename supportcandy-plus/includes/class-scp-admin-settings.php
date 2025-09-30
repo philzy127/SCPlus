@@ -23,6 +23,31 @@ class SCP_Admin_Settings {
 	}
 
 	/**
+	 * Render a select dropdown field.
+	 */
+	public function render_select_field( $args ) {
+		$options = get_option( 'scp_settings', [] );
+		$value   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '';
+		$class   = ! empty( $args['class'] ) ? esc_attr( $args['class'] ) : 'regular';
+		$choices = ! empty( $args['choices'] ) && is_array( $args['choices'] ) ? $args['choices'] : [];
+
+		echo '<select id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" class="' . $class . '">';
+
+		if ( isset( $args['placeholder'] ) ) {
+			echo '<option value="">' . esc_html( $args['placeholder'] ) . '</option>';
+		}
+
+		foreach ( $choices as $choice_val => $choice_label ) {
+			echo '<option value="' . esc_attr( $choice_val ) . '" ' . selected( $value, $choice_val, false ) . '>' . esc_html( $choice_label ) . '</option>';
+		}
+		echo '</select>';
+
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
+	}
+
+	/**
 	 * Add the admin menu and sub-menu items.
 	 */
 	public function add_admin_menu() {
@@ -129,8 +154,32 @@ class SCP_Admin_Settings {
 		// Section: Ticket Type Hiding
 		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_ticket_type_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'enable_ticket_type_hiding', 'desc' => 'Hide specific ticket types from non-agent users.' ] );
-		add_settings_field( 'scp_ticket_type_custom_field_name', __( 'Custom Field Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_type_custom_field_name', 'desc' => 'The name of the custom field for ticket types (e.g., "Ticket Category"). The plugin will find the ID dynamically.' ] );
-		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
+
+		// Create a choices array for the custom fields dropdown.
+		$custom_fields_choices = [];
+		$all_custom_fields     = supportcandy_plus()->get_supportcandy_columns();
+		if ( ! empty( $all_custom_fields ) ) {
+			foreach ( $all_custom_fields as $slug => $name ) {
+				// Use the field name for both the value and the label.
+				$custom_fields_choices[ $name ] = $name;
+			}
+		}
+
+		add_settings_field(
+			'scp_ticket_type_custom_field_name',
+			__( 'Custom Field Name', 'supportcandy-plus' ),
+			array( $this, 'render_select_field' ),
+			'supportcandy-plus',
+			'scp_ticket_type_section',
+			[
+				'id'          => 'ticket_type_custom_field_name',
+				'placeholder' => __( '-- Select a Custom Field --', 'supportcandy-plus' ),
+				'choices'     => $custom_fields_choices,
+				'desc'        => __( 'The custom field that represents the ticket type (e.g., "Ticket Category").', 'supportcandy-plus' ),
+			]
+		);
+
+		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'class' => 'regular-text', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
 
 		// Page: Conditional Hiding
 		// Section: Conditional Column Hiding
@@ -168,7 +217,7 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_after_hours_start', __( 'After Hours Start (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_start', 'default' => '17', 'desc' => 'The hour when after-hours starts (e.g., 17 for 5 PM).' ] );
 		add_settings_field( 'scp_before_hours_end', __( 'Before Hours End (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'before_hours_end', 'default' => '8', 'desc' => 'The hour when business hours resume (e.g., 8 for 8 AM).' ] );
 		add_settings_field( 'scp_include_all_weekends', __( 'Include All Weekends', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'include_all_weekends', 'desc' => 'Enable this to show the notice all day on Saturdays and Sundays.' ] );
-		add_settings_field( 'scp_holidays', __( 'Holidays', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'holidays', 'desc' => 'List holidays, one per line, in YYYY-MM-DD format (e.g., 2024-12-25). The notice will show all day on these dates.' ] );
+		add_settings_field( 'scp_holidays', __( 'Holidays', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'holidays', 'class' => 'regular-text', 'desc' => 'List holidays, one per line, in YYYY-MM-DD format (e.g., 2024-12-25). The notice will show all day on these dates.' ] );
 		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
 	}
 
@@ -335,8 +384,11 @@ class SCP_Admin_Settings {
 	public function render_textarea_field( $args ) {
 		$options = get_option( 'scp_settings', [] );
 		$value   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '';
-		echo '<textarea id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" rows="5" class="large-text">' . esc_textarea( $value ) . '</textarea>';
-		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		$class   = ! empty( $args['class'] ) ? esc_attr( $args['class'] ) : 'large-text';
+		echo '<textarea id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" rows="5" class="' . $class . '">' . esc_textarea( $value ) . '</textarea>';
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
 	}
 
 	/**
