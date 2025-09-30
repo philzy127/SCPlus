@@ -57,8 +57,8 @@ final class SupportCandy_Plus {
 		if ( empty( $field_name ) ) {
 			return 0;
 		}
-		// This table name is based on user feedback and should be correct.
-		$table_name = 'wpya_psmsc_custom_fields';
+		// Correctly construct the table name using the WordPress prefix.
+		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
 		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
 			return 0;
 		}
@@ -137,8 +137,8 @@ final class SupportCandy_Plus {
 		global $wpdb;
 		$columns = []; // Start with an empty array.
 
-		// Use the literal table name as specified by the user and fetch the correct columns.
-		$custom_fields_table = 'wpya_psmsc_custom_fields';
+		// Correctly construct the table name using the WordPress prefix.
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
 
 		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
 			// Correctly select the SLUG for the key and the NAME for the display text.
