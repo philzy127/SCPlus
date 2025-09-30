@@ -63,36 +63,60 @@
 	 */
 	function feature_hide_empty_columns() {
 		const config = features.hide_empty_columns;
+		console.log('[SCP Debug] feature_hide_empty_columns triggered. Config:', config);
+
 		if (!config || (!config.enabled && !config.hide_priority)) {
-			return; // Exit if the feature is not configured or both options are disabled.
+			console.log('[SCP Debug] Feature disabled or misconfigured. Exiting.');
+			return;
 		}
 
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
 		const tbody = table?.querySelector('tbody');
-		if (!table || !tbody || !tbody.rows.length) return;
+		if (!table || !tbody || !tbody.rows.length) {
+			console.log('[SCP Debug] Table or table body not found, or no rows. Exiting.');
+			return;
+		}
 
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
 		const rows = Array.from(tbody.querySelectorAll('tr'));
 
-		if (!headers.length || !rows.length) return;
+		if (!headers.length || !rows.length) {
+			console.log('[SCP Debug] No headers or rows found. Exiting.');
+			return;
+		}
 
 		// Reset: Show all columns first to handle dynamic content changes.
 		headers.forEach(th => (th.style.display = ''));
 		rows.forEach(row => {
 			Array.from(row.children).forEach(td => (td.style.display = ''));
 		});
+		console.log('[SCP Debug] All columns reset to visible.');
 
 		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
 		const columnsToHide = new Set();
+		console.log('[SCP Debug] Created data matrix for table.');
 
 		headers.forEach((th, i) => {
 			const headerText = th.textContent.trim().toLowerCase();
 
 			// Condition 1: Hide Priority column if enabled and all priorities are 'Low'.
 			if (config.hide_priority && headerText === 'priority') {
-				const hasNonLow = matrix.some(row => row[i] && row[i].toLowerCase() !== 'low');
+				console.log(`[SCP Debug] Found 'priority' column at index ${i}. Checking values.`);
+				const hasNonLow = matrix.some(row => {
+					const cellValue = row[i] ? row[i].toLowerCase() : '';
+					if (cellValue && cellValue !== 'low') {
+						console.log(`[SCP Debug] Found non-low priority: '${cellValue}'`);
+						return true;
+					}
+					return false;
+				});
+
+				console.log(`[SCP Debug] Has non-low priority? ${hasNonLow}`);
 				if (!hasNonLow) {
 					columnsToHide.add(i);
+					console.log(`[SCP Debug] Decision: HIDE priority column.`);
+				} else {
+					console.log(`[SCP Debug] Decision: SHOW priority column.`);
 				}
 				return; // Priority column is handled, move to the next header.
 			}
@@ -105,6 +129,8 @@
 				}
 			}
 		});
+
+		console.log('[SCP Debug] Final set of columns to hide (by index):', columnsToHide);
 
 		// Apply hiding
 		columnsToHide.forEach(i => {
