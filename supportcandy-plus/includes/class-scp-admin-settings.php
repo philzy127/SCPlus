@@ -23,31 +23,107 @@ class SCP_Admin_Settings {
 	}
 
 	/**
-	 * Add the admin menu item.
+	 * Render a select dropdown field.
+	 */
+	public function render_select_field( $args ) {
+		$options = get_option( 'scp_settings', [] );
+		$value   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '';
+		$class   = ! empty( $args['class'] ) ? esc_attr( $args['class'] ) : 'regular';
+		$choices = ! empty( $args['choices'] ) && is_array( $args['choices'] ) ? $args['choices'] : [];
+
+		echo '<select id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" class="' . $class . '">';
+
+		if ( isset( $args['placeholder'] ) ) {
+			echo '<option value="">' . esc_html( $args['placeholder'] ) . '</option>';
+		}
+
+		foreach ( $choices as $choice_val => $choice_label ) {
+			echo '<option value="' . esc_attr( $choice_val ) . '" ' . selected( $value, $choice_val, false ) . '>' . esc_html( $choice_label ) . '</option>';
+		}
+		echo '</select>';
+
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
+	}
+
+	/**
+	 * Add the admin menu and sub-menu items.
 	 */
 	public function add_admin_menu() {
 		add_menu_page(
-			__( 'SupportCandy Plus Settings', 'supportcandy-plus' ),
+			__( 'SupportCandy Plus', 'supportcandy-plus' ),
 			__( 'SupportCandy Plus', 'supportcandy-plus' ),
 			'manage_options',
 			'supportcandy-plus',
-			array( $this, 'settings_page_content' ),
+			array( $this, 'general_settings_page_content' ),
 			'dashicons-plus-alt',
 			3
+		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'General Settings', 'supportcandy-plus' ),
+			__( 'General Settings', 'supportcandy-plus' ),
+			'manage_options',
+			'supportcandy-plus',
+			array( $this, 'general_settings_page_content' )
+		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'Conditional Hiding', 'supportcandy-plus' ),
+			__( 'Conditional Hiding', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-conditional-hiding',
+			array( $this, 'conditional_hiding_page_content' )
+		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'After Hours Notice', 'supportcandy-plus' ),
+			__( 'After Hours Notice', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-after-hours',
+			array( $this, 'after_hours_page_content' )
 		);
 	}
 
 	/**
-	 * Render the settings page content.
+	 * Render the General settings page content.
 	 */
-	public function settings_page_content() {
+	public function general_settings_page_content() {
+		$this->render_settings_page_wrapper( 'supportcandy-plus' );
+	}
+
+	/**
+	 * Render the Conditional Hiding settings page content.
+	 */
+	public function conditional_hiding_page_content() {
+		$this->render_settings_page_wrapper( 'scp-conditional-hiding' );
+	}
+
+	/**
+	 * Render the After Hours Notice settings page content.
+	 */
+	public function after_hours_page_content() {
+		$this->render_settings_page_wrapper( 'scp-after-hours' );
+	}
+
+	/**
+	 * Render a generic settings page wrapper.
+	 *
+	 * @param string $page_slug The slug of the page to render sections for.
+	 */
+	private function render_settings_page_wrapper( $page_slug ) {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( 'scp_settings' );
-				do_settings_sections( 'supportcandy-plus' );
+				echo '<input type="hidden" name="scp_settings[page_slug]" value="' . esc_attr( $page_slug ) . '">';
+				do_settings_sections( $page_slug );
 				submit_button( __( 'Save Settings', 'supportcandy-plus' ) );
 				?>
 			</form>
@@ -61,6 +137,7 @@ class SCP_Admin_Settings {
 	public function register_settings() {
 		register_setting( 'scp_settings', 'scp_settings', array( $this, 'sanitize_settings' ) );
 
+		// Page: General Settings
 		// Section: Ticket Details Card
 		add_settings_section( 'scp_right_click_card_section', __( 'Ticket Details Card', 'supportcandy-plus' ), null, 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_right_click_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_right_click_card_section', [ 'id' => 'enable_right_click_card', 'desc' => 'Shows a card with ticket details on right-click.' ] );
@@ -70,30 +147,53 @@ class SCP_Admin_Settings {
 		// Section: General Cleanup
 		add_settings_section( 'scp_general_cleanup_section', __( 'General Cleanup', 'supportcandy-plus' ), null, 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_hide_empty_columns', __( 'Hide Empty Columns', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_empty_columns', 'desc' => 'Automatically hide any column in the ticket list that is completely empty.' ] );
-		add_settings_field( 'scp_enable_hide_priority_column', __( 'Hide Priority Column if all \'Low\'', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_priority_column', 'desc' => 'Hides the "Priority" column if all visible tickets have a priority of "Low".' ] );
+		add_settings_field( 'scp_enable_hide_priority_column', __( 'Hide Priority Column', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_priority_column', 'desc' => 'Hides the "Priority" column if all visible tickets have a priority of "Low".' ] );
 
 		add_settings_section( 'scp_separator_2', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
 		// Section: Ticket Type Hiding
 		add_settings_section( 'scp_ticket_type_section', __( 'Hide Ticket Types from Non-Agents', 'supportcandy-plus' ), array( $this, 'render_ticket_type_hiding_description' ), 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_ticket_type_hiding', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'enable_ticket_type_hiding', 'desc' => 'Hide specific ticket types from non-agent users.' ] );
-		add_settings_field( 'scp_ticket_type_custom_field_name', __( 'Custom Field Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_type_custom_field_name', 'desc' => 'The name of the custom field for ticket types (e.g., "Ticket Category"). The plugin will find the ID dynamically.' ] );
-		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
 
-		add_settings_section( 'scp_separator_3', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
+		// Create a choices array for the custom fields dropdown.
+		$custom_fields_choices = [];
+		$all_custom_fields     = supportcandy_plus()->get_supportcandy_columns();
+		if ( ! empty( $all_custom_fields ) ) {
+			foreach ( $all_custom_fields as $slug => $name ) {
+				// Use the field name for both the value and the label.
+				$custom_fields_choices[ $name ] = $name;
+			}
+		}
 
+		add_settings_field(
+			'scp_ticket_type_custom_field_name',
+			__( 'Custom Field Name', 'supportcandy-plus' ),
+			array( $this, 'render_select_field' ),
+			'supportcandy-plus',
+			'scp_ticket_type_section',
+			[
+				'id'          => 'ticket_type_custom_field_name',
+				'placeholder' => __( '-- Select a Custom Field --', 'supportcandy-plus' ),
+				'choices'     => $custom_fields_choices,
+				'desc'        => __( 'The custom field that represents the ticket type (e.g., "Ticket Category").', 'supportcandy-plus' ),
+			]
+		);
+
+		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'class' => 'regular-text', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
+
+		// Page: Conditional Hiding
 		// Section: Conditional Column Hiding
 		add_settings_section(
 			'scp_conditional_hiding_section',
 			__( 'Conditional Column Hiding Rules', 'supportcandy-plus' ),
 			array( $this, 'render_conditional_hiding_description' ),
-			'supportcandy-plus'
+			'scp-conditional-hiding'
 		);
 		add_settings_field(
 			'scp_enable_conditional_hiding',
 			__( 'Enable Feature', 'supportcandy-plus' ),
 			array( $this, 'render_checkbox_field' ),
-			'supportcandy-plus',
+			'scp-conditional-hiding',
 			'scp_conditional_hiding_section',
 			[ 'id' => 'enable_conditional_hiding', 'desc' => 'Enable the rule-based system to show or hide columns.' ]
 		);
@@ -101,9 +201,24 @@ class SCP_Admin_Settings {
 			'scp_conditional_hiding_rules',
 			__( 'Rules', 'supportcandy-plus' ),
 			array( $this, 'render_conditional_hiding_rules_builder' ),
-			'supportcandy-plus',
+			'scp-conditional-hiding',
 			'scp_conditional_hiding_section'
 		);
+
+		// Page: After Hours Notice
+		// Section: After Hours Notice
+		add_settings_section(
+			'scp_after_hours_section',
+			__( 'After Hours Notice', 'supportcandy-plus' ),
+			array( $this, 'render_after_hours_description' ),
+			'scp-after-hours'
+		);
+		add_settings_field( 'scp_enable_after_hours_notice', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'enable_after_hours_notice', 'desc' => 'Displays a notice on the ticket form when submitted outside of business hours.' ] );
+		add_settings_field( 'scp_after_hours_start', __( 'After Hours Start (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_start', 'default' => '17', 'desc' => 'The hour when after-hours starts (e.g., 17 for 5 PM).' ] );
+		add_settings_field( 'scp_before_hours_end', __( 'Before Hours End (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'before_hours_end', 'default' => '8', 'desc' => 'The hour when business hours resume (e.g., 8 for 8 AM).' ] );
+		add_settings_field( 'scp_include_all_weekends', __( 'Include All Weekends', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'include_all_weekends', 'desc' => 'Enable this to show the notice all day on Saturdays and Sundays.' ] );
+		add_settings_field( 'scp_holidays', __( 'Holidays', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'holidays', 'class' => 'regular-text', 'desc' => 'List holidays, one per line, in MM-DD-YYYY format (e.g., 12-25-2024). The notice will show all day on these dates.' ] );
+		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
 	}
 
 	/**
@@ -118,6 +233,13 @@ class SCP_Admin_Settings {
 	 */
 	public function render_conditional_hiding_description() {
 		echo '<p>' . esc_html__( 'Create rules to show or hide columns based on the selected ticket view. This allows for powerful customization of the ticket list for different contexts.', 'supportcandy-plus' ) . '</p>';
+	}
+
+	/**
+	 * Render the description for the After Hours Notice section.
+	 */
+	public function render_after_hours_description() {
+		echo '<p>' . esc_html__( 'This feature shows a customizable message at the top of the "Create Ticket" form if a user is accessing it outside of your defined business hours.', 'supportcandy-plus' ) . '</p>';
 	}
 
 	/**
@@ -227,8 +349,13 @@ class SCP_Admin_Settings {
 	public function render_checkbox_field( $args ) {
 		$options = get_option( 'scp_settings', [] );
 		$value   = isset( $options[ $args['id'] ] ) ? 1 : 0;
+		// Add a hidden field with value 0. This ensures that when the checkbox is unchecked, a value of '0' is still submitted.
+		echo '<input type="hidden" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="0">';
+		// The actual checkbox. If checked, its value '1' will overwrite the hidden field's value.
 		echo '<input type="checkbox" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="1" ' . checked( 1, $value, false ) . '>';
-		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
 	}
 
 	/**
@@ -257,7 +384,29 @@ class SCP_Admin_Settings {
 	public function render_textarea_field( $args ) {
 		$options = get_option( 'scp_settings', [] );
 		$value   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '';
-		echo '<textarea id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" rows="5" class="large-text">' . esc_textarea( $value ) . '</textarea>';
+		$class   = ! empty( $args['class'] ) ? esc_attr( $args['class'] ) : 'large-text';
+		echo '<textarea id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" rows="5" class="' . $class . '">' . esc_textarea( $value ) . '</textarea>';
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
+	}
+
+	/**
+	 * Render a WP Editor (WYSIWYG) field.
+	 */
+	public function render_wp_editor_field( $args ) {
+		$options = get_option( 'scp_settings', [] );
+		$content = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '<strong>CHP Helpdesk -- After Hours</strong><br><br>You have submitted an IT ticket outside of normal business hours, and it will be handled in the order it was received. If this is an emergency, or has caused a complete stoppage of work, please call the IT On-Call number at: <u>(202) 996-8415</u> <br><br> (Available <b>5pm</b> to <b>11pm(EST) M-F, 8am to 11pm</b> weekends and Holidays)';
+		wp_editor(
+			$content,
+			'scp_settings_' . esc_attr( $args['id'] ),
+			[
+				'textarea_name' => 'scp_settings[' . esc_attr( $args['id'] ) . ']',
+				'media_buttons' => false,
+				'textarea_rows' => 10,
+				'teeny'         => true,
+			]
+		);
 		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
 	}
 
@@ -265,54 +414,113 @@ class SCP_Admin_Settings {
 	 * Sanitize the settings.
 	 */
 	public function sanitize_settings( $input ) {
-		$sanitized_input = [];
-		$options         = get_option( 'scp_settings', [] );
-
-		// Checkboxes
-		$checkboxes = [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding' ];
-		foreach ( $checkboxes as $key ) {
-			if ( ! empty( $input[ $key ] ) ) {
-				$sanitized_input[ $key ] = 1;
-			}
+		// Get the full array of currently saved settings.
+		$saved_settings = get_option( 'scp_settings', [] );
+		if ( ! is_array( $saved_settings ) ) {
+			$saved_settings = [];
 		}
 
-		// Text fields
-		$text_fields = [ 'ticket_type_custom_field_name' ];
-		foreach ( $text_fields as $key ) {
+		// Identify which page was submitted.
+		$page_slug = $input['page_slug'] ?? 'supportcandy-plus';
+
+		// Define which options belong to which page.
+		$page_options = [
+			'supportcandy-plus'      => [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'ticket_type_custom_field_name', 'ticket_types_to_hide' ],
+			'scp-conditional-hiding' => [ 'enable_conditional_hiding', 'conditional_hiding_rules' ],
+			'scp-after-hours'        => [ 'enable_after_hours_notice', 'after_hours_start', 'before_hours_end', 'include_all_weekends', 'holidays', 'after_hours_message' ],
+		];
+
+		// Get the list of options for the page that was just saved.
+		$current_page_options = $page_options[ $page_slug ] ?? [];
+
+		// Loop through the options for the CURRENT page and update them in our main settings array.
+		foreach ( $current_page_options as $key ) {
 			if ( isset( $input[ $key ] ) ) {
-				$sanitized_input[ $key ] = sanitize_text_field( $input[ $key ] );
-			}
-		}
-
-		// Number fields
-		if ( isset( $input['hover_card_delay'] ) ) {
-			// Deprecated - do not save.
-		}
-
-		// Textarea fields
-		$textarea_fields = [ 'ticket_types_to_hide' ];
-		foreach ( $textarea_fields as $key ) {
-			if ( isset( $input[ $key ] ) ) {
-				$sanitized_input[ $key ] = sanitize_textarea_field( $input[ $key ] );
-			}
-		}
-
-		// Sanitize the conditional hiding rules array
-		if ( isset( $input['conditional_hiding_rules'] ) && is_array( $input['conditional_hiding_rules'] ) ) {
-			$sanitized_rules = [];
-			foreach ( $input['conditional_hiding_rules'] as $rule ) {
-				if ( ! is_array( $rule ) ) {
-					continue;
+				// The field exists in the submitted form data.
+				$saved_settings[ $key ] = $input[ $key ];
+			} else {
+				// The field does not exist in the form data. This happens with unchecked checkboxes
+				// or fields that can be entirely removed (like the rules builder).
+				// We set it to a safe default (0 for checkboxes, empty array for rules).
+				if ( 'conditional_hiding_rules' === $key ) {
+					$saved_settings[ $key ] = [];
+				} elseif ( in_array( $key, [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends' ] ) ) {
+					$saved_settings[ $key ] = 0; // Handles all checkboxes.
 				}
-				$sanitized_rule = [];
-				$sanitized_rule['action'] = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide' ] ) ? $rule['action'] : 'hide';
-				$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ] ) ? $rule['condition'] : 'in_view';
-				$sanitized_rule['view'] = isset( $rule['view'] ) ? sanitize_text_field( $rule['view'] ) : '0';
-
-				$sanitized_rule['columns'] = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
-				$sanitized_rules[] = $sanitized_rule;
 			}
-			$sanitized_input['conditional_hiding_rules'] = $sanitized_rules;
+		}
+
+		// Now, sanitize the ENTIRE merged array.
+		$sanitized_input = [];
+		foreach ( $saved_settings as $key => $value ) {
+			switch ( $key ) {
+				// Checkboxes
+				case 'enable_right_click_card':
+				case 'enable_hide_empty_columns':
+				case 'enable_hide_priority_column':
+				case 'enable_ticket_type_hiding':
+				case 'enable_conditional_hiding':
+				case 'enable_after_hours_notice':
+				case 'include_all_weekends':
+					$sanitized_input[ $key ] = (int) $value;
+					break;
+
+				// Number fields
+				case 'after_hours_start':
+				case 'before_hours_end':
+					$sanitized_input[ $key ] = absint( $value );
+					break;
+
+				// Text fields
+				case 'ticket_type_custom_field_name':
+					$sanitized_input[ $key ] = sanitize_text_field( $value );
+					break;
+
+				// Textarea
+				case 'ticket_types_to_hide':
+				case 'holidays':
+					$sanitized_input[ $key ] = sanitize_textarea_field( $value );
+					break;
+
+				// WP Editor
+				case 'after_hours_message':
+					$sanitized_input[ $key ] = wp_kses_post( $value );
+					break;
+
+				// Array field (rules)
+				case 'conditional_hiding_rules':
+					if ( is_array( $value ) ) {
+						$sanitized_rules = [];
+						foreach ( $value as $rule ) {
+							if ( ! is_array( $rule ) ) {
+								continue;
+							}
+							$sanitized_rule            = [];
+							$sanitized_rule['action']    = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide' ], true ) ? $rule['action'] : 'hide';
+							$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ], true ) ? $rule['condition'] : 'in_view';
+							$sanitized_rule['view']      = isset( $rule['view'] ) ? sanitize_text_field( $rule['view'] ) : '0';
+							$sanitized_rule['columns']   = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
+							$sanitized_rules[]         = $sanitized_rule;
+						}
+						$sanitized_input[ $key ] = $sanitized_rules;
+					} else {
+						$sanitized_input[ $key ] = [];
+					}
+					break;
+
+				// We don't need to save the page slug itself.
+				case 'page_slug':
+					break;
+
+				// Default case for any other fields that might exist.
+				default:
+					if ( is_string( $value ) ) {
+						$sanitized_input[ $key ] = sanitize_text_field( $value );
+					} else {
+						$sanitized_input[ $key ] = $value;
+					}
+					break;
+			}
 		}
 
 		return $sanitized_input;
