@@ -114,16 +114,20 @@ final class SupportCandy_Plus {
 		if ( 'toplevel_page_supportcandy-plus' !== $hook_suffix ) {
 			return;
 		}
+		// Enqueue Select2 styles and scripts, which are bundled with WordPress.
+		wp_enqueue_style( 'select2' );
+		wp_enqueue_script( 'select2' );
+
 		wp_enqueue_style(
 			'supportcandy-plus-admin',
 			SCP_PLUGIN_URL . 'assets/admin/css/supportcandy-plus-admin.css',
-			array(),
+			array( 'select2' ), // Add select2 as a dependency
 			SCP_VERSION
 		);
 		wp_enqueue_script(
 			'supportcandy-plus-admin',
 			SCP_PLUGIN_URL . 'assets/admin/js/supportcandy-plus-admin.js',
-			array( 'jquery' ),
+			array( 'jquery', 'select2' ), // Add select2 as a dependency
 			SCP_VERSION,
 			true
 		);
