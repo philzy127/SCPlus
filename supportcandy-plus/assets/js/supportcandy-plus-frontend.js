@@ -308,13 +308,21 @@
 		const currentDay = now.getDay(); // Sunday = 0, Saturday = 6
 		const isWeekend = currentDay === 0 || currentDay === 6;
 
+		// Format current date as YYYY-MM-DD for comparison
+		const year = now.getFullYear();
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const day = String(now.getDate()).padStart(2, '0');
+		const currentDate = `${year}-${month}-${day}`;
+		const isHoliday = config.holidays && config.holidays.includes(currentDate);
+
 		let isAfterHours = false;
 
-		// If it's a weekend and the setting is enabled, it's always after hours.
-		if (config.include_weekends && isWeekend) {
+		// Check for holiday, weekend, or time-based conditions.
+		if (isHoliday) {
+			isAfterHours = true;
+		} else if (config.include_weekends && isWeekend) {
 			isAfterHours = true;
 		} else {
-			// Otherwise, check the time-based rule.
 			isAfterHours = currentHour >= config.start_hour || currentHour < config.end_hour;
 		}
 

@@ -108,6 +108,7 @@ final class SupportCandy_Plus {
 					'start_hour'       => ! empty( $options['after_hours_start'] ) ? (int) $options['after_hours_start'] : 17,
 					'end_hour'         => ! empty( $options['before_hours_end'] ) ? (int) $options['before_hours_end'] : 8,
 					'include_weekends' => ! empty( $options['include_all_weekends'] ),
+					'holidays'         => ! empty( $options['holidays'] ) ? array_map( 'trim', explode( "\n", $options['holidays'] ) ) : [],
 					'message'          => ! empty( $options['after_hours_message'] ) ? wp_kses_post( $options['after_hours_message'] ) : '',
 				],
 			],
