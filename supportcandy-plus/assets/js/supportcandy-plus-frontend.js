@@ -263,8 +263,13 @@
 		// 2. Process rules.
 		rules.forEach(rule => {
 			console.log(`[SCP] Evaluating Rule:`, rule);
-			const ruleIsActive = (rule.condition === 'in_view' && rule.view == currentViewId) ||
-								 (rule.condition === 'not_in_view' && rule.view != currentViewId);
+
+			// Normalize view IDs to handle cases where the page uses 'default-3' and the rule uses '3'.
+			const pageView = currentViewId.replace('default-', '');
+			const ruleView = String(rule.view);
+
+			const ruleIsActive = (rule.condition === 'in_view' && pageView === ruleView) ||
+								 (rule.condition === 'not_in_view' && pageView !== ruleView);
 
 			if (ruleIsActive) {
 				const columnKey = rule.columns;
