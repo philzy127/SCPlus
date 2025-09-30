@@ -99,8 +99,35 @@
 				boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)', maxWidth: '400px',
 				display: 'none'
 			});
+
+			// Create a dedicated content container
+			const contentContainer = document.createElement('div');
+			contentContainer.className = 'scp-card-content';
+
+			// Create, style, and append the close button
+			const closeButton = document.createElement('span');
+			closeButton.innerHTML = '&times;'; // "X" character
+			Object.assign(closeButton.style, {
+				position: 'absolute',
+				top: '5px',
+				right: '10px',
+				cursor: 'pointer',
+				fontSize: '22px',
+				lineHeight: '1',
+				color: '#555',
+				fontWeight: 'bold'
+			});
+			closeButton.addEventListener('click', () => {
+				floatingCard.style.display = 'none';
+			});
+
+			floatingCard.appendChild(closeButton);
+			floatingCard.appendChild(contentContainer);
 			document.body.appendChild(floatingCard);
 		}
+
+		// Get the content container for later use.
+		const contentContainer = floatingCard.querySelector('.scp-card-content');
 
 		const cache = {};
 		const delay = features.hover_card.delay || 1000;
@@ -127,30 +154,38 @@
 			}
 		}
 
-		document.querySelectorAll('tr.wpsc_tl_tr:not(._hoverAttached)').forEach(row => {
-			row.classList.add('_hoverAttached');
-			let hoverTimeout;
-			row.addEventListener('mouseenter', () => {
-				clearTimeout(hoverTimeout);
-				hoverTimeout = setTimeout(async () => {
-					const ticketId = row.getAttribute('onclick')?.match(/wpsc_tl_handle_click\(.*?,\s*(\d+),/)?.[1];
-					if (ticketId) {
-						floatingCard.innerHTML = 'Loading...';
-						floatingCard.style.display = 'block';
-						floatingCard.innerHTML = await fetchTicketDetails(ticketId);
-						const rect = row.getBoundingClientRect();
-						floatingCard.style.top = `${rect.bottom + window.scrollY + 5}px`;
-						floatingCard.style.left = `${rect.left + window.scrollX}px`;
-					}
-				}, delay);
-			});
-			row.addEventListener('mouseleave', () => {
-				clearTimeout(hoverTimeout);
+		// Hide card when clicking anywhere on the page, unless inside the card.
+		document.addEventListener('click', (e) => {
+			if (floatingCard && !floatingCard.contains(e.target)) {
 				floatingCard.style.display = 'none';
-			});
-			row.addEventListener('click', () => {
-				clearTimeout(hoverTimeout);
-				floatingCard.style.display = 'none';
+			}
+		});
+
+		document.querySelectorAll('tr.wpsc_tl_tr:not(._contextAttached)').forEach(row => {
+			row.classList.add('_contextAttached');
+			// Clean up old class if present, for seamless update.
+			if (row.classList.contains('_hoverAttached')) {
+				row.classList.remove('_hoverAttached');
+			}
+
+			// We are replacing the hover/click logic with a right-click.
+			// The original click listener on the row is for navigation, so we leave it.
+			// The new logic is to show the card on right-click.
+
+			row.addEventListener('contextmenu', async (e) => {
+				e.preventDefault(); // Prevent browser's context menu.
+
+				const ticketId = row.getAttribute('onclick')?.match(/wpsc_tl_handle_click\(.*?,\s*(\d+),/)?.[1];
+				if (ticketId) {
+					// Position and show loading indicator immediately.
+					contentContainer.innerHTML = 'Loading...';
+					floatingCard.style.top = `${e.pageY + 15}px`;
+					floatingCard.style.left = `${e.pageX + 15}px`;
+					floatingCard.style.display = 'block';
+
+					// Fetch and display the actual content.
+					contentContainer.innerHTML = await fetchTicketDetails(ticketId);
+				}
 			});
 		});
 	}
