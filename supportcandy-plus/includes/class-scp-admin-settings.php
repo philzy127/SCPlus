@@ -23,31 +23,81 @@ class SCP_Admin_Settings {
 	}
 
 	/**
-	 * Add the admin menu item.
+	 * Add the admin menu and sub-menu items.
 	 */
 	public function add_admin_menu() {
 		add_menu_page(
-			__( 'SupportCandy Plus Settings', 'supportcandy-plus' ),
+			__( 'SupportCandy Plus', 'supportcandy-plus' ),
 			__( 'SupportCandy Plus', 'supportcandy-plus' ),
 			'manage_options',
 			'supportcandy-plus',
-			array( $this, 'settings_page_content' ),
+			array( $this, 'general_settings_page_content' ),
 			'dashicons-plus-alt',
 			3
+		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'General Settings', 'supportcandy-plus' ),
+			__( 'General Settings', 'supportcandy-plus' ),
+			'manage_options',
+			'supportcandy-plus',
+			array( $this, 'general_settings_page_content' )
+		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'Conditional Hiding', 'supportcandy-plus' ),
+			__( 'Conditional Hiding', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-conditional-hiding',
+			array( $this, 'conditional_hiding_page_content' )
+		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'After Hours Notice', 'supportcandy-plus' ),
+			__( 'After Hours Notice', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-after-hours',
+			array( $this, 'after_hours_page_content' )
 		);
 	}
 
 	/**
-	 * Render the settings page content.
+	 * Render the General settings page content.
 	 */
-	public function settings_page_content() {
+	public function general_settings_page_content() {
+		$this->render_settings_page_wrapper( 'supportcandy-plus' );
+	}
+
+	/**
+	 * Render the Conditional Hiding settings page content.
+	 */
+	public function conditional_hiding_page_content() {
+		$this->render_settings_page_wrapper( 'scp-conditional-hiding' );
+	}
+
+	/**
+	 * Render the After Hours Notice settings page content.
+	 */
+	public function after_hours_page_content() {
+		$this->render_settings_page_wrapper( 'scp-after-hours' );
+	}
+
+	/**
+	 * Render a generic settings page wrapper.
+	 *
+	 * @param string $page_slug The slug of the page to render sections for.
+	 */
+	private function render_settings_page_wrapper( $page_slug ) {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( 'scp_settings' );
-				do_settings_sections( 'supportcandy-plus' );
+				do_settings_sections( $page_slug );
 				submit_button( __( 'Save Settings', 'supportcandy-plus' ) );
 				?>
 			</form>
@@ -61,6 +111,7 @@ class SCP_Admin_Settings {
 	public function register_settings() {
 		register_setting( 'scp_settings', 'scp_settings', array( $this, 'sanitize_settings' ) );
 
+		// Page: General Settings
 		// Section: Ticket Details Card
 		add_settings_section( 'scp_right_click_card_section', __( 'Ticket Details Card', 'supportcandy-plus' ), null, 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_right_click_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_right_click_card_section', [ 'id' => 'enable_right_click_card', 'desc' => 'Shows a card with ticket details on right-click.' ] );
@@ -80,20 +131,19 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_ticket_type_custom_field_name', __( 'Custom Field Name', 'supportcandy-plus' ), array( $this, 'render_text_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_type_custom_field_name', 'desc' => 'The name of the custom field for ticket types (e.g., "Ticket Category"). The plugin will find the ID dynamically.' ] );
 		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
 
-		add_settings_section( 'scp_separator_3', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
-
+		// Page: Conditional Hiding
 		// Section: Conditional Column Hiding
 		add_settings_section(
 			'scp_conditional_hiding_section',
 			__( 'Conditional Column Hiding Rules', 'supportcandy-plus' ),
 			array( $this, 'render_conditional_hiding_description' ),
-			'supportcandy-plus'
+			'scp-conditional-hiding'
 		);
 		add_settings_field(
 			'scp_enable_conditional_hiding',
 			__( 'Enable Feature', 'supportcandy-plus' ),
 			array( $this, 'render_checkbox_field' ),
-			'supportcandy-plus',
+			'scp-conditional-hiding',
 			'scp_conditional_hiding_section',
 			[ 'id' => 'enable_conditional_hiding', 'desc' => 'Enable the rule-based system to show or hide columns.' ]
 		);
@@ -101,18 +151,23 @@ class SCP_Admin_Settings {
 			'scp_conditional_hiding_rules',
 			__( 'Rules', 'supportcandy-plus' ),
 			array( $this, 'render_conditional_hiding_rules_builder' ),
-			'supportcandy-plus',
+			'scp-conditional-hiding',
 			'scp_conditional_hiding_section'
 		);
 
-		add_settings_section( 'scp_separator_4', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
-
+		// Page: After Hours Notice
 		// Section: After Hours Notice
-		add_settings_section( 'scp_after_hours_section', __( 'After Hours Notice', 'supportcandy-plus' ), array( $this, 'render_after_hours_description' ), 'supportcandy-plus' );
-		add_settings_field( 'scp_enable_after_hours_notice', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'enable_after_hours_notice', 'desc' => 'Displays a notice on the ticket form when submitted outside of business hours.' ] );
-		add_settings_field( 'scp_after_hours_start', __( 'After Hours Start (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'after_hours_start', 'default' => '17', 'desc' => 'The hour when after-hours starts (e.g., 17 for 5 PM).' ] );
-		add_settings_field( 'scp_before_hours_end', __( 'Before Hours End (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'before_hours_end', 'default' => '8', 'desc' => 'The hour when business hours resume (e.g., 8 for 8 AM).' ] );
-		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
+		add_settings_section(
+			'scp_after_hours_section',
+			__( 'After Hours Notice', 'supportcandy-plus' ),
+			array( $this, 'render_after_hours_description' ),
+			'scp-after-hours'
+		);
+		add_settings_field( 'scp_enable_after_hours_notice', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'enable_after_hours_notice', 'desc' => 'Displays a notice on the ticket form when submitted outside of business hours.' ] );
+		add_settings_field( 'scp_after_hours_start', __( 'After Hours Start (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_start', 'default' => '17', 'desc' => 'The hour when after-hours starts (e.g., 17 for 5 PM).' ] );
+		add_settings_field( 'scp_before_hours_end', __( 'Before Hours End (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'before_hours_end', 'default' => '8', 'desc' => 'The hour when business hours resume (e.g., 8 for 8 AM).' ] );
+		add_settings_field( 'scp_include_all_weekends', __( 'Include All Weekends', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'include_all_weekends', 'desc' => 'Enable this to show the notice all day on Saturdays and Sundays.' ] );
+		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
 	}
 
 	/**
@@ -304,7 +359,7 @@ class SCP_Admin_Settings {
 		$options         = get_option( 'scp_settings', [] );
 
 		// Checkboxes
-		$checkboxes = [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice' ];
+		$checkboxes = [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends' ];
 		foreach ( $checkboxes as $key ) {
 			if ( ! empty( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = 1;

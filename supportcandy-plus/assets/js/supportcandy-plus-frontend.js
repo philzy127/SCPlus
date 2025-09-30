@@ -305,7 +305,18 @@
 
 		const now = new Date();
 		const currentHour = now.getHours();
-		const isAfterHours = currentHour >= config.start_hour || currentHour < config.end_hour;
+		const currentDay = now.getDay(); // Sunday = 0, Saturday = 6
+		const isWeekend = currentDay === 0 || currentDay === 6;
+
+		let isAfterHours = false;
+
+		// If it's a weekend and the setting is enabled, it's always after hours.
+		if (config.include_weekends && isWeekend) {
+			isAfterHours = true;
+		} else {
+			// Otherwise, check the time-based rule.
+			isAfterHours = currentHour >= config.start_hour || currentHour < config.end_hour;
+		}
 
 		if (isAfterHours) {
 			const ticketForm = document.querySelector('.wpsc-create-ticket');
@@ -323,7 +334,7 @@
 					padding: '10px',
 					margin: '15px 0',
 					borderRadius: '4px',
-					fontSize: '16px'
+					fontSize: '16px',
 				});
 
 				ticketForm.prepend(message);
