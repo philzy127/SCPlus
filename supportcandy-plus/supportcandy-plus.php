@@ -130,8 +130,24 @@ final class SupportCandy_Plus {
 
 	public function get_supportcandy_columns() {
 		global $wpdb;
-		$columns = [];
 
+		// Start with a list of hardcoded default columns that are always present.
+		// The key is a simplified version of the label, and the value is the display name.
+		$default_columns = [
+			'id'              => __( 'ID', 'supportcandy-plus' ),
+			'subject'         => __( 'Subject', 'supportcandy-plus' ),
+			'name'            => __( 'Name', 'supportcandy-plus' ),
+			'status'          => __( 'Status', 'supportcandy-plus' ),
+			'category'        => __( 'Category', 'supportcandy-plus' ),
+			'priority'        => __( 'Priority', 'supportcandy-plus' ),
+			'last_reply'      => __( 'Last Reply', 'supportcandy-plus' ),
+			'agent'           => __( 'Agent', 'supportcandy-plus' ),
+			'customer'        => __( 'Customer', 'supportcandy-plus' ),
+			'date'            => __( 'Date', 'supportcandy-plus' ),
+			'assigned_agents' => __( 'Assigned Agents', 'supportcandy-plus' ),
+		];
+
+		$custom_columns = [];
 		// Use the literal table name as specified by the user.
 		$custom_fields_table = 'wpya_psmsc_custom_fields';
 
@@ -139,11 +155,14 @@ final class SupportCandy_Plus {
 			$custom_fields = $wpdb->get_results( "SELECT slug, name FROM `{$custom_fields_table}`", ARRAY_A );
 			if ( $custom_fields ) {
 				foreach ( $custom_fields as $field ) {
-					$columns[ $field['slug'] ] = $field['name'];
+					// Use the field's slug as the key for consistency.
+					$custom_columns[ $field['slug'] ] = $field['name'];
 				}
 			}
 		}
-		return $columns;
+
+		// Merge the two arrays. Custom columns will overwrite defaults if slugs conflict.
+		return array_merge( $default_columns, $custom_columns );
 	}
 }
 
