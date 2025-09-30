@@ -109,12 +109,17 @@
 			closeButton.innerHTML = '&times;'; // "X" character
 			Object.assign(closeButton.style, {
 				position: 'absolute',
-				top: '5px',
-				right: '10px',
+				top: '3px',
+				right: '5px',
 				cursor: 'pointer',
-				fontSize: '22px',
-				lineHeight: '1',
-				color: '#555',
+				fontSize: '20px',
+				color: '#333',
+				background: '#f1f1f1',
+				borderRadius: '50%',
+				width: '24px',
+				height: '24px',
+				lineHeight: '24px',
+				textAlign: 'center',
 				fontWeight: 'bold'
 			});
 			closeButton.addEventListener('click', () => {
