@@ -262,6 +262,7 @@
 
 		// 2. Process rules.
 		rules.forEach(rule => {
+			console.log(`[SCP] Evaluating Rule:`, rule);
 			const ruleIsActive = (rule.condition === 'in_view' && rule.view == currentViewId) ||
 								 (rule.condition === 'not_in_view' && rule.view != currentViewId);
 
