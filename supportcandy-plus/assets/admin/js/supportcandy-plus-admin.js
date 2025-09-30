@@ -1,18 +1,6 @@
 jQuery(document).ready(function ($) {
     'use strict';
 
-    function initializeSelect2(element) {
-        // Initializes Select2 on a jQuery element.
-        element.select2({
-            width: '100%' // Ensure it fits the container
-        });
-    }
-
-    // Initialize Select2 on existing dropdowns on page load
-    $('.scp-rule-columns').each(function() {
-        initializeSelect2($(this));
-    });
-
     // Handle adding new rules
     $('#scp-add-rule').on('click', function () {
         const rulesContainer = $('#scp-rules-container');
@@ -27,11 +15,8 @@ jQuery(document).ready(function ($) {
         // Hide the 'no rules' message if it exists
         $('#scp-no-rules-message').hide();
 
-        // Append the new rule and get the new element
-        const newRule = $(newRuleHtml).appendTo(rulesContainer);
-
-        // Initialize Select2 on the new dropdown
-        initializeSelect2(newRule.find('.scp-rule-columns'));
+        // Append the new rule to the container
+        rulesContainer.append(newRuleHtml);
     });
 
     // Handle removing rules using event delegation
