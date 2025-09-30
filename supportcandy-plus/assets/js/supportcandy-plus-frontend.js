@@ -308,11 +308,11 @@
 		const currentDay = now.getDay(); // Sunday = 0, Saturday = 6
 		const isWeekend = currentDay === 0 || currentDay === 6;
 
-		// Format current date as YYYY-MM-DD for comparison
+		// Format current date as MM-DD-YYYY for comparison
 		const year = now.getFullYear();
 		const month = String(now.getMonth() + 1).padStart(2, '0');
 		const day = String(now.getDate()).padStart(2, '0');
-		const currentDate = `${year}-${month}-${day}`;
+		const currentDate = `${month}-${day}-${year}`;
 		const isHoliday = config.holidays && config.holidays.includes(currentDate);
 
 		let isAfterHours = false;

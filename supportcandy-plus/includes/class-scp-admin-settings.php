@@ -147,7 +147,7 @@ class SCP_Admin_Settings {
 		// Section: General Cleanup
 		add_settings_section( 'scp_general_cleanup_section', __( 'General Cleanup', 'supportcandy-plus' ), null, 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_hide_empty_columns', __( 'Hide Empty Columns', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_empty_columns', 'desc' => 'Automatically hide any column in the ticket list that is completely empty.' ] );
-		add_settings_field( 'scp_enable_hide_priority_column', __( 'Hide Priority Column if all \'Low\'', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_priority_column', 'desc' => 'Hides the "Priority" column if all visible tickets have a priority of "Low".' ] );
+		add_settings_field( 'scp_enable_hide_priority_column', __( 'Hide Priority Column', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_priority_column', 'desc' => 'Hides the "Priority" column if all visible tickets have a priority of "Low".' ] );
 
 		add_settings_section( 'scp_separator_2', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
@@ -217,7 +217,7 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_after_hours_start', __( 'After Hours Start (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_start', 'default' => '17', 'desc' => 'The hour when after-hours starts (e.g., 17 for 5 PM).' ] );
 		add_settings_field( 'scp_before_hours_end', __( 'Before Hours End (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'before_hours_end', 'default' => '8', 'desc' => 'The hour when business hours resume (e.g., 8 for 8 AM).' ] );
 		add_settings_field( 'scp_include_all_weekends', __( 'Include All Weekends', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'include_all_weekends', 'desc' => 'Enable this to show the notice all day on Saturdays and Sundays.' ] );
-		add_settings_field( 'scp_holidays', __( 'Holidays', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'holidays', 'class' => 'regular-text', 'desc' => 'List holidays, one per line, in YYYY-MM-DD format (e.g., 2024-12-25). The notice will show all day on these dates.' ] );
+		add_settings_field( 'scp_holidays', __( 'Holidays', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'holidays', 'class' => 'regular-text', 'desc' => 'List holidays, one per line, in MM-DD-YYYY format (e.g., 12-25-2024). The notice will show all day on these dates.' ] );
 		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
 	}
 
