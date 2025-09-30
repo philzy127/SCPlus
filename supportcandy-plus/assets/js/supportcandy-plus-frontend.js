@@ -45,7 +45,7 @@
 			feature_ticket_hover_card();
 		}
 		// Run general cleanup first.
-		if (features.hide_empty_columns?.enabled) {
+		if (features.hide_empty_columns?.enabled || features.hide_empty_columns?.hide_priority) {
 			feature_hide_empty_columns();
 		}
 		if (features.ticket_type_hiding?.enabled) {
@@ -58,10 +58,15 @@
 	}
 
 	/**
-	 * Feature: Hide Empty Columns.
-	 * Hides any column that is completely empty, with special handling for the Priority column.
+	 * Feature: Hide Empty Columns and Priority Column.
+	 * Hides any column that is completely empty, and optionally hides the Priority column if all values are 'Low'.
 	 */
 	function feature_hide_empty_columns() {
+		const config = features.hide_empty_columns;
+		if (!config || (!config.enabled && !config.hide_priority)) {
+			return; // Exit if the feature is not configured or both options are disabled.
+		}
+
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
 		const tbody = table?.querySelector('tbody');
 		if (!table || !tbody || !tbody.rows.length) return;
@@ -83,17 +88,21 @@
 		headers.forEach((th, i) => {
 			const headerText = th.textContent.trim().toLowerCase();
 
-			if (headerText === 'priority') {
+			// Condition 1: Hide Priority column if enabled and all priorities are 'Low'.
+			if (config.hide_priority && headerText === 'priority') {
 				const hasNonLow = matrix.some(row => row[i] && row[i].toLowerCase() !== 'low');
 				if (!hasNonLow) {
 					columnsToHide.add(i);
 				}
-				return;
+				return; // Priority column is handled, move to the next header.
 			}
 
-			const allEmpty = matrix.every(row => !row[i] || row[i] === '');
-			if (allEmpty) {
-				columnsToHide.add(i);
+			// Condition 2: Hide any other column if it's completely empty and the feature is enabled.
+			if (config.enabled) {
+				const allEmpty = matrix.every(row => !row[i] || row[i] === '');
+				if (allEmpty) {
+					columnsToHide.add(i);
+				}
 			}
 		});
 
