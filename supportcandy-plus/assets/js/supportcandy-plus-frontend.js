@@ -55,6 +55,10 @@
 		if (features.ticket_type_hiding?.enabled) {
 			feature_hide_ticket_types_for_non_agents();
 		}
+
+		if (features.after_hours_notice?.enabled) {
+			feature_after_hours_notice();
+		}
 	}
 
 	/**
@@ -284,6 +288,46 @@
 				if (changesMade) {
 					$select.trigger('change.select2');
 				}
+			}
+		}
+	}
+
+
+	/**
+	 * Feature: After Hours Notice.
+	 * Displays a configurable message on the ticket creation form if it's outside business hours.
+	 */
+	function feature_after_hours_notice() {
+		const config = features.after_hours_notice;
+		if (!config?.enabled || !config.message) {
+			return;
+		}
+
+		const now = new Date();
+		const currentHour = now.getHours();
+		const isAfterHours = currentHour >= config.start_hour || currentHour < config.end_hour;
+
+		if (isAfterHours) {
+			const ticketForm = document.querySelector('.wpsc-create-ticket');
+
+			// Check if the form exists and if we haven't already added the message.
+			if (ticketForm && !ticketForm.dataset.afterHoursNoticeAdded) {
+				const message = document.createElement('div');
+				message.innerHTML = config.message;
+
+				// Apply styles for the notice.
+				Object.assign(message.style, {
+					backgroundColor: '#fff3cd',
+					border: '1px solid #ffeeba',
+					color: '#856404',
+					padding: '10px',
+					margin: '15px 0',
+					borderRadius: '4px',
+					fontSize: '16px'
+				});
+
+				ticketForm.prepend(message);
+				ticketForm.dataset.afterHoursNoticeAdded = 'true'; // Mark as added.
 			}
 		}
 	}

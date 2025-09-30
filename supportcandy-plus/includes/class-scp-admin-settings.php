@@ -104,6 +104,15 @@ class SCP_Admin_Settings {
 			'supportcandy-plus',
 			'scp_conditional_hiding_section'
 		);
+
+		add_settings_section( 'scp_separator_4', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
+
+		// Section: After Hours Notice
+		add_settings_section( 'scp_after_hours_section', __( 'After Hours Notice', 'supportcandy-plus' ), array( $this, 'render_after_hours_description' ), 'supportcandy-plus' );
+		add_settings_field( 'scp_enable_after_hours_notice', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'enable_after_hours_notice', 'desc' => 'Displays a notice on the ticket form when submitted outside of business hours.' ] );
+		add_settings_field( 'scp_after_hours_start', __( 'After Hours Start (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'after_hours_start', 'default' => '17', 'desc' => 'The hour when after-hours starts (e.g., 17 for 5 PM).' ] );
+		add_settings_field( 'scp_before_hours_end', __( 'Before Hours End (24h)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'before_hours_end', 'default' => '8', 'desc' => 'The hour when business hours resume (e.g., 8 for 8 AM).' ] );
+		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'supportcandy-plus', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
 	}
 
 	/**
@@ -118,6 +127,13 @@ class SCP_Admin_Settings {
 	 */
 	public function render_conditional_hiding_description() {
 		echo '<p>' . esc_html__( 'Create rules to show or hide columns based on the selected ticket view. This allows for powerful customization of the ticket list for different contexts.', 'supportcandy-plus' ) . '</p>';
+	}
+
+	/**
+	 * Render the description for the After Hours Notice section.
+	 */
+	public function render_after_hours_description() {
+		echo '<p>' . esc_html__( 'This feature shows a customizable message at the top of the "Create Ticket" form if a user is accessing it outside of your defined business hours.', 'supportcandy-plus' ) . '</p>';
 	}
 
 	/**
@@ -262,6 +278,25 @@ class SCP_Admin_Settings {
 	}
 
 	/**
+	 * Render a WP Editor (WYSIWYG) field.
+	 */
+	public function render_wp_editor_field( $args ) {
+		$options = get_option( 'scp_settings', [] );
+		$content = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '<strong>CHP Helpdesk -- After Hours</strong><br><br>You have submitted an IT ticket outside of normal business hours, and it will be handled in the order it was received. If this is an emergency, or has caused a complete stoppage of work, please call the IT On-Call number at: <u>(202) 996-8415</u> <br><br> (Available <b>5pm</b> to <b>11pm(EST) M-F, 8am to 11pm</b> weekends and Holidays)';
+		wp_editor(
+			$content,
+			'scp_settings_' . esc_attr( $args['id'] ),
+			[
+				'textarea_name' => 'scp_settings[' . esc_attr( $args['id'] ) . ']',
+				'media_buttons' => false,
+				'textarea_rows' => 10,
+				'teeny'         => true,
+			]
+		);
+		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+	}
+
+	/**
 	 * Sanitize the settings.
 	 */
 	public function sanitize_settings( $input ) {
@@ -269,7 +304,7 @@ class SCP_Admin_Settings {
 		$options         = get_option( 'scp_settings', [] );
 
 		// Checkboxes
-		$checkboxes = [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding' ];
+		$checkboxes = [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice' ];
 		foreach ( $checkboxes as $key ) {
 			if ( ! empty( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = 1;
@@ -285,8 +320,11 @@ class SCP_Admin_Settings {
 		}
 
 		// Number fields
-		if ( isset( $input['hover_card_delay'] ) ) {
-			// Deprecated - do not save.
+		$number_fields = [ 'after_hours_start', 'before_hours_end' ];
+		foreach ( $number_fields as $key ) {
+			if ( isset( $input[ $key ] ) ) {
+				$sanitized_input[ $key ] = absint( $input[ $key ] );
+			}
 		}
 
 		// Textarea fields
@@ -295,6 +333,11 @@ class SCP_Admin_Settings {
 			if ( isset( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = sanitize_textarea_field( $input[ $key ] );
 			}
+		}
+
+		// WP Editor fields (allow safe HTML)
+		if ( isset( $input['after_hours_message'] ) ) {
+			$sanitized_input['after_hours_message'] = wp_kses_post( $input['after_hours_message'] );
 		}
 
 		// Sanitize the conditional hiding rules array
