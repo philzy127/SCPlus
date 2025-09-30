@@ -120,7 +120,8 @@
 				height: '24px',
 				lineHeight: '24px',
 				textAlign: 'center',
-				fontWeight: 'bold'
+				fontWeight: 'bold',
+				clear: 'both'
 			});
 			closeButton.addEventListener('click', () => {
 				floatingCard.style.display = 'none';
