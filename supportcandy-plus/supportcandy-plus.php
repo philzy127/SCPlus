@@ -87,8 +87,7 @@ final class SupportCandy_Plus {
 			'nonce'    => wp_create_nonce( 'wpsc_get_individual_ticket' ),
 			'features' => [
 				'hover_card'         => [
-					'enabled' => ! empty( $options['enable_hover_card'] ),
-					'delay'   => ! empty( $options['hover_card_delay'] ) ? absint( $options['hover_card_delay'] ) : 1000,
+					'enabled' => ! empty( $options['enable_right_click_card'] ),
 				],
 				'hide_empty_columns' => [
 					'enabled' => ! empty( $options['enable_hide_empty_columns'] ),

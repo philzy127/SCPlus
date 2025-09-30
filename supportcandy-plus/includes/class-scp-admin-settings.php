@@ -61,10 +61,9 @@ class SCP_Admin_Settings {
 	public function register_settings() {
 		register_setting( 'scp_settings', 'scp_settings', array( $this, 'sanitize_settings' ) );
 
-		// Section: Ticket Hover Card
-		add_settings_section( 'scp_hover_card_section', __( 'Ticket Hover Card', 'supportcandy-plus' ), null, 'supportcandy-plus' );
-		add_settings_field( 'scp_enable_hover_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'enable_hover_card', 'desc' => 'Enable a floating card with ticket details on hover.' ] );
-		add_settings_field( 'scp_hover_card_delay', __( 'Hover Delay (ms)', 'supportcandy-plus' ), array( $this, 'render_number_field' ), 'supportcandy-plus', 'scp_hover_card_section', [ 'id' => 'hover_card_delay', 'desc' => 'Time to wait before showing the card. Default: 1000.', 'default' => 1000 ] );
+		// Section: Ticket Details Card
+		add_settings_section( 'scp_right_click_card_section', __( 'Ticket Details Card', 'supportcandy-plus' ), null, 'supportcandy-plus' );
+		add_settings_field( 'scp_enable_right_click_card', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_right_click_card_section', [ 'id' => 'enable_right_click_card', 'desc' => 'Shows a card with ticket details on right-click.' ] );
 
 		add_settings_section( 'scp_separator_1', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
@@ -269,7 +268,7 @@ class SCP_Admin_Settings {
 		$options         = get_option( 'scp_settings', [] );
 
 		// Checkboxes
-		$checkboxes = [ 'enable_hover_card', 'enable_hide_empty_columns', 'enable_ticket_type_hiding', 'enable_conditional_hiding' ];
+		$checkboxes = [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_ticket_type_hiding', 'enable_conditional_hiding' ];
 		foreach ( $checkboxes as $key ) {
 			if ( ! empty( $input[ $key ] ) ) {
 				$sanitized_input[ $key ] = 1;
@@ -286,7 +285,7 @@ class SCP_Admin_Settings {
 
 		// Number fields
 		if ( isset( $input['hover_card_delay'] ) ) {
-			$sanitized_input['hover_card_delay'] = absint( $input['hover_card_delay'] );
+			// Deprecated - do not save.
 		}
 
 		// Textarea fields
