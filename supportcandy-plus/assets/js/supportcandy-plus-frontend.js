@@ -67,7 +67,14 @@
 
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
 		const rows = Array.from(table.querySelectorAll('tbody tr'));
-		const matrix = rows.map(row => Array.from(row.children).map(td => td.innerText.trim()));
+
+		// Reset: Show all columns first to handle dynamic content changes.
+		headers.forEach(th => (th.style.display = ''));
+		rows.forEach(row => {
+			Array.from(row.children).forEach(td => (td.style.display = ''));
+		});
+
+		const matrix = rows.map(row => Array.from(row.children).map(td => td.textContent.trim()));
 		const columnsToHide = new Set();
 
 		headers.forEach((th, i) => {
