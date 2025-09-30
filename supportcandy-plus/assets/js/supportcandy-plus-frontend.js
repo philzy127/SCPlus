@@ -59,14 +59,17 @@
 
 	/**
 	 * Feature: Hide Empty Columns.
-	 * Hides any column that is completely empty.
+	 * Hides any column that is completely empty, with special handling for the Priority column.
 	 */
 	function feature_hide_empty_columns() {
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
-		if (!table?.querySelector('tbody')?.rows.length) return;
+		const tbody = table?.querySelector('tbody');
+		if (!table || !tbody || !tbody.rows.length) return;
 
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
-		const rows = Array.from(table.querySelectorAll('tbody tr'));
+		const rows = Array.from(tbody.querySelectorAll('tr'));
+
+		if (!headers.length || !rows.length) return;
 
 		// Reset: Show all columns first to handle dynamic content changes.
 		headers.forEach(th => (th.style.display = ''));
@@ -78,11 +81,23 @@
 		const columnsToHide = new Set();
 
 		headers.forEach((th, i) => {
-			if (matrix.every(row => !row[i] || row[i] === '')) {
+			const headerText = th.textContent.trim().toLowerCase();
+
+			if (headerText === 'priority') {
+				const hasNonLow = matrix.some(row => row[i] && row[i].toLowerCase() !== 'low');
+				if (!hasNonLow) {
+					columnsToHide.add(i);
+				}
+				return;
+			}
+
+			const allEmpty = matrix.every(row => !row[i] || row[i] === '');
+			if (allEmpty) {
 				columnsToHide.add(i);
 			}
 		});
 
+		// Apply hiding
 		columnsToHide.forEach(i => {
 			if (headers[i]) headers[i].style.display = 'none';
 			rows.forEach(row => {
