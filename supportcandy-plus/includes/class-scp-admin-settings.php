@@ -306,7 +306,7 @@ class SCP_Admin_Settings {
 				$sanitized_rule = [];
 				$sanitized_rule['action'] = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide' ] ) ? $rule['action'] : 'hide';
 				$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ] ) ? $rule['condition'] : 'in_view';
-				$sanitized_rule['view'] = isset( $rule['view'] ) ? absint( $rule['view'] ) : 0;
+				$sanitized_rule['view'] = isset( $rule['view'] ) ? sanitize_text_field( $rule['view'] ) : '0';
 
 				$sanitized_rule['columns'] = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
 				$sanitized_rules[] = $sanitized_rule;

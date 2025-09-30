@@ -230,85 +230,63 @@
 	 * This version uses case-insensitive text matching for robustness.
 	 */
 	function feature_conditional_column_hiding() {
-		console.log('[SCP] Running Conditional Column Hiding...');
-
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
 		const filter = document.querySelector('#wpsc-input-filter');
-		if (!table || !filter) {
-			console.log('[SCP] Exiting: Table or filter not found.');
-			return;
-		}
+		if (!table || !filter) return;
 
 		const config = features.conditional_hiding;
 		const rules = config.rules;
-		const columnMap = config.columns;
+		const columnMap = config.columns; // Map of 'key' => 'Label'
 
-		if (!rules || !rules.length || !columnMap) {
-			console.log('[SCP] Exiting: No rules or column map defined.');
-			return;
-		}
-		console.log('[SCP] Settings:', { rules, columnMap });
+		if (!rules || !rules.length || !columnMap) return;
 
 		const currentViewId = filter.value || '0';
-		console.log(`[SCP] Current View ID: ${currentViewId}`);
-
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
-		const columnVisibility = {};
+		const columnVisibility = {}; // Final state for each column *key*
 
-		// 1. Initialize.
+		// 1. Initialize visibility state for all known columns to 'show'.
 		for (const key in columnMap) {
 			columnVisibility[key] = 'show';
 		}
 
-		// 2. Process rules.
+		// 2. Process rules to determine the final visibility state for each column key.
 		rules.forEach(rule => {
-			const ruleIsActive = (rule.condition === 'in_view' && rule.view == currentViewId) ||
-								 (rule.condition === 'not_in_view' && rule.view != currentViewId);
+			const ruleIsActive = (rule.condition === 'in_view' && rule.view === currentViewId) ||
+								 (rule.condition === 'not_in_view' && rule.view !== currentViewId);
 
 			if (ruleIsActive) {
 				const columnKey = rule.columns;
 				if (columnKey && columnVisibility.hasOwnProperty(columnKey)) {
-					columnVisibility[columnKey] = rule.action;
-					console.log(`[SCP] Rule ACTIVE: Action=${rule.action}, Column=${columnKey}, View=${rule.view}`);
+					columnVisibility[columnKey] = rule.action; // 'show' or 'hide'
 				}
 			}
 		});
-		console.log('[SCP] Final Column Visibility Plan:', columnVisibility);
 
-		// 3. Create header map.
+		// 3. Create a map of lowercase header text to header index for robust matching.
 		const headerIndexMap = {};
 		headers.forEach((th, index) => {
-			const headerText = th.textContent.trim().toLowerCase();
-			headerIndexMap[headerText] = index;
+			headerIndexMap[th.textContent.trim().toLowerCase()] = index;
 		});
-		console.log('[SCP] Header Index Map:', headerIndexMap);
 
-		// 4. Apply visibility.
-		console.log('[SCP] Applying visibility states...');
+		// 4. Apply the final state to the table columns by matching labels case-insensitively.
 		for (const columnKey in columnVisibility) {
 			const columnLabel = columnMap[columnKey];
-			if (!columnLabel) continue;
-
 			const columnIndex = headerIndexMap[columnLabel.toLowerCase()];
-			const shouldHide = columnVisibility[columnKey] === 'hide';
-
-			console.log(`[SCP] Processing Column: Key='${columnKey}', Label='${columnLabel}', Index=${columnIndex}, Hide=${shouldHide}`);
 
 			if (columnIndex !== undefined) {
+				const shouldHide = columnVisibility[columnKey] === 'hide';
+
 				if (headers[columnIndex]) {
 					headers[columnIndex].style.display = shouldHide ? 'none' : '';
 				}
+
 				table.querySelectorAll('tbody tr').forEach(row => {
 					if (row.cells[columnIndex]) {
 						row.cells[columnIndex].style.display = shouldHide ? 'none' : '';
 					}
 				});
-				console.log(`[SCP]   -> ACTION: Set display to '${shouldHide ? 'none' : ''}' for column index ${columnIndex}`);
-			} else {
-				console.log(`[SCP]   -> SKIPPED: Column label '${columnLabel}' not found in table headers.`);
 			}
 		}
-		console.log('[SCP] Finished Conditional Column Hiding.');
 	}
 
 	// Wait for the DOM to be ready before initializing.
