@@ -39,14 +39,15 @@
     </ul>
 
     <h3>How the Rule Builder Works</h3>
-    <p>You can create multiple rules, which are processed from top to bottom. The last rule that applies to a specific column will determine its final visibility.</p>
+    <p>You can create multiple rules to define the visibility of your columns. The rules are processed in a logical order to determine the final state of each column in any given view.</p>
     <p>Each rule consists of four parts:</p>
     <ol>
         <li>
-            <strong>Action (SHOW/HIDE):</strong>
+            <strong>Action (SHOW / SHOW ONLY / HIDE):</strong> This is the core of the rule.
             <ul>
-                <li><code>SHOW</code>: Make the selected columns visible.</li>
-                <li><code>HIDE</code>: Make the selected columns invisible.</li>
+                <li><code>HIDE</code>: Explicitly hides a column in a specific view. This is the most powerful action and acts as a final veto, overriding any other rules for that column in that view.</li>
+                <li><code>SHOW ONLY</code>: This is the best way to handle columns that are only relevant in one context. It makes the column visible in the specified view but implicitly hides it in <strong>all other views</strong> by default.</li>
+                <li><code>SHOW</code>: Explicitly shows a column. This is primarily used to create exceptions and override the implicit hiding caused by a <code>SHOW ONLY</code> rule in another view.</li>
             </ul>
         </li>
         <li>
@@ -71,13 +72,15 @@
     </ol>
 
     <h4>Example Scenario:</h4>
-    <p>Imagine you want the "Onboarding Date" column to <strong>only</strong> be visible when you are looking at the "New Hire Tickets" view.</p>
+    <p>Imagine you have a column named "Billing Code" that should only be seen by the Accounting department. You also have a special "Manager" view where managers need to see it as well.</p>
     <ul>
-        <li><strong>Rule 1:</strong> <code>HIDE</code> | <code>Onboarding Date</code> | <code>WHEN NOT IN VIEW</code> | <code>New Hire Tickets</code><br>
-            <em>This rule hides the "Onboarding Date" column for all views <strong>except</strong> "New Hire Tickets".</em>
+        <li>
+            <strong>Rule 1:</strong> <code>SHOW ONLY</code> | <code>Billing Code</code> | <code>WHEN IN VIEW</code> | <code>Accounting View</code><br>
+            <em>This single rule accomplishes two things: it makes "Billing Code" visible in the "Accounting View" and hides it everywhere else by default. You no longer need extra "hide" rules for every other view.</em>
         </li>
-        <li><strong>Rule 2:</strong> <code>SHOW</code> | <code>Onboarding Date</code> | <code>WHEN IN VIEW</code> | <code>New Hire Tickets</code><br>
-            <em>This rule explicitly shows the "Onboarding Date" column when the "New Hire Tickets" view is selected.</em>
+        <li>
+            <strong>Rule 2:</strong> <code>SHOW</code> | <code>Billing Code</code> | <code>WHEN IN VIEW</code> | <code>Manager View</code><br>
+            <em>This rule creates an exception. It overrides the default hiding from the "Show Only" rule and makes the "Billing Code" column visible in the "Manager View" as well.</em>
         </li>
     </ul>
 </div>

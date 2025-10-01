@@ -311,6 +311,7 @@ class SCP_Admin_Settings {
 		<div class="scp-rule">
 			<select name="scp_settings[conditional_hiding_rules][<?php echo esc_attr( $index ); ?>][action]">
 				<option value="show" <?php selected( $action, 'show' ); ?>><?php esc_html_e( 'SHOW', 'supportcandy-plus' ); ?></option>
+				<option value="show_only" <?php selected( $action, 'show_only' ); ?>><?php esc_html_e( 'SHOW ONLY', 'supportcandy-plus' ); ?></option>
 				<option value="hide" <?php selected( $action, 'hide' ); ?>><?php esc_html_e( 'HIDE', 'supportcandy-plus' ); ?></option>
 			</select>
 
@@ -516,7 +517,7 @@ class SCP_Admin_Settings {
 								continue;
 							}
 							$sanitized_rule            = [];
-							$sanitized_rule['action']    = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide' ], true ) ? $rule['action'] : 'hide';
+							$sanitized_rule['action']    = isset( $rule['action'] ) && in_array( $rule['action'], [ 'show', 'hide', 'show_only' ], true ) ? $rule['action'] : 'hide';
 							$sanitized_rule['condition'] = isset( $rule['condition'] ) && in_array( $rule['condition'], [ 'in_view', 'not_in_view' ], true ) ? $rule['condition'] : 'in_view';
 							$sanitized_rule['view']      = isset( $rule['view'] ) ? sanitize_text_field( $rule['view'] ) : '0';
 							$sanitized_rule['columns']   = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
