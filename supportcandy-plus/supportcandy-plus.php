@@ -119,9 +119,15 @@ final class SupportCandy_Plus {
 	}
 
 	public function enqueue_admin_scripts( $hook_suffix ) {
-		if ( 'toplevel_page_supportcandy-plus' !== $hook_suffix ) {
+		$allowed_hooks = [
+			'toplevel_page_supportcandy-plus',
+			'supportcandy-plus_page_scp-conditional-hiding',
+		];
+
+		if ( ! in_array( $hook_suffix, $allowed_hooks, true ) ) {
 			return;
 		}
+
 		wp_enqueue_style(
 			'supportcandy-plus-admin',
 			SCP_PLUGIN_URL . 'assets/admin/css/supportcandy-plus-admin.css',
