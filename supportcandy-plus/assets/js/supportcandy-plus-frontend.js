@@ -121,18 +121,42 @@
 				headerIndexMap[th.textContent.trim().toLowerCase()] = index;
 			});
 
-			conditionalConfig.rules.forEach(rule => {
+			// Helper to check if a rule is active for a given view ID.
+			const isRuleActiveForView = (rule, viewId) => {
 				const ruleView = String(rule.view);
-				const ruleIsActive = (rule.condition === 'in_view' && pageView === ruleView) ||
-									 (rule.condition === 'not_in_view' && pageView !== ruleView);
+				return (rule.condition === 'in_view' && viewId === ruleView) ||
+					   (rule.condition === 'not_in_view' && viewId !== ruleView);
+			};
 
-				if (ruleIsActive) {
+			// First Pass: Apply the implications of "Show Only" rules from other views.
+			// If a column is "Show Only" in another view, it should be hidden here by default.
+			conditionalConfig.rules.forEach(rule => {
+				if (rule.action === 'show_only' && !isRuleActiveForView(rule, pageView)) {
 					const columnSlug = rule.columns;
 					const columnLabel = columnKeyMap[columnSlug];
 					if (columnLabel) {
 						const columnIndex = headerIndexMap[columnLabel.toLowerCase()];
 						if (columnIndex !== undefined) {
-							visibilityPlan[columnIndex] = rule.action; // Override with 'show' or 'hide'
+							visibilityPlan[columnIndex] = 'hide';
+						}
+					}
+				}
+			});
+
+			// Second Pass: Apply all rules that are explicitly for the current view.
+			// This will override the defaults set above.
+			conditionalConfig.rules.forEach(rule => {
+				if (isRuleActiveForView(rule, pageView)) {
+					const columnSlug = rule.columns;
+					const columnLabel = columnKeyMap[columnSlug];
+					if (columnLabel) {
+						const columnIndex = headerIndexMap[columnLabel.toLowerCase()];
+						if (columnIndex !== undefined) {
+							if (rule.action === 'show' || rule.action === 'show_only') {
+								visibilityPlan[columnIndex] = 'show';
+							} else if (rule.action === 'hide') {
+								visibilityPlan[columnIndex] = 'hide';
+							}
 						}
 					}
 				}
