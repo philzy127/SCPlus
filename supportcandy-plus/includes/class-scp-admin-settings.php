@@ -87,6 +87,26 @@ class SCP_Admin_Settings {
 			'scp-after-hours',
 			array( $this, 'after_hours_page_content' )
 		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'How To Use', 'supportcandy-plus' ),
+			__( 'How To Use', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-how-to-use',
+			array( $this, 'how_to_use_page_content' )
+		);
+	}
+
+	/**
+	 * Render the How To Use page content.
+	 */
+	public function how_to_use_page_content() {
+		if ( file_exists( SCP_PLUGIN_PATH . 'includes/admin/how-to-use-page.php' ) ) {
+			include_once SCP_PLUGIN_PATH . 'includes/admin/how-to-use-page.php';
+		} else {
+			echo '<div class="wrap"><h1>' . esc_html__( 'Error', 'supportcandy-plus' ) . '</h1><p>' . esc_html__( 'Instruction file not found.', 'supportcandy-plus' ) . '</p></div>';
+		}
 	}
 
 	/**
