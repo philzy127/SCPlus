@@ -57,7 +57,7 @@ class SCP_Admin_Settings {
 			'manage_options',
 			'supportcandy-plus',
 			array( $this, 'general_settings_page_content' ),
-			'dashicons-plus-alt',
+			'dashicons-tickets',
 			3
 		);
 
@@ -77,6 +77,15 @@ class SCP_Admin_Settings {
 			'manage_options',
 			'scp-conditional-hiding',
 			array( $this, 'conditional_hiding_page_content' )
+		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'Queue Macro', 'supportcandy-plus' ),
+			__( 'Queue Macro', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-queue-macro',
+			array( $this, 'queue_macro_page_content' )
 		);
 
 		add_submenu_page(
@@ -128,6 +137,13 @@ class SCP_Admin_Settings {
 	 */
 	public function after_hours_page_content() {
 		$this->render_settings_page_wrapper( 'scp-after-hours' );
+	}
+
+	/**
+	 * Render the Queue Macro settings page content.
+	 */
+	public function queue_macro_page_content() {
+		$this->render_settings_page_wrapper( 'scp-queue-macro' );
 	}
 
 	/**
@@ -239,6 +255,40 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_include_all_weekends', __( 'Include All Weekends', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'include_all_weekends', 'desc' => 'Enable this to show the notice all day on Saturdays and Sundays.' ] );
 		add_settings_field( 'scp_holidays', __( 'Holidays', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'holidays', 'class' => 'regular-text', 'desc' => 'List holidays, one per line, in MM-DD-YYYY format (e.g., 12-25-2024). The notice will show all day on these dates.' ] );
 		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
+
+		// Page: Queue Macro
+		add_settings_section(
+			'scp_queue_macro_section',
+			__( 'Queue Macro Settings', 'supportcandy-plus' ),
+			null,
+			'scp-queue-macro'
+		);
+
+		$all_custom_fields = supportcandy_plus()->get_supportcandy_columns();
+		$default_fields    = [
+			'category' => __( 'Category', 'supportcandy-plus' ),
+			'priority' => __( 'Priority', 'supportcandy-plus' ),
+			'status'   => __( 'Status', 'supportcandy-plus' ),
+		];
+		$all_type_fields   = array_merge( $default_fields, $all_custom_fields );
+		asort( $all_type_fields );
+
+		add_settings_field(
+			'scp_queue_macro_type_field',
+			__( 'Ticket Type Field', 'supportcandy-plus' ),
+			array( $this, 'render_select_field' ),
+			'scp-queue-macro',
+			'scp_queue_macro_section',
+			[
+				'id'      => 'queue_macro_type_field',
+				'choices' => $all_type_fields,
+				'desc'    => __( 'The field that distinguishes your queues (e.g., category, priority).', 'supportcandy-plus' ),
+			]
+		);
+
+		add_settings_field( 'scp_queue_macro_statuses', __( 'Non-Closed Statuses', 'supportcandy-plus' ), array( $this, 'render_statuses_dual_list_field' ), 'scp-queue-macro', 'scp_queue_macro_section', [ 'id' => 'queue_macro_statuses', 'desc' => 'Select which ticket statuses should count toward the queue.' ] );
+
+		add_settings_field( 'scp_queue_macro_test', __( 'Test Queue Counts', 'supportcandy-plus' ), array( $this, 'render_test_button_field' ), 'scp-queue-macro', 'scp_queue_macro_section' );
 	}
 
 	/**
@@ -363,6 +413,55 @@ class SCP_Admin_Settings {
 		return $views;
 	}
 
+	/**
+	 * Render the dual list for statuses.
+	 */
+	public function render_statuses_dual_list_field( $args ) {
+		global $wpdb;
+		$options           = get_option( 'scp_settings', [] );
+		$selected_statuses = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : [];
+
+		$status_table = $wpdb->prefix . 'psmsc_statuses';
+		$all_statuses = $wpdb->get_results( "SELECT id, name FROM {$status_table} ORDER BY name ASC" );
+
+		$available_statuses_map = [];
+		$selected_statuses_map  = [];
+
+		if ( $all_statuses ) {
+			foreach ( $all_statuses as $status ) {
+				if ( in_array( (int) $status->id, $selected_statuses, true ) ) {
+					$selected_statuses_map[ $status->id ] = $status->name;
+				} else {
+					$available_statuses_map[ $status->id ] = $status->name;
+				}
+			}
+		}
+		?>
+		<div class="dual-list-container">
+			<div class="dual-list-box" style="display: inline-block; vertical-align: top;">
+				<h3><?php _e( 'Available Statuses', 'supportcandy-plus' ); ?></h3>
+				<select multiple id="scp_available_statuses" size="8" style="width: 200px; height: 150px;">
+					<?php foreach ( $available_statuses_map as $id => $name ) : ?>
+						<option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $name ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<div class="dual-buttons" style="display: inline-block; vertical-align: middle; margin: 0 10px;">
+				<button type="button" class="button" id="scp_add_status" style="display: block; margin-bottom: 5px;">&rarr;</button>
+				<button type="button" class="button" id="scp_remove_status" style="display: block;">&larr;</button>
+			</div>
+			<div class="dual-list-box" style="display: inline-block; vertical-align: top;">
+				<h3><?php _e( 'Selected Statuses', 'supportcandy-plus' ); ?></h3>
+				<select multiple name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>][]" id="scp_selected_statuses" size="8" style="width: 200px; height: 150px;">
+					<?php foreach ( $selected_statuses_map as $id => $name ) : ?>
+						<option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $name ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+		</div>
+		<p class="description"><?php echo esc_html( $args['desc'] ); ?></p>
+		<?php
+	}
 
 	/**
 	 * Render a checkbox field.
@@ -432,6 +531,22 @@ class SCP_Admin_Settings {
 	}
 
 	/**
+	 * Render the test button for queue macro.
+	 */
+	public function render_test_button_field() {
+		?>
+		<p><?php _e( 'Click the button to see the current queue counts based on your saved settings.', 'supportcandy-plus' ); ?></p>
+		<p>
+			<button type="button" id="scp_test_queue_macro_button" class="button"><?php _e( 'Run Test', 'supportcandy-plus' ); ?></button>
+		</p>
+		<div id="scp_test_results" style="display:none; border: 1px solid #ddd; padding: 10px; margin-top: 10px; max-height: 200px; overflow-y: auto; background-color: #fff;">
+			<h4><?php _e( 'Test Results', 'supportcandy-plus' ); ?></h4>
+			<div id="scp_test_results_content"></div>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Sanitize the settings.
 	 */
 	public function sanitize_settings( $input ) {
@@ -449,6 +564,7 @@ class SCP_Admin_Settings {
 			'supportcandy-plus'      => [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'ticket_type_custom_field_name', 'ticket_types_to_hide' ],
 			'scp-conditional-hiding' => [ 'enable_conditional_hiding', 'conditional_hiding_rules' ],
 			'scp-after-hours'        => [ 'enable_after_hours_notice', 'after_hours_start', 'before_hours_end', 'include_all_weekends', 'holidays', 'after_hours_message' ],
+			'scp-queue-macro'        => [ 'queue_macro_type_field', 'queue_macro_statuses' ],
 		];
 
 		// Get the list of options for the page that was just saved.
@@ -463,7 +579,7 @@ class SCP_Admin_Settings {
 				// The field does not exist in the form data. This happens with unchecked checkboxes
 				// or fields that can be entirely removed (like the rules builder).
 				// We set it to a safe default (0 for checkboxes, empty array for rules).
-				if ( 'conditional_hiding_rules' === $key ) {
+				if ( 'conditional_hiding_rules' === $key || 'queue_macro_statuses' === $key ) {
 					$saved_settings[ $key ] = [];
 				} elseif ( in_array( $key, [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends' ] ) ) {
 					$saved_settings[ $key ] = 0; // Handles all checkboxes.
@@ -524,6 +640,18 @@ class SCP_Admin_Settings {
 							$sanitized_rules[]         = $sanitized_rule;
 						}
 						$sanitized_input[ $key ] = $sanitized_rules;
+					} else {
+						$sanitized_input[ $key ] = [];
+					}
+					break;
+
+				case 'queue_macro_type_field':
+					$sanitized_input[ $key ] = sanitize_text_field( $value );
+					break;
+
+				case 'queue_macro_statuses':
+					if ( is_array( $value ) ) {
+						$sanitized_input[ $key ] = array_map( 'absint', $value );
 					} else {
 						$sanitized_input[ $key ] = [];
 					}

@@ -43,3 +43,43 @@
     color: #666;
     font-style: italic;
 }
+
+/* Dual List Box Styles */
+.dual-list-container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.dual-list-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.dual-list-box h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.dual-list-box select {
+    min-width: 250px;
+    height: 180px !important;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+.dual-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-self: center;
+    justify-content: center;
+}
+
+.dual-buttons button {
+    width: 40px;
+    cursor: pointer;
+}

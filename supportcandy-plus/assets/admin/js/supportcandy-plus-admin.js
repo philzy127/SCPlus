@@ -28,4 +28,50 @@ jQuery(document).ready(function ($) {
             $('#scp-no-rules-message').show();
         }
     });
+
+    // Dual list for Queue Macro statuses
+    $('#scp_add_status').on('click', function () {
+        $('#scp_available_statuses option:selected').each(function () {
+            $(this).remove().appendTo('#scp_selected_statuses');
+        });
+    });
+
+    $('#scp_remove_status').on('click', function () {
+        $('#scp_selected_statuses option:selected').each(function () {
+            $(this).remove().appendTo('#scp_available_statuses');
+        });
+    });
+
+    // Before submitting the form, select all items in the 'selected' list for the queue macro
+    $('form[action="options.php"]').on('submit', function () {
+        $('#scp_selected_statuses option').prop('selected', true);
+    });
+
+    // Test button for Queue Macro
+    $('#scp_test_queue_macro_button').on('click', function () {
+        const resultsContent = $('#scp_test_results_content');
+        const resultsContainer = $('#scp_test_results');
+        resultsContent.html('<p>Loading...</p>');
+        resultsContainer.show();
+
+        $.post(scp_admin_ajax.ajax_url, {
+            action: 'scp_test_queue_macro',
+            nonce: scp_admin_ajax.nonce
+        }, function (response) {
+            if (response.success) {
+                let html = '<ul>';
+                if (Object.keys(response.data).length === 0) {
+                    html = '<p>No tickets found for the specified criteria.</p>';
+                } else {
+                    $.each(response.data, function (key, value) {
+                        html += '<li><strong>' + key + ':</strong> ' + value + '</li>';
+                    });
+                }
+                html += '</ul>';
+                resultsContent.html(html);
+            } else {
+                resultsContent.html('<p>Error: ' + response.data + '</p>');
+            }
+        });
+    });
 });

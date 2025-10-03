@@ -40,6 +40,8 @@ final class SupportCandy_Plus {
 
 	private function includes() {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
+		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
+		SCP_Queue_Macro::get_instance();
 	}
 
 	private function init_hooks() {
@@ -122,6 +124,8 @@ final class SupportCandy_Plus {
 		$allowed_hooks = [
 			'toplevel_page_supportcandy-plus',
 			'supportcandy-plus_page_scp-conditional-hiding',
+			'supportcandy-plus_page_scp-queue-macro',
+			'supportcandy-plus_page_scp-after-hours',
 		];
 
 		if ( ! in_array( $hook_suffix, $allowed_hooks, true ) ) {
@@ -140,6 +144,16 @@ final class SupportCandy_Plus {
 			array( 'jquery' ),
 			SCP_VERSION,
 			true
+		);
+
+		// Localize script for AJAX.
+		wp_localize_script(
+			'supportcandy-plus-admin',
+			'scp_admin_ajax',
+			[
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'scp_test_queue_macro_nonce' ),
+			]
 		);
 	}
 
