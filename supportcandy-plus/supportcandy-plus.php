@@ -126,6 +126,7 @@ final class SupportCandy_Plus {
 			'supportcandy-plus_page_scp-conditional-hiding',
 			'supportcandy-plus_page_scp-queue-macro',
 			'supportcandy-plus_page_scp-after-hours',
+			'supportcandy-plus_page_scp-how-to-use',
 		];
 
 		if ( ! in_array( $hook_suffix, $allowed_hooks, true ) ) {
