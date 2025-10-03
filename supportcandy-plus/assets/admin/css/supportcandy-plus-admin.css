@@ -43,3 +43,90 @@
     color: #666;
     font-style: italic;
 }
+
+/* Dual List Box Styles */
+.dual-list-container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.dual-list-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.dual-list-box h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.dual-list-box select {
+    min-width: 250px;
+    height: 180px !important;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+.dual-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-self: center;
+    justify-content: center;
+}
+
+.dual-buttons button {
+    width: 40px;
+    cursor: pointer;
+}
+
+/* How To Use Page Styles */
+.scp-how-to-use hr {
+    margin: 40px 0;
+    border: 0;
+    border-top: 1px solid #ddd;
+}
+
+.scp-how-to-use h2 {
+    font-size: 22px;
+    color: #2c3338;
+    border-bottom: 2px solid #2271b1;
+    padding-bottom: 8px;
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+.scp-how-to-use h3 {
+    font-size: 18px;
+    color: #444;
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+.scp-how-to-use p,
+.scp-how-to-use li {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.scp-how-to-use ul,
+.scp-how-to-use ol {
+    margin-left: 20px;
+    margin-bottom: 20px;
+}
+
+.scp-how-to-use ul {
+    list-style: disc;
+}
+
+.scp-how-to-use code {
+    background-color: #f0f0f1;
+    color: #333;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+}
