@@ -1,4 +1,4 @@
-<div class="wrap">
+<div class="wrap scp-how-to-use">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
     <p>This guide provides a detailed overview of all the features available in SupportCandy Plus. All settings can be configured from the plugin's admin pages.</p>
 
