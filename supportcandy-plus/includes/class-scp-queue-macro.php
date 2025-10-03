@@ -22,9 +22,12 @@ class SCP_Queue_Macro {
 	}
 
 	private function __construct() {
-		add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
-		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'replace_queue_count_in_email' ), 10, 2 );
-		add_action( 'wp_ajax_scp_test_queue_macro', array( $this, 'test_queues_ajax_handler' ) );
+		$options = get_option( 'scp_settings', [] );
+		if ( ! empty( $options['enable_queue_macro'] ) ) {
+			add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
+			add_filter( 'wpsc_create_ticket_email_data', array( $this, 'replace_queue_count_in_email' ), 10, 2 );
+			add_action( 'wp_ajax_scp_test_queue_macro', array( $this, 'test_queues_ajax_handler' ) );
+		}
 	}
 
 	/**

@@ -264,6 +264,18 @@ class SCP_Admin_Settings {
 			'scp-queue-macro'
 		);
 
+		add_settings_field(
+			'scp_enable_queue_macro',
+			__( 'Enable Feature', 'supportcandy-plus' ),
+			array( $this, 'render_checkbox_field' ),
+			'scp-queue-macro',
+			'scp_queue_macro_section',
+			[
+				'id'   => 'enable_queue_macro',
+				'desc' => __( 'Adds a {{queue_count}} macro to show customers their queue position.', 'supportcandy-plus' ),
+			]
+		);
+
 		$all_custom_fields = supportcandy_plus()->get_supportcandy_columns();
 		$default_fields    = [
 			'category' => __( 'Category', 'supportcandy-plus' ),
@@ -564,7 +576,7 @@ class SCP_Admin_Settings {
 			'supportcandy-plus'      => [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'ticket_type_custom_field_name', 'ticket_types_to_hide' ],
 			'scp-conditional-hiding' => [ 'enable_conditional_hiding', 'conditional_hiding_rules' ],
 			'scp-after-hours'        => [ 'enable_after_hours_notice', 'after_hours_start', 'before_hours_end', 'include_all_weekends', 'holidays', 'after_hours_message' ],
-			'scp-queue-macro'        => [ 'queue_macro_type_field', 'queue_macro_statuses' ],
+			'scp-queue-macro'        => [ 'enable_queue_macro', 'queue_macro_type_field', 'queue_macro_statuses' ],
 		];
 
 		// Get the list of options for the page that was just saved.
@@ -581,7 +593,7 @@ class SCP_Admin_Settings {
 				// We set it to a safe default (0 for checkboxes, empty array for rules).
 				if ( 'conditional_hiding_rules' === $key || 'queue_macro_statuses' === $key ) {
 					$saved_settings[ $key ] = [];
-				} elseif ( in_array( $key, [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends' ] ) ) {
+				} elseif ( in_array( $key, [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends', 'enable_queue_macro' ] ) ) {
 					$saved_settings[ $key ] = 0; // Handles all checkboxes.
 				}
 			}
@@ -599,6 +611,7 @@ class SCP_Admin_Settings {
 				case 'enable_conditional_hiding':
 				case 'enable_after_hours_notice':
 				case 'include_all_weekends':
+				case 'enable_queue_macro':
 					$sanitized_input[ $key ] = (int) $value;
 					break;
 
