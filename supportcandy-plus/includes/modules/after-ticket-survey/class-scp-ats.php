@@ -438,7 +438,12 @@ final class SCP_After_Ticket_Survey {
 		?>
 		<h2>After Ticket Survey Settings</h2>
 		<form method="post" action="options.php">
-			<?php settings_fields( 'scp_settings' ); do_settings_sections( 'scp-ats-survey' ); submit_button(); ?>
+			<?php
+				settings_fields( 'scp_settings' );
+				echo '<input type="hidden" name="scp_settings[page_slug]" value="scp-ats-survey">';
+				do_settings_sections( 'scp-ats-survey' );
+				submit_button();
+			?>
 		</form>
 		<hr style="margin: 20px 0;">
 		<h2>Import from Old Plugin</h2>
