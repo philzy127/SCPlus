@@ -249,17 +249,23 @@ final class SCP_After_Ticket_Survey {
 
 	public function admin_notices() {
 		if ( isset( $_GET['page'] ) && 'scp-ats-survey' === $_GET['page'] && isset( $_GET['message'] ) ) {
-			$type = $_GET['message'] === 'error' ? 'error' : 'success';
+			$type = 'success';
+			if ( strpos( $_GET['message'], 'fail' ) !== false || $_GET['message'] === 'error' ) {
+				$type = 'error';
+			}
 			$messages = array(
 				'added' => 'Question added successfully!',
 				'updated' => 'Question updated successfully!',
 				'deleted' => 'Question deleted successfully!',
 				'submissions_deleted' => 'Selected submissions deleted!',
-				'import_success' => 'Data imported successfully!',
+				'import_success' => 'All data and settings imported successfully!',
 				'import_fail' => 'Import failed: Could not find data from the old plugin.',
+				'import_success_settings_only' => 'Settings imported successfully, but no table data was found for the old plugin.',
+				'import_success_data_only' => 'Data from tables imported successfully, but no settings were found for the old plugin.',
 				'error' => 'An error occurred.',
 			);
-			echo "<div class=\"notice notice-{$type} is-dismissible\"><p>{$messages[$_GET['message']]}</p></div>";
+			$message_text = $messages[ $_GET['message'] ] ?? 'Action completed.';
+			echo "<div class=\"notice notice-{$type} is-dismissible\"><p>{$message_text}</p></div>";
 		}
 	}
 
@@ -533,41 +539,31 @@ final class SCP_After_Ticket_Survey {
 		}
 
 		global $wpdb;
-		$old_tables = array(
-			'questions' => $wpdb->prefix . 'ats_questions',
-			'options'   => $wpdb->prefix . 'ats_dropdown_options',
-			'submissions' => $wpdb->prefix . 'ats_survey_submissions',
-			'answers'   => $wpdb->prefix . 'ats_survey_answers',
-		);
+		$old_table_prefix = $wpdb->prefix . 'ats_';
+		$old_tables_exist = $wpdb->get_var( "SHOW TABLES LIKE '{$old_table_prefix}%'" );
+		$old_options_exist = get_option( 'ats_survey_options' ) !== false;
 
-		// Check if old tables exist
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$old_tables['questions']}'" ) != $old_tables['questions'] ) {
+		if ( ! $old_tables_exist && ! $old_options_exist ) {
 			wp_redirect( admin_url( 'admin.php?page=scp-ats-survey&tab=settings&message=import_fail' ) );
 			exit;
 		}
 
-		// Truncate new tables
-		$wpdb->query( "TRUNCATE TABLE {$this->questions_table_name}" );
-		$wpdb->query( "TRUNCATE TABLE {$this->dropdown_options_table_name}" );
-		$wpdb->query( "TRUNCATE TABLE {$this->survey_submissions_table_name}" );
-		$wpdb->query( "TRUNCATE TABLE {$this->survey_answers_table_name}" );
+		if ( $old_tables_exist ) {
+			$wpdb->query( "TRUNCATE TABLE {$this->questions_table_name}" );
+			$wpdb->query( "TRUNCATE TABLE {$this->dropdown_options_table_name}" );
+			$wpdb->query( "TRUNCATE TABLE {$this->survey_submissions_table_name}" );
+			$wpdb->query( "TRUNCATE TABLE {$this->survey_answers_table_name}" );
 
-		// Import data
-		$wpdb->query( "INSERT INTO {$this->questions_table_name} SELECT * FROM {$old_tables['questions']}" );
-		$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$old_tables['options']}" );
-		$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$old_tables['submissions']}" );
-		$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$old_tables['answers']}" );
+			$wpdb->query( "INSERT INTO {$this->questions_table_name} SELECT * FROM {$wpdb->prefix}ats_questions" );
+			$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$wpdb->prefix}ats_dropdown_options" );
+			$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$wpdb->prefix}ats_survey_submissions" );
+			$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$wpdb->prefix}ats_survey_answers" );
+		}
 
-		// Import settings
-		$old_options = get_option( 'ats_survey_options' );
-		if ( ! empty( $old_options ) ) {
+		if ( $old_options_exist ) {
+			$old_options = get_option( 'ats_survey_options' );
 			$new_options = get_option( 'scp_settings', array() );
-			$mapping = array(
-				'background_color'       => 'ats_background_color',
-				'ticket_question_id'     => 'ats_ticket_question_id',
-				'technician_question_id' => 'ats_technician_question_id',
-				'ticket_url'             => 'ats_ticket_url_base',
-			);
+			$mapping = array( 'background_color' => 'ats_background_color', 'ticket_question_id' => 'ats_ticket_question_id', 'technician_question_id' => 'ats_technician_question_id', 'ticket_url' => 'ats_ticket_url_base' );
 			foreach ( $mapping as $old_key => $new_key ) {
 				if ( isset( $old_options[ $old_key ] ) ) {
 					$new_options[ $new_key ] = $old_options[ $old_key ];
@@ -576,7 +572,14 @@ final class SCP_After_Ticket_Survey {
 			update_option( 'scp_settings', $new_options );
 		}
 
-		wp_redirect( admin_url( 'admin.php?page=scp-ats-survey&tab=settings&message=import_success' ) );
+		$message = 'import_success';
+		if ( $old_tables_exist && ! $old_options_exist ) {
+			$message = 'import_success_data_only';
+		} elseif ( ! $old_tables_exist && $old_options_exist ) {
+			$message = 'import_success_settings_only';
+		}
+
+		wp_redirect( admin_url( 'admin.php?page=scp-ats-survey&tab=settings&message=' . $message ) );
 		exit;
 	}
 }
