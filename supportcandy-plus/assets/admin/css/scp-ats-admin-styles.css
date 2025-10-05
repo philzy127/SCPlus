@@ -89,7 +89,7 @@
 
 /* FINAL STYLES FOR QUESTIONS TAB LAYOUT */
 .ats-questions-container {
-    max-width: 960px; /* Limit width for better readability */
+    max-width: 720px; /* Constrain form width */
 }
 
 .ats-questions-list {
@@ -107,14 +107,20 @@
     align-items: flex-end; /* Align items to the bottom */
 }
 
-.ats-form-group-text,
-.ats-form-group-type {
-    flex: 1 1 auto; /* Allow these fields to grow */
+.ats-form-group-full {
+    flex: 1 0 100%; /* Take full width */
 }
 
-.ats-form-group-required,
+.ats-form-group-type {
+    flex: 1 1 auto; /* Allow type to grow */
+}
+
 .ats-form-group-sort {
-    flex: 0 0 120px; /* Give these fields a fixed width */
+    flex: 0 0 120px; /* Fixed width for sort */
+}
+
+.ats-form-group-required {
+    flex: 0 0 100px; /* Fixed width for required */
 }
 
 .ats-checkbox {

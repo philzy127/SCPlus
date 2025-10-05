@@ -429,13 +429,9 @@ final class SCP_After_Ticket_Survey {
 					<?php wp_nonce_field( 'scp_ats_manage_questions_nonce' ); ?>
 
 					<div class="ats-form-row">
-						<div class="ats-form-group ats-form-group-text">
+						<div class="ats-form-group ats-form-group-full">
 							<label for="question_text" class="ats-label">Question Text:</label>
 							<input type="text" id="question_text" name="question_text" class="ats-input" value="<?php echo esc_attr( $editing_question['question_text'] ?? '' ); ?>" required>
-						</div>
-						<div class="ats-form-group ats-form-group-required">
-							<label for="ats_is_required" class="ats-label">Required?</label>
-							<input type="checkbox" id="ats_is_required" name="ats_is_required" class="ats-checkbox" value="1" <?php checked( $editing_question['is_required'] ?? 1 ); ?>>
 						</div>
 					</div>
 
@@ -451,7 +447,11 @@ final class SCP_After_Ticket_Survey {
 						</div>
 						<div class="ats-form-group ats-form-group-sort">
 							<label for="ats_sort_order" class="ats-label">Sort Order:</label>
-							<input type="number" id="ats_sort_order" name="ats_sort_order" class="ats-input ats-sort-order-input" value="<?php echo esc_attr( $editing_question['sort_order'] ?? count($questions) ); ?>" min="0">
+							<input type="number" id="ats_sort_order" name="ats_sort_order" class="ats-input" value="<?php echo esc_attr( $editing_question['sort_order'] ?? count($questions) ); ?>" min="0">
+						</div>
+						<div class="ats-form-group ats-form-group-required">
+							<label for="ats_is_required" class="ats-label">Required?</label>
+							<input type="checkbox" id="ats_is_required" name="ats_is_required" class="ats-checkbox" value="1" <?php checked( $editing_question['is_required'] ?? 1 ); ?>>
 						</div>
 					</div>
 
