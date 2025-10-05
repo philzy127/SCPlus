@@ -433,14 +433,14 @@ final class SCP_After_Ticket_Survey {
 							<label for="question_text" class="ats-label">Question Text:</label>
 							<input type="text" id="question_text" name="question_text" class="ats-input" value="<?php echo esc_attr( $editing_question['question_text'] ?? '' ); ?>" required>
 						</div>
-						<div class="ats-form-group ats-form-group-checkbox">
-							<label for="ats_is_required" class="ats-label-inline">Required?</label>
-							<input type="checkbox" id="ats_is_required" name="ats_is_required" value="1" <?php checked( $editing_question['is_required'] ?? 1 ); ?>>
+						<div class="ats-form-group ats-form-group-required">
+							<label for="ats_is_required" class="ats-label">Required?</label>
+							<input type="checkbox" id="ats_is_required" name="ats_is_required" class="ats-checkbox" value="1" <?php checked( $editing_question['is_required'] ?? 1 ); ?>>
 						</div>
 					</div>
 
 					<div class="ats-form-row">
-						<div class="ats-form-group">
+						<div class="ats-form-group ats-form-group-type">
 							<label for="question_type" class="ats-label">Question Type:</label>
 							<select id="question_type" name="question_type" class="ats-input" required onchange="toggleDropdownOptions(this)">
 								<option value="short_text" <?php selected( $editing_question['question_type'] ?? '', 'short_text' ); ?>>Short Text</option>
@@ -449,7 +449,7 @@ final class SCP_After_Ticket_Survey {
 								<option value="dropdown" <?php selected( $editing_question['question_type'] ?? '', 'dropdown' ); ?>>Dropdown</option>
 							</select>
 						</div>
-						<div class="ats-form-group">
+						<div class="ats-form-group ats-form-group-sort">
 							<label for="ats_sort_order" class="ats-label">Sort Order:</label>
 							<input type="number" id="ats_sort_order" name="ats_sort_order" class="ats-input ats-sort-order-input" value="<?php echo esc_attr( $editing_question['sort_order'] ?? count($questions) ); ?>" min="0">
 						</div>

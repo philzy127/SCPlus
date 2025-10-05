@@ -62,10 +62,6 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* focus:ring-2 focus:ring-blue-500 */
 }
 
-.ats-admin-form .ats-sort-order-input {
-    max-width: 120px; /* Smaller width for sort order input */
-}
-
 .ats-submit-button-admin {
     margin-top: 16px !important; /* mt-4, !important to override WP default button styles */
 }
@@ -91,7 +87,7 @@
     border-color: #dc3232;
 }
 
-/* REFINED STYLES FOR QUESTIONS TAB LAYOUT */
+/* FINAL STYLES FOR QUESTIONS TAB LAYOUT */
 .ats-questions-container {
     max-width: 960px; /* Limit width for better readability */
 }
@@ -111,25 +107,20 @@
     align-items: flex-end; /* Align items to the bottom */
 }
 
-.ats-form-row .ats-form-group {
-    flex: 1 1 200px; /* Grow, shrink, with a base width */
+.ats-form-group-text,
+.ats-form-group-type {
+    flex: 1 1 auto; /* Allow these fields to grow */
 }
 
-/* Make the question text field take up most of the space */
-.ats-form-group-text {
-    flex-grow: 4;
+.ats-form-group-required,
+.ats-form-group-sort {
+    flex: 0 0 120px; /* Give these fields a fixed width */
 }
 
-/* Prevent the checkbox from growing */
-.ats-form-group-checkbox {
-    flex: 0 0 auto; /* Do not grow, do not shrink, size based on content */
-    padding-bottom: 10px; /* Align with input fields */
-}
-
-.ats-label-inline {
-    margin-right: 10px;
-    margin-bottom: 0 !important;
-	font-weight: 400 !important;
+.ats-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-bottom: 0.5rem; /* Align with bottom of text inputs */
 }
 
 .ats-form-actions {
