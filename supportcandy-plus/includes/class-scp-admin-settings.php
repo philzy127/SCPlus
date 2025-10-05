@@ -577,6 +577,7 @@ class SCP_Admin_Settings {
 			'scp-conditional-hiding' => [ 'enable_conditional_hiding', 'conditional_hiding_rules' ],
 			'scp-after-hours'        => [ 'enable_after_hours_notice', 'after_hours_start', 'before_hours_end', 'include_all_weekends', 'holidays', 'after_hours_message' ],
 			'scp-queue-macro'        => [ 'enable_queue_macro', 'queue_macro_type_field', 'queue_macro_statuses' ],
+			'scp-ats-survey'         => [ 'ats_background_color', 'ats_ticket_question_id', 'ats_technician_question_id', 'ats_ticket_url_base' ],
 		];
 
 		// Get the list of options for the page that was just saved.
@@ -623,7 +624,15 @@ class SCP_Admin_Settings {
 
 				// Text fields
 				case 'ticket_type_custom_field_name':
+				case 'ats_background_color':
+				case 'ats_ticket_url_base':
 					$sanitized_input[ $key ] = sanitize_text_field( $value );
+					break;
+
+				// Number fields (from dropdowns)
+				case 'ats_ticket_question_id':
+				case 'ats_technician_question_id':
+					$sanitized_input[ $key ] = absint( $value );
 					break;
 
 				// Textarea

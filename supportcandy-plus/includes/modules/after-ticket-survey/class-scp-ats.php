@@ -492,18 +492,11 @@ final class SCP_After_Ticket_Survey {
 	}
 
 	public function register_settings() {
-		register_setting( 'scp_settings', 'scp_settings' );
 		add_settings_section( 'scp_ats_settings_section', '', null, 'scp-ats-survey' );
 		add_settings_field( 'ats_background_color', 'Survey Page Background Color', array( $this, 'render_color_picker' ), 'scp-ats-survey', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_ticket_question_id', 'Ticket Number Question', array( $this, 'render_question_dropdown' ), 'scp-ats-survey', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_technician_question_id', 'Technician Question', array( $this, 'render_technician_question_dropdown' ), 'scp-ats-survey', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_ticket_url_base', 'Ticket System Base URL', array( $this, 'render_text_field' ), 'scp-ats-survey', 'scp_ats_settings_section' );
-	}
-
-	public function sanitize_survey_settings( $input ) {
-		$existing_options = get_option( 'scp_settings', array() );
-		$new_options = array_merge( $existing_options, $input );
-		return $new_options;
 	}
 
 	public function render_color_picker() {
