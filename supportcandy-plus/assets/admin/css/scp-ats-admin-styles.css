@@ -32,18 +32,12 @@
 .ats-admin-form {
     display: flex;
     flex-direction: column;
-    gap: 24px; /* space-y-6 */
+    gap: 16px; /* space-y-4 */
     padding: 24px; /* p-6 */
     border: 1px solid #e2e8f0; /* border-gray-200 */
     border-radius: 8px; /* rounded-lg */
     background-color: #ffffff; /* bg-white */
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
-    margin-top: 32px; /* my-8 */
-    margin-bottom: 32px; /* my-8 */
-}
-
-.ats-form-group {
-    /* No specific padding-bottom or border-bottom here, as the gap handles spacing */
 }
 
 .ats-admin-form .ats-label {
@@ -69,7 +63,7 @@
 }
 
 .ats-admin-form .ats-sort-order-input {
-    max-width: 100px; /* Smaller width for sort order input */
+    max-width: 120px; /* Smaller width for sort order input */
 }
 
 .ats-submit-button-admin {
@@ -96,29 +90,44 @@
 .notice-error {
     border-color: #dc3232;
 }
-/* Custom styles for the dynamic results table columns */
-.ats-results-id {
-    width: 50px;
+
+/* NEW STYLES FOR QUESTIONS TAB LAYOUT */
+.ats-questions-container {
+    max-width: 960px; /* Limit width for better readability */
 }
 
-.ats-results-date {
-    width: 150px;
+.ats-questions-list {
+    margin-bottom: 48px; /* Add space between the list and the form */
 }
 
-.ats-results-user {
-    width: 200px;
+.ats-question-form {
+    margin-top: 24px;
 }
 
-.ats-results-rating {
-    width: 80px;
+.ats-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Space between items in the row */
+    align-items: flex-end; /* Align items to the bottom */
 }
 
-.ats-results-comment {
-    width: 300px;
-    white-space: pre-wrap; /* Ensures long text wraps */
+.ats-form-row .ats-form-group {
+    flex: 1; /* Allow items to grow */
+    min-width: 150px; /* Prevent items from becoming too small */
 }
 
-/* Fallback for other columns */
-.ats-results-default {
-    width: 100px;
+.ats-form-group-checkbox {
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px; /* Align with input fields */
+}
+
+.ats-label-inline {
+    margin-right: 10px;
+    margin-bottom: 0 !important;
+	font-weight: 400 !important;
+}
+
+.ats-form-actions {
+    margin-top: 16px;
 }
