@@ -395,7 +395,7 @@ final class SCP_After_Ticket_Survey {
 		}
 		$questions = $wpdb->get_results( "SELECT * FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
 		?>
-		<div class="ats-questions-container">
+		<div>
 
 			<!-- Existing Questions Table -->
 			<div class="ats-questions-list">
@@ -419,7 +419,8 @@ final class SCP_After_Ticket_Survey {
 			</div>
 
 			<!-- Add/Edit Question Form -->
-			<div class="ats-question-form">
+			<div class="ats-questions-container">
+				<div class="ats-question-form">
 				<h2><?php echo $editing_question ? 'Edit Question' : 'Add New Question'; ?></h2>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ats-admin-form">
 					<input type="hidden" name="action" value="scp_ats_manage_questions">
@@ -464,6 +465,7 @@ final class SCP_After_Ticket_Survey {
 						<?php if ( $editing_question ) : ?><a href="<?php echo esc_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions' ) ); ?>" class="button button-secondary ats-cancel-button-admin">Cancel Edit</a><?php endif; ?>
 					</div>
 				</form>
+				</div>
 			</div>
 		</div>
 		<script>function toggleDropdownOptions(selectElement) { document.getElementById('ats_dropdown_options_group').style.display = selectElement.value === 'dropdown' ? 'block' : 'none'; } document.addEventListener('DOMContentLoaded', function() { toggleDropdownOptions(document.getElementById('ats_question_type')); });</script>
