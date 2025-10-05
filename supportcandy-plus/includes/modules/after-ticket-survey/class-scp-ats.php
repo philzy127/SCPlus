@@ -436,7 +436,6 @@ final class SCP_After_Ticket_Survey {
 
 	private function render_settings_tab() {
 		?>
-		<h2>After Ticket Survey Settings</h2>
 		<form method="post" action="options.php">
 			<?php settings_fields( 'scp_settings' ); do_settings_sections( 'scp-ats-settings' ); submit_button(); ?>
 		</form>
@@ -493,7 +492,7 @@ final class SCP_After_Ticket_Survey {
 
 	public function register_settings() {
 		register_setting( 'scp_settings', 'scp_settings' );
-		add_settings_section( 'scp_ats_settings_section', 'After Ticket Survey Settings', null, 'scp-ats-settings' );
+		add_settings_section( 'scp_ats_settings_section', '', null, 'scp-ats-settings' );
 		add_settings_field( 'ats_background_color', 'Survey Page Background Color', array( $this, 'render_color_picker' ), 'scp-ats-settings', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_ticket_question_id', 'Ticket Number Question', array( $this, 'render_question_dropdown' ), 'scp-ats-settings', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_technician_question_id', 'Technician Question', array( $this, 'render_technician_question_dropdown' ), 'scp-ats-settings', 'scp_ats_settings_section' );
