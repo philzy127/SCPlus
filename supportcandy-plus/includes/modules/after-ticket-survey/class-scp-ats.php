@@ -583,6 +583,7 @@ final class SCP_After_Ticket_Survey {
 					$new_options[ $new_key ] = $old_options[ $old_key ];
 				}
 			}
+			$new_options['page_slug'] = 'scp-ats-survey';
 			update_option( 'scp_settings', $new_options );
 		}
 
