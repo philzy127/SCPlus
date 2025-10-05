@@ -42,6 +42,12 @@ final class SupportCandy_Plus {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
 		SCP_Queue_Macro::get_instance();
+
+		// After Ticket Survey Module
+		include_once SCP_PLUGIN_PATH . 'includes/modules/after-ticket-survey/class-scp-ats.php';
+		if ( class_exists( 'SCP_After_Ticket_Survey' ) ) {
+			SCP_After_Ticket_Survey::get_instance();
+		}
 	}
 
 	private function init_hooks() {
@@ -127,6 +133,9 @@ final class SupportCandy_Plus {
 			'supportcandy-plus_page_scp-queue-macro',
 			'supportcandy-plus_page_scp-after-hours',
 			'supportcandy-plus_page_scp-how-to-use',
+			'supportcandy-plus_page_scp-ats-manage-questions',
+			'supportcandy-plus_page_scp-ats-view-results',
+			'supportcandy-plus_page_scp-ats-settings',
 		];
 
 		if ( ! in_array( $hook_suffix, $allowed_hooks, true ) ) {
