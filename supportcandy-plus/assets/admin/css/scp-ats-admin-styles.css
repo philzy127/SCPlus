@@ -91,7 +91,7 @@
     border-color: #dc3232;
 }
 
-/* NEW STYLES FOR QUESTIONS TAB LAYOUT */
+/* REFINED STYLES FOR QUESTIONS TAB LAYOUT */
 .ats-questions-container {
     max-width: 960px; /* Limit width for better readability */
 }
@@ -112,13 +112,17 @@
 }
 
 .ats-form-row .ats-form-group {
-    flex: 1; /* Allow items to grow */
-    min-width: 150px; /* Prevent items from becoming too small */
+    flex: 1 1 200px; /* Grow, shrink, with a base width */
 }
 
+/* Make the question text field take up most of the space */
+.ats-form-group-text {
+    flex-grow: 4;
+}
+
+/* Prevent the checkbox from growing */
 .ats-form-group-checkbox {
-    display: flex;
-    align-items: center;
+    flex: 0 0 auto; /* Do not grow, do not shrink, size based on content */
     padding-bottom: 10px; /* Align with input fields */
 }
 
