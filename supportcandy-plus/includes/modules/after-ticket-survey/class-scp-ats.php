@@ -436,6 +436,7 @@ final class SCP_After_Ticket_Survey {
 
 	private function render_settings_tab() {
 		?>
+		<h2>After Ticket Survey Settings</h2>
 		<form method="post" action="options.php">
 			<?php settings_fields( 'scp_settings' ); do_settings_sections( 'scp-ats-settings' ); submit_button(); ?>
 		</form>
@@ -492,11 +493,17 @@ final class SCP_After_Ticket_Survey {
 
 	public function register_settings() {
 		register_setting( 'scp_settings', 'scp_settings' );
-		add_settings_section( 'scp_ats_settings_section', '', null, 'scp-ats-settings' );
-		add_settings_field( 'ats_background_color', 'Survey Page Background Color', array( $this, 'render_color_picker' ), 'scp-ats-settings', 'scp_ats_settings_section' );
-		add_settings_field( 'ats_ticket_question_id', 'Ticket Number Question', array( $this, 'render_question_dropdown' ), 'scp-ats-settings', 'scp_ats_settings_section' );
-		add_settings_field( 'ats_technician_question_id', 'Technician Question', array( $this, 'render_technician_question_dropdown' ), 'scp-ats-settings', 'scp_ats_settings_section' );
-		add_settings_field( 'ats_ticket_url_base', 'Ticket System Base URL', array( $this, 'render_text_field' ), 'scp-ats-settings', 'scp_ats_settings_section' );
+		add_settings_section( 'scp_ats_settings_section', '', null, 'scp-ats-survey' );
+		add_settings_field( 'ats_background_color', 'Survey Page Background Color', array( $this, 'render_color_picker' ), 'scp-ats-survey', 'scp_ats_settings_section' );
+		add_settings_field( 'ats_ticket_question_id', 'Ticket Number Question', array( $this, 'render_question_dropdown' ), 'scp-ats-survey', 'scp_ats_settings_section' );
+		add_settings_field( 'ats_technician_question_id', 'Technician Question', array( $this, 'render_technician_question_dropdown' ), 'scp-ats-survey', 'scp_ats_settings_section' );
+		add_settings_field( 'ats_ticket_url_base', 'Ticket System Base URL', array( $this, 'render_text_field' ), 'scp-ats-survey', 'scp_ats_settings_section' );
+	}
+
+	public function sanitize_survey_settings( $input ) {
+		$existing_options = get_option( 'scp_settings', array() );
+		$new_options = array_merge( $existing_options, $input );
+		return $new_options;
 	}
 
 	public function render_color_picker() {
@@ -538,8 +545,13 @@ final class SCP_After_Ticket_Survey {
 		}
 
 		global $wpdb;
-		$old_table_prefix = $wpdb->prefix . 'ats_';
-		$old_tables_exist = $wpdb->get_var( "SHOW TABLES LIKE '{$old_table_prefix}%'" );
+		$old_table_prefix              = $wpdb->prefix . 'ats_';
+		$old_questions_table           = $old_table_prefix . 'questions';
+		$old_dropdown_options_table    = $old_table_prefix . 'dropdown_options';
+		$old_survey_submissions_table  = $old_table_prefix . 'survey_submissions';
+		$old_survey_answers_table      = $old_table_prefix . 'survey_answers';
+
+		$old_tables_exist  = $wpdb->get_var( "SHOW TABLES LIKE '{$old_questions_table}'" ) === $old_questions_table;
 		$old_options_exist = get_option( 'ats_survey_options' ) !== false;
 
 		if ( ! $old_tables_exist && ! $old_options_exist ) {
@@ -553,17 +565,22 @@ final class SCP_After_Ticket_Survey {
 			$wpdb->query( "TRUNCATE TABLE {$this->survey_submissions_table_name}" );
 			$wpdb->query( "TRUNCATE TABLE {$this->survey_answers_table_name}" );
 
-			$wpdb->query( "INSERT INTO {$this->questions_table_name} SELECT * FROM {$wpdb->prefix}ats_questions" );
-			$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$wpdb->prefix}ats_dropdown_options" );
-			$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$wpdb->prefix}ats_survey_submissions" );
-			$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$wpdb->prefix}ats_survey_answers" );
+			$wpdb->query( "INSERT INTO {$this->questions_table_name} SELECT * FROM {$old_questions_table}" );
+			$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$old_dropdown_options_table}" );
+			$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$old_survey_submissions_table}" );
+			$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$old_survey_answers_table}" );
 		}
 
 		if ( $old_options_exist ) {
-			$old_options = get_option( 'ats_survey_options' );
-			$new_options = get_option( 'scp_settings', array() );
-			$mapping = array( 'background_color' => 'ats_background_color', 'ticket_question_id' => 'ats_ticket_question_id', 'technician_question_id' => 'ats_technician_question_id', 'ticket_url' => 'ats_ticket_url_base' );
-			foreach ( $mapping as $old_key => $new_key ) {
+			$old_options   = get_option( 'ats_survey_options' );
+			$new_options   = get_option( 'scp_settings', array() );
+			$option_mapping = array(
+				'background_color'     => 'ats_background_color',
+				'ticket_question_id'     => 'ats_ticket_question_id',
+				'technician_question_id' => 'ats_technician_question_id',
+				'ticket_url'             => 'ats_ticket_url_base',
+			);
+			foreach ( $option_mapping as $old_key => $new_key ) {
 				if ( isset( $old_options[ $old_key ] ) ) {
 					$new_options[ $new_key ] = $old_options[ $old_key ];
 				}
