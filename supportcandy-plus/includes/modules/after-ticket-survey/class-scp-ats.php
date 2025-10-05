@@ -255,7 +255,8 @@ final class SCP_After_Ticket_Survey {
 				'updated' => 'Question updated successfully!',
 				'deleted' => 'Question deleted successfully!',
 				'submissions_deleted' => 'Selected submissions deleted!',
-				'import_success' => 'Settings imported successfully!',
+				'import_success' => 'Data imported successfully!',
+				'import_fail' => 'Import failed: Could not find data from the old plugin.',
 				'error' => 'An error occurred.',
 			);
 			echo "<div class=\"notice notice-{$type} is-dismissible\"><p>{$messages[$_GET['message']]}</p></div>";
@@ -435,11 +436,14 @@ final class SCP_After_Ticket_Survey {
 		</form>
 		<hr style="margin: 20px 0;">
 		<h2>Import from Old Plugin</h2>
-		<p>If you were using the standalone "WP - After Ticket Survey" plugin, you can import your settings here.</p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<p>If you were using the standalone "WP - After Ticket Survey" plugin, you can import your questions, submissions, and settings here.</p>
+		<div style="border: 2px solid #ffb900; padding: 10px; margin-bottom: 15px;">
+			<p><strong>Warning:</strong> This is a one-way process and will overwrite any existing survey data in this plugin. It cannot be undone. Please be sure you want to proceed.</p>
+		</div>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('Are you sure you want to import data from the old plugin? This will overwrite existing survey data and cannot be undone.');">
 			<input type="hidden" name="action" value="scp_ats_import_settings">
 			<?php wp_nonce_field( 'scp_ats_import_nonce', '_scp_ats_import_nonce' ); ?>
-			<?php submit_button( 'Import Settings', 'secondary' ); ?>
+			<?php submit_button( 'Import Data from Old Plugin', 'secondary' ); ?>
 		</form>
 		<?php
 	}
@@ -521,37 +525,57 @@ final class SCP_After_Ticket_Survey {
 	}
 
 	public function handle_import_settings() {
-		// Nonce verification
 		if ( ! isset( $_POST['_scp_ats_import_nonce'] ) || ! wp_verify_nonce( $_POST['_scp_ats_import_nonce'], 'scp_ats_import_nonce' ) ) {
 			wp_die( 'Invalid nonce.' );
 		}
-
-		// Permission check
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( 'You do not have sufficient permissions to access this page.' );
 		}
 
+		global $wpdb;
+		$old_tables = array(
+			'questions' => $wpdb->prefix . 'ats_questions',
+			'options'   => $wpdb->prefix . 'ats_dropdown_options',
+			'submissions' => $wpdb->prefix . 'ats_survey_submissions',
+			'answers'   => $wpdb->prefix . 'ats_survey_answers',
+		);
+
+		// Check if old tables exist
+		if ( $wpdb->get_var( "SHOW TABLES LIKE '{$old_tables['questions']}'" ) != $old_tables['questions'] ) {
+			wp_redirect( admin_url( 'admin.php?page=scp-ats-survey&tab=settings&message=import_fail' ) );
+			exit;
+		}
+
+		// Truncate new tables
+		$wpdb->query( "TRUNCATE TABLE {$this->questions_table_name}" );
+		$wpdb->query( "TRUNCATE TABLE {$this->dropdown_options_table_name}" );
+		$wpdb->query( "TRUNCATE TABLE {$this->survey_submissions_table_name}" );
+		$wpdb->query( "TRUNCATE TABLE {$this->survey_answers_table_name}" );
+
+		// Import data
+		$wpdb->query( "INSERT INTO {$this->questions_table_name} SELECT * FROM {$old_tables['questions']}" );
+		$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$old_tables['options']}" );
+		$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$old_tables['submissions']}" );
+		$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$old_tables['answers']}" );
+
+		// Import settings
 		$old_options = get_option( 'ats_survey_options' );
 		if ( ! empty( $old_options ) ) {
 			$new_options = get_option( 'scp_settings', array() );
-
 			$mapping = array(
 				'background_color'       => 'ats_background_color',
 				'ticket_question_id'     => 'ats_ticket_question_id',
 				'technician_question_id' => 'ats_technician_question_id',
 				'ticket_url'             => 'ats_ticket_url_base',
 			);
-
 			foreach ( $mapping as $old_key => $new_key ) {
 				if ( isset( $old_options[ $old_key ] ) ) {
 					$new_options[ $new_key ] = $old_options[ $old_key ];
 				}
 			}
-
 			update_option( 'scp_settings', $new_options );
 		}
 
-		// Redirect back to the settings page with a success message
 		wp_redirect( admin_url( 'admin.php?page=scp-ats-survey&tab=settings&message=import_success' ) );
 		exit;
 	}
