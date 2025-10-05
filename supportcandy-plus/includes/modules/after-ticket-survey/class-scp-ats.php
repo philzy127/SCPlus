@@ -299,14 +299,14 @@ final class SCP_After_Ticket_Survey {
 	private function render_main_tab() {
 		?>
 		<div class="ats-how-to-use-container">
-			<p>This plugin allows you to easily create, customize, and manage after-ticket surveys to gather valuable feedback from your users.</p>
+			<p>This module allows you to easily create, customize, and manage after-ticket surveys to gather valuable feedback from your users.</p>
 
-			<h2>How to Use This Plugin:</h2>
+			<h2>How to Use This Module:</h2>
 
 			<div class="ats-admin-section">
 				<h3>1. Display the Survey on a Page</h3>
 				<p>To show the survey form on any page or post on your website, simply add the following shortcode to the content editor:</p>
-				<pre><code>[after_ticket_survey]</code></pre>
+				<pre><code>[scp_after_ticket_survey]</code></pre>
 				<p>Once you add this, the survey form will appear on that page for your users to fill out.</p>
 			</div>
 
@@ -314,7 +314,7 @@ final class SCP_After_Ticket_Survey {
 				<h3>2. Manage Your Survey Questions</h3>
 				<p>You have full control over the questions in your survey. To add new questions, edit existing ones, or remove questions:</p>
 				<ul>
-					<li>Go to <strong>After Ticket Survey → Manage Questions</strong> in your WordPress admin sidebar.</li>
+					<li>Go to <strong>SupportCandy Plus → After Ticket Survey</strong> and click the <strong>Manage Questions</strong> tab.</li>
 					<li>Here, you'll see a list of all your current survey questions.</li>
 					<li>Use the "Add New Question" form to create new questions. You can choose from different types:
 						<ul>
@@ -333,7 +333,7 @@ final class SCP_After_Ticket_Survey {
 				<h3>3. View Survey Results</h3>
 				<p>Once users start submitting surveys, you can view all the collected feedback:</p>
 				<ul>
-					<li>Go to <strong>After Ticket Survey → View Results</strong> in your WordPress admin sidebar.</li>
+					<li>Go to <strong>SupportCandy Plus → After Ticket Survey</strong> and click the <strong>View Results</strong> tab.</li>
 					<li>This page will display a table with all survey submissions, showing each user's answers to your questions.</li>
 				</ul>
 				<p><em>(Note: The "View Results" page is currently a basic display. Future updates may include advanced filtering and export options.)</em></p>
@@ -341,15 +341,15 @@ final class SCP_After_Ticket_Survey {
 
 			<div class="ats-admin-section">
 				<h3>4. Configure Your Settings</h3>
-				<p>The settings page allows you to customize how the plugin works to better fit your needs:</p>
+				<p>The settings page allows you to customize how the module works to better fit your needs:</p>
 				<ul>
-					<li>Go to <strong>After Ticket Survey → Settings</strong> in your WordPress admin sidebar.</li>
+					<li>Go to <strong>SupportCandy Plus → After Ticket Survey</strong> and click the <strong>Settings</strong> tab.</li>
 					<li>Here, you can configure the following options:
 						<ul>
 							<li><strong>Survey Page Background Color:</strong> Change the background color of the survey page using an interactive color picker to match your site's theme.</li>
-							<li><strong>Ticket Number Question:</strong> Tell the plugin exactly which question asks for the ticket number. This makes the link from the results page to your ticketing system reliable, even if you change the question's text.</li>
+							<li><strong>Ticket Number Question:</strong> Tell the module exactly which question asks for the ticket number. This makes the link from the results page to your ticketing system reliable, even if you change the question's text.</li>
 							<li><strong>Technician Question:</strong> Specify which "Dropdown" type question is used for technicians. This allows you to pre-fill the technician's name in the survey by adding it to the survey URL.</li>
-							<li><strong>Ticket System Base URL:</strong> Set the base URL for your ticketing system. The plugin will append the ticket ID to this URL to create a direct link to the ticket from the "View Results" page.</li>
+							<li><strong>Ticket System Base URL:</strong> Set the base URL for your ticketing system. The module will append the ticket ID to this URL to create a direct link to the ticket from the "View Results" page.</li>
 						</ul>
 					</li>
 				</ul>
@@ -369,10 +369,10 @@ final class SCP_After_Ticket_Survey {
 				<h4>Example for Email Templates:</h4>
 				<p>You can use placeholders from your helpdesk system to build the link dynamically. Here is an example of a call-to-action button for an email template:</p>
 				<pre><code>&lt;a style="padding: 10px 20px;background-color: #820024;color: #ffffff;text-decoration: none;border-radius: 4px;font-weight: bold;font-family: Arial, sans-serif" href="[your_survey_url]?ticket_id=[ticket_id_placeholder]&amp;amp;tech=[agent_name_placeholder]"&gt; Satisfaction Survey &lt;/a&gt;</code></pre>
-				<p><strong>Note:</strong> Replace the <code>[placeholder]</code> values with the actual placeholders provided by your helpdesk system. Be sure to use <code>&amp;amp;</code> for the second parameter in HTML links. For this functionality to work, you must first configure the "Ticket Number Question" and "Technician Question" on the <strong>After Ticket Survey → Settings</strong> page.</p>
+				<p><strong>Note:</strong> Replace the <code>[placeholder]</code> values with the actual placeholders provided by your helpdesk system. Be sure to use <code>&amp;amp;</code> for the second parameter in HTML links. For this functionality to work, you must first configure the "Ticket Number Question" and "Technician Question" on the <strong>Settings</strong> tab.</p>
 			</div>
 
-			<p><strong>Thank you for using the After Ticket Survey plugin!</strong></p>
+			<p><strong>Thank you for using the After Ticket Survey module!</strong></p>
 		</div>
 		<?php
 	}
