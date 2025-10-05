@@ -47,6 +47,7 @@ final class SCP_After_Ticket_Survey {
 
 		add_action( 'admin_post_scp_ats_manage_questions', array( $this, 'handle_manage_questions' ) );
 		add_action( 'admin_post_scp_ats_manage_submissions', array( $this, 'handle_manage_submissions' ) );
+		add_action( 'admin_post_scp_ats_import_settings', array( $this, 'handle_import_settings' ) );
 
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 	}
@@ -249,7 +250,14 @@ final class SCP_After_Ticket_Survey {
 	public function admin_notices() {
 		if ( isset( $_GET['page'] ) && 'scp-ats-survey' === $_GET['page'] && isset( $_GET['message'] ) ) {
 			$type = $_GET['message'] === 'error' ? 'error' : 'success';
-			$messages = array( 'added' => 'Question added successfully!', 'updated' => 'Question updated successfully!', 'deleted' => 'Question deleted successfully!', 'submissions_deleted' => 'Selected submissions deleted!', 'error' => 'An error occurred.' );
+			$messages = array(
+				'added' => 'Question added successfully!',
+				'updated' => 'Question updated successfully!',
+				'deleted' => 'Question deleted successfully!',
+				'submissions_deleted' => 'Selected submissions deleted!',
+				'import_success' => 'Settings imported successfully!',
+				'error' => 'An error occurred.',
+			);
 			echo "<div class=\"notice notice-{$type} is-dismissible\"><p>{$messages[$_GET['message']]}</p></div>";
 		}
 	}
@@ -425,6 +433,14 @@ final class SCP_After_Ticket_Survey {
 		<form method="post" action="options.php">
 			<?php settings_fields( 'scp_settings' ); do_settings_sections( 'scp-ats-settings' ); submit_button(); ?>
 		</form>
+		<hr style="margin: 20px 0;">
+		<h2>Import from Old Plugin</h2>
+		<p>If you were using the standalone "WP - After Ticket Survey" plugin, you can import your settings here.</p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="scp_ats_import_settings">
+			<?php wp_nonce_field( 'scp_ats_import_nonce', '_scp_ats_import_nonce' ); ?>
+			<?php submit_button( 'Import Settings', 'secondary' ); ?>
+		</form>
 		<?php
 	}
 
@@ -502,5 +518,41 @@ final class SCP_After_Ticket_Survey {
 	public function render_text_field() {
 		$options = get_option( 'scp_settings' );
 		echo '<input type="text" name="scp_settings[ats_ticket_url_base]" value="' . esc_attr( $options['ats_ticket_url_base'] ?? '' ) . '" class="regular-text">';
+	}
+
+	public function handle_import_settings() {
+		// Nonce verification
+		if ( ! isset( $_POST['_scp_ats_import_nonce'] ) || ! wp_verify_nonce( $_POST['_scp_ats_import_nonce'], 'scp_ats_import_nonce' ) ) {
+			wp_die( 'Invalid nonce.' );
+		}
+
+		// Permission check
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'You do not have sufficient permissions to access this page.' );
+		}
+
+		$old_options = get_option( 'ats_survey_options' );
+		if ( ! empty( $old_options ) ) {
+			$new_options = get_option( 'scp_settings', array() );
+
+			$mapping = array(
+				'background_color'       => 'ats_background_color',
+				'ticket_question_id'     => 'ats_ticket_question_id',
+				'technician_question_id' => 'ats_technician_question_id',
+				'ticket_url'             => 'ats_ticket_url_base',
+			);
+
+			foreach ( $mapping as $old_key => $new_key ) {
+				if ( isset( $old_options[ $old_key ] ) ) {
+					$new_options[ $new_key ] = $old_options[ $old_key ];
+				}
+			}
+
+			update_option( 'scp_settings', $new_options );
+		}
+
+		// Redirect back to the settings page with a success message
+		wp_redirect( admin_url( 'admin.php?page=scp-ats-survey&tab=settings&message=import_success' ) );
+		exit;
 	}
 }
