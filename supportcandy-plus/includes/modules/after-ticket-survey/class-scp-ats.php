@@ -159,12 +159,12 @@ final class SCP_After_Ticket_Survey {
 
 	public function enqueue_admin_scripts( $hook_suffix ) {
 		$allowed_hooks = array(
-			'supportcandy-plus_page_scp-ats-manage-questions',
-			'supportcandy-plus_page_scp-ats-manage-submissions',
-			'supportcandy-plus_page_scp-ats-view-results',
+			'supportcandy-plus_page_scp-ats-questions',
+			'supportcandy-plus_page_scp-ats-submissions',
+			'supportcandy-plus_page_scp-ats-results',
 			'supportcandy-plus_page_scp-ats-settings',
 		);
-		if ( in_array( $hook_suffix, $allowed_hooks ) ) {
+		if ( in_array( $hook_suffix, $allowed_hooks, true ) ) {
 			wp_enqueue_style( 'scp-ats-admin-styles', SCP_PLUGIN_URL . 'assets/admin/css/scp-ats-admin-styles.css', array(), $this->db_version );
 			if ( 'supportcandy-plus_page_scp-ats-settings' === $hook_suffix ) {
 				wp_enqueue_style( 'wp-color-picker' );
@@ -225,7 +225,9 @@ final class SCP_After_Ticket_Survey {
 		global $wpdb;
 		$options = get_option( 'scp_settings' );
 		$ticket_question_id = ! empty( $options['ats_ticket_question_id'] ) ? (int) $options['ats_ticket_question_id'] : 0;
+		$technician_question_id = ! empty( $options['ats_technician_question_id'] ) ? (int) $options['ats_technician_question_id'] : 0;
 		$prefill_ticket_id = isset( $_GET['ticket_id'] ) ? intval( $_GET['ticket_id'] ) : '';
+		$prefill_tech_name = isset( $_GET['tech'] ) ? sanitize_text_field( $_GET['tech'] ) : '';
 
 		$questions = $wpdb->get_results( "SELECT * FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
 		if ( empty( $questions ) ) {
@@ -245,7 +247,7 @@ final class SCP_After_Ticket_Survey {
 								<span class="scp-ats-required-label">*</span>
 							<?php endif; ?>
 						</label>
-						<?php $this->render_question_field( $question, $options, $prefill_ticket_id ); ?>
+						<?php $this->render_question_field( $question, $options, $prefill_ticket_id, $prefill_tech_name ); ?>
 					</div>
 				<?php endforeach; ?>
 				<button type="submit" name="scp_ats_submit_survey" class="scp-ats-submit-button">Submit Survey</button>
@@ -254,11 +256,11 @@ final class SCP_After_Ticket_Survey {
 		<?php
 	}
 
-	private function render_question_field( $question, $options, $prefill_ticket_id ) {
+	private function render_question_field( $question, $options, $prefill_ticket_id, $prefill_tech_name ) {
 		global $wpdb;
 		$input_name = 'scp_ats_q_' . $question['id'];
 		$required_attr = $question['is_required'] ? 'required' : '';
-		$input_value = ( $question['id'] == $options['ats_ticket_question_id'] && $prefill_ticket_id ) ? esc_attr( $prefill_ticket_id ) : '';
+		$input_value = ( $question['id'] == ( $options['ats_ticket_question_id'] ?? 0 ) && $prefill_ticket_id ) ? esc_attr( $prefill_ticket_id ) : '';
 
 		switch ( $question['question_type'] ) {
 			case 'short_text':
@@ -279,7 +281,13 @@ final class SCP_After_Ticket_Survey {
 				echo "<select name=\"{$input_name}\" {$required_attr}>";
 				echo '<option value="">-- Select --</option>';
 				foreach ( $dd_options as $opt ) {
-					echo '<option value="' . esc_attr( $opt->option_value ) . '">' . esc_html( $opt->option_value ) . '</option>';
+					$selected = '';
+					if ( $question['id'] == ( $options['ats_technician_question_id'] ?? 0 ) && ! empty( $prefill_tech_name ) ) {
+						if ( strtolower( $opt->option_value ) === strtolower( $prefill_tech_name ) ) {
+							$selected = 'selected';
+						}
+					}
+					echo '<option value="' . esc_attr( $opt->option_value ) . '" ' . $selected . '>' . esc_html( $opt->option_value ) . '</option>';
 				}
 				echo '</select>';
 				break;
@@ -289,32 +297,32 @@ final class SCP_After_Ticket_Survey {
 	public function admin_menu() {
 		add_submenu_page(
 			'supportcandy-plus',
-			'Manage Survey Questions',
-			'Manage Questions',
+			'After Ticket Survey',
+			'After Ticket Survey',
 			'manage_options',
-			'scp-ats-manage-questions',
-			array( $this, 'display_manage_questions_page' )
+			'scp-ats-questions',
+			array( $this, 'display_questions_page' )
 		);
 		add_submenu_page(
-			'supportcandy-plus',
-			'Manage Survey Submissions',
-			'Manage Submissions',
+			'scp-ats-questions',
+			'Submissions',
+			'Submissions',
 			'manage_options',
-			'scp-ats-manage-submissions',
-			array( $this, 'display_manage_submissions_page' )
+			'scp-ats-submissions',
+			array( $this, 'display_submissions_page' )
 		);
 		add_submenu_page(
-			'supportcandy-plus',
-			'View Survey Results',
-			'View Results',
+			'scp-ats-questions',
+			'Results',
+			'Results',
 			'manage_options',
-			'scp-ats-view-results',
-			array( $this, 'display_view_results_page' )
+			'scp-ats-results',
+			array( $this, 'display_results_page' )
 		);
 		add_submenu_page(
-			'supportcandy-plus',
-			'Survey Settings',
-			'Survey Settings',
+			'scp-ats-questions',
+			'Settings',
+			'Settings',
 			'manage_options',
 			'scp-ats-settings',
 			array( $this, 'display_settings_page' )
@@ -322,21 +330,22 @@ final class SCP_After_Ticket_Survey {
 	}
 
 	public function admin_notices() {
-		if ( isset( $_GET['page'] ) && strpos( $_GET['page'], 'scp-ats' ) !== false && isset( $_GET['message'] ) ) {
+		$page = $_GET['page'] ?? '';
+		if ( strpos( $page, 'scp-ats-' ) !== false && isset( $_GET['message'] ) ) {
 			$type = $_GET['message'] === 'error' ? 'error' : 'success';
 			$messages = array(
-				'added' => 'Question added successfully!',
-				'updated' => 'Question updated successfully!',
-				'deleted' => 'Question deleted successfully!',
+				'added'               => 'Question added successfully!',
+				'updated'             => 'Question updated successfully!',
+				'deleted'             => 'Question deleted successfully!',
 				'submissions_deleted' => 'Selected submissions deleted!',
-				'error' => 'An error occurred.',
+				'error'               => 'An error occurred.',
 			);
-			$message_text = isset( $messages[ $_GET['message'] ] ) ? $messages[ $_GET['message'] ] : 'Action completed.';
+			$message_text = $messages[ $_GET['message'] ] ?? 'Action completed.';
 			echo "<div class=\"notice notice-{$type} is-dismissible\"><p>{$message_text}</p></div>";
 		}
 	}
 
-	public function display_manage_questions_page() {
+	public function display_questions_page() {
 		global $wpdb;
 
 		if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && isset( $_GET['question_id'] ) ) {
@@ -345,7 +354,7 @@ final class SCP_After_Ticket_Survey {
 			$wpdb->delete( $this->questions_table_name, array( 'id' => $question_id ) );
 			$wpdb->delete( $this->dropdown_options_table_name, array( 'question_id' => $question_id ) );
 			$wpdb->delete( $this->survey_answers_table_name, array( 'question_id' => $question_id ) );
-			wp_redirect( admin_url( 'admin.php?page=scp-ats-manage-questions&message=deleted' ) );
+			wp_redirect( admin_url( 'admin.php?page=scp-ats-questions&message=deleted' ) );
 			exit;
 		}
 
@@ -401,7 +410,7 @@ final class SCP_After_Ticket_Survey {
 
 							<?php submit_button( $editing_question ? 'Update Question' : 'Add Question' ); ?>
 							<?php if ( $editing_question ) : ?>
-								<a href="?page=scp-ats-manage-questions" class="button">Cancel Edit</a>
+								<a href="?page=scp-ats-questions" class="button">Cancel Edit</a>
 							<?php endif; ?>
 						</form>
 					</div>
@@ -420,8 +429,8 @@ final class SCP_After_Ticket_Survey {
 										<td><?php echo esc_html( $q['question_text'] ); ?></td>
 										<td><?php echo esc_html( $q['question_type'] ); ?></td>
 										<td>
-											<a href="?page=scp-ats-manage-questions&action=edit&question_id=<?php echo $q['id']; ?>">Edit</a> |
-											<a href="<?php echo wp_nonce_url( '?page=scp-ats-manage-questions&action=delete&question_id=' . $q['id'], 'scp_ats_delete_q' ); ?>" onclick="return confirm('Are you sure?')">Delete</a>
+											<a href="?page=scp-ats-questions&action=edit&question_id=<?php echo $q['id']; ?>">Edit</a> |
+											<a href="<?php echo wp_nonce_url( '?page=scp-ats-questions&action=delete&question_id=' . $q['id'], 'scp_ats_delete_q' ); ?>" onclick="return confirm('Are you sure?')">Delete</a>
 										</td>
 									</tr>
 								<?php endforeach; ?>
@@ -445,7 +454,59 @@ final class SCP_After_Ticket_Survey {
 		<?php
 	}
 
-	public function display_view_results_page() {
+	public function display_submissions_page() {
+		global $wpdb;
+		$submissions = $wpdb->get_results( "SELECT id, submission_date FROM {$this->survey_submissions_table_name} ORDER BY submission_date DESC", ARRAY_A );
+		?>
+		<div class="wrap">
+			<h1>Manage Survey Submissions</h1>
+			<p>Select one or more submissions below and click "Delete" to permanently remove them.</p>
+
+			<?php if ( $submissions ) : ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( 'scp_ats_delete_submissions_nonce' ); ?>
+					<input type="hidden" name="action" value="scp_ats_manage_submissions">
+					<input type="hidden" name="ats_action" value="delete_selected">
+					<table class="wp-list-table widefat fixed striped">
+						<thead>
+							<tr>
+								<th class="check-column"><input type="checkbox" id="scp-ats-select-all"></th>
+								<th>Submission ID</th>
+								<th>Date Submitted</th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $submissions as $submission ) : ?>
+								<tr>
+									<th scope="row" class="check-column">
+										<input type="checkbox" name="selected_submissions[]" value="<?php echo esc_attr( $submission['id'] ); ?>">
+									</th>
+									<td><?php echo esc_html( $submission['id'] ); ?></td>
+									<td><?php echo esc_html( $submission['submission_date'] ); ?></td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+					<br>
+					<button type="submit" class="button button-primary" onclick="return confirm('Are you sure?');">
+						Delete Selected Submissions
+					</button>
+				</form>
+				<script>
+					jQuery(document).ready(function($){
+						$('#scp-ats-select-all').on('change', function(){
+							$('input[name="selected_submissions[]"]').prop('checked', $(this).prop('checked'));
+						});
+					});
+				</script>
+			<?php else : ?>
+				<p>No survey submissions to manage yet.</p>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	public function display_results_page() {
 		global $wpdb;
 		$options = get_option( 'scp_settings' );
 		$ticket_question_id = ! empty( $options['ats_ticket_question_id'] ) ? (int) $options['ats_ticket_question_id'] : 0;
@@ -503,58 +564,6 @@ final class SCP_After_Ticket_Survey {
 		<?php
 	}
 
-	public function display_manage_submissions_page() {
-		global $wpdb;
-		$submissions = $wpdb->get_results( "SELECT id, submission_date FROM {$this->survey_submissions_table_name} ORDER BY submission_date DESC", ARRAY_A );
-		?>
-		<div class="wrap">
-			<h1>Manage Survey Submissions</h1>
-			<p>Select one or more submissions below and click "Delete" to permanently remove them.</p>
-
-			<?php if ( $submissions ) : ?>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<?php wp_nonce_field( 'scp_ats_delete_submissions_nonce' ); ?>
-					<input type="hidden" name="action" value="scp_ats_manage_submissions">
-					<input type="hidden" name="ats_action" value="delete_selected">
-					<table class="wp-list-table widefat fixed striped">
-						<thead>
-							<tr>
-								<th class="check-column"><input type="checkbox" id="scp-ats-select-all"></th>
-								<th>Submission ID</th>
-								<th>Date Submitted</th>
-							</tr>
-						</thead>
-						<tbody>
-							<?php foreach ( $submissions as $submission ) : ?>
-								<tr>
-									<th scope="row" class="check-column">
-										<input type="checkbox" name="selected_submissions[]" value="<?php echo esc_attr( $submission['id'] ); ?>">
-									</th>
-									<td><?php echo esc_html( $submission['id'] ); ?></td>
-									<td><?php echo esc_html( $submission['submission_date'] ); ?></td>
-								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
-					<br>
-					<button type="submit" class="button button-primary" onclick="return confirm('Are you sure?');">
-						Delete Selected Submissions
-					</button>
-				</form>
-				<script>
-					jQuery(document).ready(function($){
-						$('#scp-ats-select-all').on('change', function(){
-							$('input[name="selected_submissions[]"]').prop('checked', $(this).prop('checked'));
-						});
-					});
-				</script>
-			<?php else : ?>
-				<p>No survey submissions to manage yet.</p>
-			<?php endif; ?>
-		</div>
-		<?php
-	}
-
 	public function handle_manage_submissions() {
 		if ( ! current_user_can( 'manage_options' ) ) return;
 		check_admin_referer( 'scp_ats_delete_submissions_nonce' );
@@ -573,7 +582,7 @@ final class SCP_After_Ticket_Survey {
 			$message = 'submissions_deleted';
 		}
 
-		wp_redirect( admin_url( 'admin.php?page=scp-ats-manage-submissions&message=' . $message ) );
+		wp_redirect( admin_url( 'admin.php?page=scp-ats-submissions&message=' . $message ) );
 		exit;
 	}
 
@@ -612,7 +621,7 @@ final class SCP_After_Ticket_Survey {
 			}
 		}
 
-		wp_redirect( admin_url( 'admin.php?page=scp-ats-manage-questions&message=' . $message ) );
+		wp_redirect( admin_url( 'admin.php?page=scp-ats-questions&message=' . $message ) );
 		exit;
 	}
 
@@ -623,6 +632,7 @@ final class SCP_After_Ticket_Survey {
 
 		add_settings_field( 'ats_background_color', 'Survey Page Background Color', array( $this, 'render_color_picker' ), 'scp-ats-settings', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_ticket_question_id', 'Ticket Number Question', array( $this, 'render_question_dropdown' ), 'scp-ats-settings', 'scp_ats_settings_section' );
+		add_settings_field( 'ats_technician_question_id', 'Technician Question', array( $this, 'render_technician_question_dropdown' ), 'scp-ats-settings', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_ticket_url_base', 'Ticket System Base URL', array( $this, 'render_text_field' ), 'scp-ats-settings', 'scp_ats_settings_section' );
 	}
 
@@ -638,6 +648,18 @@ final class SCP_After_Ticket_Survey {
 		$selected = $options['ats_ticket_question_id'] ?? '';
 		$questions = $wpdb->get_results( "SELECT id, question_text FROM {$this->questions_table_name} ORDER BY sort_order ASC" );
 		echo '<select name="scp_settings[ats_ticket_question_id]"><option value="">-- Select --</option>';
+		foreach ( $questions as $q ) {
+			echo '<option value="' . $q->id . '"' . selected( $selected, $q->id, false ) . '>' . esc_html( $q->question_text ) . '</option>';
+		}
+		echo '</select>';
+	}
+
+	public function render_technician_question_dropdown() {
+		global $wpdb;
+		$options = get_option( 'scp_settings' );
+		$selected = $options['ats_technician_question_id'] ?? '';
+		$questions = $wpdb->get_results( "SELECT id, question_text FROM {$this->questions_table_name} WHERE question_type = 'dropdown' ORDER BY sort_order ASC" );
+		echo '<select name="scp_settings[ats_technician_question_id]"><option value="">-- Select --</option>';
 		foreach ( $questions as $q ) {
 			echo '<option value="' . $q->id . '"' . selected( $selected, $q->id, false ) . '>' . esc_html( $q->question_text ) . '</option>';
 		}
