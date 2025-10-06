@@ -8,7 +8,7 @@ final class SCP_After_Ticket_Survey {
 
 	private static $instance = null;
 
-	private $db_version = '2.16';
+	private $db_version = '2.17';
 	private $questions_table_name;
 	private $dropdown_options_table_name;
 	private $survey_submissions_table_name;
@@ -49,7 +49,38 @@ final class SCP_After_Ticket_Survey {
 		add_action( 'admin_post_scp_ats_manage_submissions', array( $this, 'handle_manage_submissions' ) );
 		add_action( 'admin_post_scp_ats_import_settings', array( $this, 'handle_import_settings' ) );
 
+		add_action( 'wp_ajax_scp_ats_update_report_heading', array( $this, 'handle_update_report_heading' ) );
+
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+	}
+
+	public function handle_update_report_heading() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permission denied.' );
+		}
+		check_ajax_referer( 'scp_ats_results_nonce', 'nonce' );
+
+		global $wpdb;
+		$question_id = isset( $_POST['question_id'] ) ? intval( $_POST['question_id'] ) : 0;
+		$report_heading = isset( $_POST['report_heading'] ) ? sanitize_text_field( $_POST['report_heading'] ) : '';
+
+		if ( ! $question_id ) {
+			wp_send_json_error( 'Invalid question ID.' );
+		}
+
+		$result = $wpdb->update(
+			$this->questions_table_name,
+			array( 'report_heading' => $report_heading ),
+			array( 'id' => $question_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+
+		if ( false === $result ) {
+			wp_send_json_error( 'Failed to update heading.' );
+		} else {
+			wp_send_json_success( 'Heading updated successfully.' );
+		}
 	}
 
 	public function check_db_version() {
@@ -67,6 +98,7 @@ final class SCP_After_Ticket_Survey {
 		$sql_questions = "CREATE TABLE {$this->questions_table_name} (
 			id bigint(20) NOT NULL AUTO_INCREMENT,
 			question_text text NOT NULL,
+			report_heading varchar(255) DEFAULT '' NOT NULL,
 			question_type varchar(50) NOT NULL,
 			sort_order int(11) DEFAULT 0 NOT NULL,
 			is_required tinyint(1) DEFAULT 1 NOT NULL,
@@ -147,6 +179,17 @@ final class SCP_After_Ticket_Survey {
 		if ( 'settings' === $current_tab ) {
 			wp_enqueue_style( 'wp-color-picker' );
 			wp_enqueue_script( 'scp-ats-color-picker', SCP_PLUGIN_URL . 'assets/admin/js/scp-ats-color-picker.js', array( 'wp-color-picker' ), $this->db_version, true );
+		}
+		if ( 'results' === $current_tab ) {
+			wp_enqueue_script( 'scp-ats-results-modal', SCP_PLUGIN_URL . 'assets/admin/js/scp-ats-results-modal.js', array(), $this->db_version, true );
+			wp_localize_script(
+				'scp-ats-results-modal',
+				'scp_ats_results_modal',
+				array(
+					'ajax_url' => admin_url( 'admin-ajax.php' ),
+					'nonce'    => wp_create_nonce( 'scp_ats_results_nonce' ),
+				)
+			);
 		}
 	}
 
@@ -504,12 +547,28 @@ final class SCP_After_Ticket_Survey {
 		$options = get_option( 'scp_settings' );
 		$ticket_question_id = ! empty( $options['ats_ticket_question_id'] ) ? (int) $options['ats_ticket_question_id'] : 0;
 		$ticket_url_base = ! empty( $options['ats_ticket_url_base'] ) ? $options['ats_ticket_url_base'] : '';
-		$questions = $wpdb->get_results( "SELECT id, question_text, question_type FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
+		$questions = $wpdb->get_results( "SELECT id, question_text, report_heading, question_type FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
 		$submissions = $wpdb->get_results( "SELECT s.*, u.display_name FROM {$this->survey_submissions_table_name} s LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID ORDER BY submission_date DESC", ARRAY_A );
 		?>
 		<h2>View Survey Results</h2>
 		<table class="wp-list-table widefat fixed striped">
-			<thead><tr><th>ID</th><th>Date</th><th>User</th><?php foreach ( $questions as $q ) echo '<th>' . esc_html( $q['question_text'] ) . '</th>'; ?></tr></thead>
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Date</th>
+					<th>User</th>
+					<?php foreach ( $questions as $q ) : ?>
+						<th>
+							<?php echo esc_html( ! empty( $q['report_heading'] ) ? $q['report_heading'] : $q['question_text'] ); ?>
+							<span class="dashicons dashicons-edit scp-ats-edit-heading"
+								data-question-id="<?php echo esc_attr( $q['id'] ); ?>"
+								data-question-text="<?php echo esc_attr( $q['question_text'] ); ?>"
+								data-report-heading="<?php echo esc_attr( $q['report_heading'] ); ?>"
+								style="cursor: pointer; font-size: 16px; margin-left: 5px;"></span>
+						</th>
+					<?php endforeach; ?>
+				</tr>
+			</thead>
 			<tbody>
 			<?php foreach ( $submissions as $sub ) : ?>
 				<tr>
@@ -526,6 +585,23 @@ final class SCP_After_Ticket_Survey {
 			<?php endforeach; ?>
 			</tbody>
 		</table>
+
+		<!-- Modal for editing heading -->
+		<div id="scp-ats-heading-modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+			<div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 50%; max-width: 600px; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);">
+				<span class="close" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+				<h3>Edit Report Heading</h3>
+				<p><strong>Full Question:</strong> <span id="scp-ats-modal-question-text"></span></p>
+				<form id="scp-ats-heading-form">
+					<input type="hidden" id="scp-ats-modal-question-id" name="question_id">
+					<p>
+						<label for="scp-ats-modal-report-heading"><strong>Report Heading:</strong></label><br>
+						<input type="text" id="scp-ats-modal-report-heading" name="report_heading" class="regular-text" style="width: 100%;">
+					</p>
+					<button type="submit" class="button button-primary">Save Heading</button>
+				</form>
+			</div>
+		</div>
 		<?php
 	}
 
