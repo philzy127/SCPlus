@@ -411,7 +411,7 @@ final class SCP_After_Ticket_Survey {
 				<pre><code>https://yourwebsite.com/survey-page/?ticket_id=12345&tech=John%20Doe</code></pre>
 				<h4>Example for Email Templates:</h4>
 				<p>You can use placeholders from your helpdesk system to build the link dynamically. Here is an example of a call-to-action button for an email template:</p>
-				<pre><code>&lt;a style="padding: 10px 20px;background-color: #820024;color: #ffffff;text-decoration: none;border-radius: 4px;font-weight: bold;font-family: Arial, sans-serif" href="[your_survey_url]?ticket_id=[ticket_id_placeholder]&amp;amp;tech=[agent_name_placeholder]"&gt; Satisfaction Survey &lt;/a&gt;</code></pre>
+				<pre><code>&lt;a href="{{satisfaction_survey_url}}?ticket_id={{ticket_id}}&amp;amp;tech={{assigned_agent}}"&gt; Satisfaction Survey &lt;/a&gt;</code></pre>
 				<p><strong>Note:</strong> Replace the <code>[placeholder]</code> values with the actual placeholders provided by your helpdesk system. Be sure to use <code>&amp;amp;</code> for the second parameter in HTML links. For this functionality to work, you must first configure the "Ticket Number Question" and "Technician Question" on the <strong>Settings</strong> tab.</p>
 			</div>
 
