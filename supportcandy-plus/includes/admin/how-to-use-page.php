@@ -75,4 +75,10 @@
         <li><strong>Holidays:</strong> List any holidays (one per line, in <code>MM-DD-YYYY</code> format) where the notice should be shown all day.</li>
         <li><strong>After Hours Message:</strong> Use the rich text editor to create the message that will be displayed to users.</li>
     </ul>
+
+    <hr>
+
+    <h2>After Ticket Survey</h2>
+    <p>This module allows you to create and manage a customer satisfaction survey that can be displayed on any page of your website using a shortcode. You can build custom questions, view submissions, and configure settings to pre-fill data from your ticketing system.</p>
+    <p>For complete instructions on how to set up and use this feature, please navigate to the <strong>SupportCandy Plus > After Ticket Survey > How to Use</strong> tab.</p>
 </div>

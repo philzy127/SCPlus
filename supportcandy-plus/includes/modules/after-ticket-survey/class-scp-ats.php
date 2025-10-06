@@ -298,22 +298,81 @@ final class SCP_After_Ticket_Survey {
 
 	private function render_main_tab() {
 		?>
-		<h1 class="ats-admin-main-title">Welcome to the After Ticket Survey Plugin!</h1>
-        <p class="ats-admin-intro-text">This plugin allows you to easily create, customize, and manage after-ticket surveys to gather valuable feedback from your users.</p>
-		<div class="ats-admin-section">
-			<h3>1. Display the Survey on a Page</h3>
-			<p>To show the survey form on any page or post on your website, simply add the following shortcode to the content editor:</p>
-			<pre><code>[scp_after_ticket_survey]</code></pre>
-		</div>
-		<div class="ats-admin-section">
-			<h3>2. Pre-filling Survey Data via URL</h3>
-			<p>You can pre-fill the ticket number and technician fields by adding parameters to your survey URL. The following parameters are supported:</p>
-			<ul>
-				<li><code>ticket_id</code>: This will populate the field you designated as the "Ticket Number Question".</li>
-				<li><code>tech</code>: This will pre-select the value in the "Technician Question" dropdown.</li>
-			</ul>
-			<p><strong>Example:</strong> <code>https://yourwebsite.com/survey-page/?ticket_id=12345&tech=John%20Doe</code></p>
-			<p>For this to work, you must first configure the "Ticket Number Question" and "Technician Question" on the <strong>Settings</strong> tab.</p>
+		<div class="ats-how-to-use-container">
+			<p>This module allows you to easily create, customize, and manage after-ticket surveys to gather valuable feedback from your users.</p>
+
+			<h2>How to Use This Module:</h2>
+
+			<div class="ats-admin-section">
+				<h3>1. Display the Survey on a Page</h3>
+				<p>To show the survey form on any page or post on your website, simply add the following shortcode to the content editor:</p>
+				<pre><code>[scp_after_ticket_survey]</code></pre>
+				<p>Once you add this, the survey form will appear on that page for your users to fill out.</p>
+			</div>
+
+			<div class="ats-admin-section">
+				<h3>2. Manage Your Survey Questions</h3>
+				<p>You have full control over the questions in your survey. To add new questions, edit existing ones, or remove questions:</p>
+				<ul>
+					<li>Go to <strong>SupportCandy Plus → After Ticket Survey</strong> and click the <strong>Manage Questions</strong> tab.</li>
+					<li>Here, you'll see a list of all your current survey questions.</li>
+					<li>Use the "Add New Question" form to create new questions. You can choose from different types:
+						<ul>
+							<li><strong>Short Text:</strong> For brief answers like a ticket number or a single word.</li>
+							<li><strong>Long Text:</strong> For detailed feedback or comments.</li>
+							<li><strong>Rating (1-5):</strong> For questions requiring a numerical rating (e.g., satisfaction level).</li>
+							<li><strong>Dropdown:</strong> For questions with predefined options, like a list of technicians.</li>
+						</ul>
+					</li>
+					<li>For "Dropdown" questions, remember to enter your options separated by commas (e.g., "Option 1, Option 2").</li>
+					<li>You can also <strong>Edit</strong> or <strong>Delete</strong> existing questions using the buttons next to each question in the table.</li>
+				</ul>
+			</div>
+
+			<div class="ats-admin-section">
+				<h3>3. View Survey Results</h3>
+				<p>Once users start submitting surveys, you can view all the collected feedback:</p>
+				<ul>
+					<li>Go to <strong>SupportCandy Plus → After Ticket Survey</strong> and click the <strong>View Results</strong> tab.</li>
+					<li>This page will display a table with all survey submissions, showing each user's answers to your questions.</li>
+				</ul>
+				<p><em>(Note: The "View Results" page is currently a basic display. Future updates may include advanced filtering and export options.)</em></p>
+			</div>
+
+			<div class="ats-admin-section">
+				<h3>4. Configure Your Settings</h3>
+				<p>The settings page allows you to customize how the module works to better fit your needs:</p>
+				<ul>
+					<li>Go to <strong>SupportCandy Plus → After Ticket Survey</strong> and click the <strong>Settings</strong> tab.</li>
+					<li>Here, you can configure the following options:
+						<ul>
+							<li><strong>Survey Page Background Color:</strong> Change the background color of the survey page using an interactive color picker to match your site's theme.</li>
+							<li><strong>Ticket Number Question:</strong> Tell the module exactly which question asks for the ticket number. This makes the link from the results page to your ticketing system reliable, even if you change the question's text.</li>
+							<li><strong>Technician Question:</strong> Specify which "Dropdown" type question is used for technicians. This allows you to pre-fill the technician's name in the survey by adding it to the survey URL.</li>
+							<li><strong>Ticket System Base URL:</strong> Set the base URL for your ticketing system. The module will append the ticket ID to this URL to create a direct link to the ticket from the "View Results" page.</li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+
+			<div class="ats-admin-section">
+				<h3>5. Pre-filling Survey Data via URL</h3>
+				<p>You can pre-fill the ticket number and technician fields by adding parameters to your survey URL. This is ideal for including in email notifications from your helpdesk system.</p>
+				<p>The following parameters are supported:</p>
+				<ul>
+					<li><code>ticket_id</code>: This will populate the field you designated as the "Ticket Number Question".</li>
+					<li><code>tech</code>: This will pre-select the value in the "Technician Question" dropdown. The value must match one of the options exactly (e.g., "Philip Edwards").</li>
+				</ul>
+				<h4>Constructing the URL:</h4>
+				<p>If your survey URL does not contain a question mark (?), add the first parameter with a <code>?</code> and subsequent parameters with an ampersand (<code>&</code>).</p>
+				<pre><code>https://yourwebsite.com/survey-page/?ticket_id=12345&tech=John%20Doe</code></pre>
+				<h4>Example for Email Templates:</h4>
+				<p>You can use placeholders from your helpdesk system to build the link dynamically. Here is an example of a call-to-action button for an email template:</p>
+				<pre><code>&lt;a style="padding: 10px 20px;background-color: #820024;color: #ffffff;text-decoration: none;border-radius: 4px;font-weight: bold;font-family: Arial, sans-serif" href="[your_survey_url]?ticket_id=[ticket_id_placeholder]&amp;amp;tech=[agent_name_placeholder]"&gt; Satisfaction Survey &lt;/a&gt;</code></pre>
+				<p><strong>Note:</strong> Replace the <code>[placeholder]</code> values with the actual placeholders provided by your helpdesk system. Be sure to use <code>&amp;amp;</code> for the second parameter in HTML links. For this functionality to work, you must first configure the "Ticket Number Question" and "Technician Question" on the <strong>Settings</strong> tab.</p>
+			</div>
+
+			<p><strong>Thank you for using the After Ticket Survey module!</strong></p>
 		</div>
 		<?php
 	}
@@ -336,40 +395,76 @@ final class SCP_After_Ticket_Survey {
 		}
 		$questions = $wpdb->get_results( "SELECT * FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
 		?>
-		<div id="col-container">
-			<div id="col-left">
-				<div class="col-wrap">
-					<h2><?php echo $editing_question ? 'Edit Question' : 'Add New Question'; ?></h2>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ats-admin-form">
-						<input type="hidden" name="action" value="scp_ats_manage_questions">
-						<input type="hidden" name="ats_action" value="<?php echo $editing_question ? 'update' : 'add'; ?>">
-						<?php if ( $editing_question ) : ?><input type="hidden" name="question_id" value="<?php echo esc_attr( $editing_question['id'] ); ?>"><?php endif; ?>
-						<?php wp_nonce_field( 'scp_ats_manage_questions_nonce' ); ?>
-						<div class="ats-form-group"><label for="question_text" class="ats-label">Question Text:</label><input type="text" id="question_text" name="question_text" class="ats-input" value="<?php echo esc_attr( $editing_question['question_text'] ?? '' ); ?>" required></div>
-						<div class="ats-form-group"><label for="question_type" class="ats-label">Question Type:</label><select id="question_type" name="question_type" class="ats-input" required onchange="toggleDropdownOptions(this)"><option value="short_text" <?php selected( $editing_question['question_type'] ?? '', 'short_text' ); ?>>Short Text</option><option value="long_text" <?php selected( $editing_question['question_type'] ?? '', 'long_text' ); ?>>Long Text</option><option value="rating" <?php selected( $editing_question['question_type'] ?? '', 'rating' ); ?>>Rating (1-5)</option><option value="dropdown" <?php selected( $editing_question['question_type'] ?? '', 'dropdown' ); ?>>Dropdown</option></select></div>
-						<div class="ats-form-group" id="ats_dropdown_options_group" style="display: none;"><label for="ats_dropdown_options" class="ats-label">Dropdown Options (comma-separated):</label><textarea id="ats_dropdown_options" name="ats_dropdown_options" rows="3" class="ats-input" placeholder="e.g., Option 1, Option 2"><?php echo esc_textarea( $editing_question['options_str'] ?? '' ); ?></textarea></div>
-						<div class="ats-form-group"><label for="ats_is_required" class="ats-label">Is Required?</label><input type="checkbox" id="ats_is_required" name="ats_is_required" value="1" <?php checked( $editing_question['is_required'] ?? 1 ); ?>></div>
-						<div class="ats-form-group"><label for="ats_sort_order" class="ats-label">Sort Order:</label><input type="number" id="ats_sort_order" name="ats_sort_order" class="ats-input ats-sort-order-input" value="<?php echo esc_attr( $editing_question['sort_order'] ?? count($questions) ); ?>" min="0"></div>
+		<div>
+
+			<!-- Existing Questions Table -->
+			<div class="ats-questions-list">
+				<h2>Existing Questions</h2>
+				<table class="wp-list-table widefat fixed striped ats-admin-table">
+					<thead><tr><th class="manage-column">Order</th><th class="manage-column">Question Text</th><th class="manage-column">Type</th><th class="manage-column">Required</th><th class="manage-column">Options (for Dropdown)</th><th class="manage-column">Actions</th></tr></thead>
+					<tbody>
+					<?php if ( empty( $questions ) ) : ?>
+						<tr><td colspan="6">No questions found.</td></tr>
+					<?php else : ?>
+						<?php foreach ( $questions as $q ) : ?>
+						<tr>
+							<td><?php echo esc_html( $q['sort_order'] ); ?></td><td><?php echo esc_html( $q['question_text'] ); ?></td><td><?php echo esc_html( str_replace('_', ' ', ucfirst( $q['question_type'] )) ); ?></td><td><?php echo $q['is_required'] ? 'Yes' : 'No'; ?></td>
+							<td><?php if ( $q['question_type'] === 'dropdown' ) { $options = $wpdb->get_results( $wpdb->prepare( "SELECT option_value FROM {$this->dropdown_options_table_name} WHERE question_id = %d ORDER BY sort_order ASC", $q['id'] ), ARRAY_A ); echo esc_html( implode(', ', array_column($options, 'option_value')) ); } else { echo 'N/A'; } ?></td>
+							<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions&action=edit&question_id=' . $q['id'] ) ); ?>" class="button button-secondary">Edit</a> <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions&action=delete&question_id=' . $q['id'] ), 'scp_ats_delete_q' ) ); ?>" class="button button-secondary" onclick="return confirm('Are you sure?');">Delete</a></td>
+						</tr>
+						<?php endforeach; ?>
+					<?php endif; ?>
+					</tbody>
+				</table>
+			</div>
+
+			<!-- Add/Edit Question Form -->
+			<div class="ats-questions-container">
+				<div class="ats-question-form">
+				<h2><?php echo $editing_question ? 'Edit Question' : 'Add New Question'; ?></h2>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ats-admin-form">
+					<input type="hidden" name="action" value="scp_ats_manage_questions">
+					<input type="hidden" name="ats_action" value="<?php echo $editing_question ? 'update' : 'add'; ?>">
+					<?php if ( $editing_question ) : ?><input type="hidden" name="question_id" value="<?php echo esc_attr( $editing_question['id'] ); ?>"><?php endif; ?>
+					<?php wp_nonce_field( 'scp_ats_manage_questions_nonce' ); ?>
+
+					<div class="ats-form-row">
+						<div class="ats-form-group ats-form-group-full">
+							<label for="question_text" class="ats-label">Question Text:</label>
+							<input type="text" id="question_text" name="question_text" class="ats-input" value="<?php echo esc_attr( $editing_question['question_text'] ?? '' ); ?>" required>
+						</div>
+					</div>
+
+					<div class="ats-form-row">
+						<div class="ats-form-group ats-form-group-type">
+							<label for="question_type" class="ats-label">Question Type:</label>
+							<select id="question_type" name="question_type" class="ats-input" required onchange="toggleDropdownOptions(this)">
+								<option value="short_text" <?php selected( $editing_question['question_type'] ?? '', 'short_text' ); ?>>Short Text</option>
+								<option value="long_text" <?php selected( $editing_question['question_type'] ?? '', 'long_text' ); ?>>Long Text</option>
+								<option value="rating" <?php selected( $editing_question['question_type'] ?? '', 'rating' ); ?>>Rating (1-5)</option>
+								<option value="dropdown" <?php selected( $editing_question['question_type'] ?? '', 'dropdown' ); ?>>Dropdown</option>
+							</select>
+						</div>
+						<div class="ats-form-group ats-form-group-sort">
+							<label for="ats_sort_order" class="ats-label">Sort Order:</label>
+							<input type="number" id="ats_sort_order" name="ats_sort_order" class="ats-input" value="<?php echo esc_attr( $editing_question['sort_order'] ?? count($questions) ); ?>" min="0">
+						</div>
+						<div class="ats-form-group ats-form-group-required">
+							<label for="ats_is_required" class="ats-label">Required?</label>
+							<input type="checkbox" id="ats_is_required" name="ats_is_required" class="ats-checkbox" value="1" <?php checked( $editing_question['is_required'] ?? 1 ); ?>>
+						</div>
+					</div>
+
+					<div class="ats-form-group" id="ats_dropdown_options_group" style="display: none;">
+						<label for="ats_dropdown_options" class="ats-label">Dropdown Options (comma-separated):</label>
+						<textarea id="ats_dropdown_options" name="ats_dropdown_options" rows="3" class="ats-input" placeholder="e.g., Option 1, Option 2"><?php echo esc_textarea( $editing_question['options_str'] ?? '' ); ?></textarea>
+					</div>
+
+					<div class="ats-form-actions">
 						<button type="submit" class="button button-primary button-large ats-submit-button-admin"><?php echo $editing_question ? 'Update Question' : 'Add Question'; ?></button>
 						<?php if ( $editing_question ) : ?><a href="<?php echo esc_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions' ) ); ?>" class="button button-secondary ats-cancel-button-admin">Cancel Edit</a><?php endif; ?>
-					</form>
-				</div>
-			</div>
-			<div id="col-right">
-				<div class="col-wrap">
-					<h2>Existing Questions</h2>
-					<table class="wp-list-table widefat fixed striped ats-admin-table">
-						<thead><tr><th class="manage-column">Order</th><th class="manage-column">Question Text</th><th class="manage-column">Type</th><th class="manage-column">Required</th><th class="manage-column">Options (for Dropdown)</th><th class="manage-column">Actions</th></tr></thead>
-						<tbody>
-						<?php foreach ( $questions as $q ) : ?>
-							<tr>
-								<td><?php echo esc_html( $q['sort_order'] ); ?></td><td><?php echo esc_html( $q['question_text'] ); ?></td><td><?php echo esc_html( str_replace('_', ' ', ucfirst( $q['question_type'] )) ); ?></td><td><?php echo $q['is_required'] ? 'Yes' : 'No'; ?></td>
-								<td><?php if ( $q['question_type'] === 'dropdown' ) { $options = $wpdb->get_results( $wpdb->prepare( "SELECT option_value FROM {$this->dropdown_options_table_name} WHERE question_id = %d ORDER BY sort_order ASC", $q['id'] ), ARRAY_A ); echo esc_html( implode(', ', array_column($options, 'option_value')) ); } else { echo 'N/A'; } ?></td>
-								<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions&action=edit&question_id=' . $q['id'] ) ); ?>" class="button button-secondary">Edit</a> <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions&action=delete&question_id=' . $q['id'] ), 'scp_ats_delete_q' ) ); ?>" class="button button-secondary" onclick="return confirm('Are you sure?');">Delete</a></td>
-							</tr>
-						<?php endforeach; ?>
-						</tbody>
-					</table>
+					</div>
+				</form>
 				</div>
 			</div>
 		</div>

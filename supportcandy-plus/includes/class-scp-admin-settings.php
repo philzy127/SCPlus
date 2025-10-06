@@ -19,6 +19,7 @@ class SCP_Admin_Settings {
 	 */
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
+		add_action( 'admin_menu', array( $this, 'add_how_to_use_admin_menu' ), 200 );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 	}
 
@@ -96,7 +97,12 @@ class SCP_Admin_Settings {
 			'scp-after-hours',
 			array( $this, 'after_hours_page_content' )
 		);
+	}
 
+	/**
+	 * Add the "How To Use" submenu item with a high priority to ensure it's last.
+	 */
+	public function add_how_to_use_admin_menu() {
 		add_submenu_page(
 			'supportcandy-plus',
 			__( 'How To Use', 'supportcandy-plus' ),
