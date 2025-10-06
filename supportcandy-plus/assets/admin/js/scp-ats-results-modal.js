@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
 
+        const questionId = questionIdInput.value;
+        const newHeading = reportHeadingInput.value;
+
         const formData = new FormData(this);
         formData.append('action', 'scp_ats_update_report_heading');
         formData.append('nonce', scp_ats_results_modal.nonce);
@@ -46,9 +49,27 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                alert('Heading updated successfully!');
                 modal.style.display = 'none';
-                location.reload();
+
+                // Update the heading in the table
+                const headingElement = document.querySelector(`.scp-ats-edit-heading[data-question-id="${questionId}"]`).previousSibling;
+                headingElement.textContent = newHeading.trim() + ' '; // Add space to separate from icon
+
+                // Update the data attribute on the icon
+                const iconElement = document.querySelector(`.scp-ats-edit-heading[data-question-id="${questionId}"]`);
+                iconElement.dataset.reportHeading = newHeading;
+
+                // Show toast notification
+                const toast = document.createElement('div');
+                toast.id = 'scp-ats-toast';
+                toast.className = 'show';
+                toast.textContent = 'Heading updated successfully!';
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.className = toast.className.replace('show', '');
+                    document.body.removeChild(toast);
+                }, 3000);
+
             } else {
                 alert('Error: ' + result.data);
             }
