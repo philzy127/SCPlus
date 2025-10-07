@@ -522,7 +522,7 @@ final class SCP_After_Ticket_Survey {
 		<h2>Manage Survey Submissions</h2>
 		<p>Select one or more submissions below and click "Delete" to permanently remove them.</p>
 		<?php if ( $submissions ) : ?>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('Are you sure you want to delete the selected submissions? This action cannot be undone.');">
 				<input type="hidden" name="action" value="scp_ats_manage_submissions">
 				<?php wp_nonce_field( 'scp_ats_manage_submissions_nonce' ); ?>
 				<table class="wp-list-table widefat fixed striped">
