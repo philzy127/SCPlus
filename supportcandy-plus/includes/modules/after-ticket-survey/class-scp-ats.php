@@ -734,7 +734,8 @@ final class SCP_After_Ticket_Survey {
 			$wpdb->query( "TRUNCATE TABLE {$this->survey_submissions_table_name}" );
 			$wpdb->query( "TRUNCATE TABLE {$this->survey_answers_table_name}" );
 
-			$wpdb->query( "INSERT INTO {$this->questions_table_name} SELECT * FROM {$old_questions_table}" );
+			// Explicitly map columns to handle the new 'report_heading' column
+			$wpdb->query( "INSERT INTO {$this->questions_table_name} (id, question_text, question_type, sort_order, is_required) SELECT id, question_text, question_type, sort_order, is_required FROM {$old_questions_table}" );
 			$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$old_dropdown_options_table}" );
 			$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$old_survey_submissions_table}" );
 			$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$old_survey_answers_table}" );
