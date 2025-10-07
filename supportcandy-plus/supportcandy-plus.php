@@ -3,10 +3,11 @@
  * Plugin Name: SupportCandy Plus
  * Description: A collection of enhancements for the SupportCandy plugin.
  * Version: 2.3.1
- * Author: Jules
- * Author URI: https://example.com
+ * Author: StackBoost
+ * Author URI: https://stackBoost.net
  * Text Domain: supportcandy-plus
  * Domain Path: /languages
+ * Requires Plugins:  supportcandy
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
