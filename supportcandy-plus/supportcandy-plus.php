@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: SupportCandy Plus
+ * Plugin Name: SupportCandy Plus!
  * Description: A collection of enhancements for the SupportCandy plugin.
  * Version: 2.3.1
  * Author: StackBoost
