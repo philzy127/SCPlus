@@ -164,7 +164,6 @@ class SCP_Admin_Settings {
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( 'scp_settings' );
-				echo '<input type="hidden" name="scp_settings[page_slug]" value="' . esc_attr( $page_slug ) . '">';
 				do_settings_sections( $page_slug );
 				submit_button( __( 'Save Settings', 'supportcandy-plus' ) );
 				?>
@@ -346,6 +345,7 @@ class SCP_Admin_Settings {
 		$views   = $this->get_supportcandy_views();
 		$columns = supportcandy_plus()->get_supportcandy_columns();
 		?>
+		<input type="hidden" name="scp_settings[conditional_hiding_rules]" value="">
 		<div id="scp-rules-container">
 			<?php
 			if ( ! empty( $rules ) ) {
@@ -455,6 +455,7 @@ class SCP_Admin_Settings {
 			}
 		}
 		?>
+		<input type="hidden" name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>]" value="">
 		<div class="dual-list-container">
 			<div class="dual-list-box" style="display: inline-block; vertical-align: top;">
 				<h3><?php _e( 'Available Statuses', 'supportcandy-plus' ); ?></h3>
@@ -565,52 +566,24 @@ class SCP_Admin_Settings {
 	}
 
 	/**
-	 * Sanitize the settings.
+	 * Sanitize the settings with a simpler, more robust method.
 	 */
 	public function sanitize_settings( $input ) {
-		// Get the full array of currently saved settings.
-		$saved_settings = get_option( 'scp_settings', [] );
-		if ( ! is_array( $saved_settings ) ) {
-			$saved_settings = [];
+		// Get the full array of currently saved settings from the database.
+		$existing_settings = get_option( 'scp_settings', [] );
+		if ( ! is_array( $existing_settings ) ) {
+			$existing_settings = [];
 		}
 
-		// Identify which page was submitted.
-		$page_slug = $input['page_slug'] ?? 'supportcandy-plus';
-
-		// Define which options belong to which page.
-		$page_options = [
-			'supportcandy-plus'      => [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'ticket_type_custom_field_name', 'ticket_types_to_hide' ],
-			'scp-conditional-hiding' => [ 'enable_conditional_hiding', 'conditional_hiding_rules' ],
-			'scp-after-hours'        => [ 'enable_after_hours_notice', 'after_hours_start', 'before_hours_end', 'include_all_weekends', 'holidays', 'after_hours_message' ],
-			'scp-queue-macro'        => [ 'enable_queue_macro', 'queue_macro_type_field', 'queue_macro_statuses' ],
-			'scp-ats-survey'         => [ 'ats_background_color', 'ats_ticket_question_id', 'ats_technician_question_id', 'ats_ticket_url_base' ],
-		];
-
-		// Get the list of options for the page that was just saved.
-		$current_page_options = $page_options[ $page_slug ] ?? [];
-
-		// Loop through the options for the CURRENT page and update them in our main settings array.
-		foreach ( $current_page_options as $key ) {
-			if ( isset( $input[ $key ] ) ) {
-				// The field exists in the submitted form data.
-				$saved_settings[ $key ] = $input[ $key ];
-			} else {
-				// The field does not exist in the form data. This happens with unchecked checkboxes
-				// or fields that can be entirely removed (like the rules builder).
-				// We set it to a safe default (0 for checkboxes, empty array for rules).
-				if ( 'conditional_hiding_rules' === $key || 'queue_macro_statuses' === $key ) {
-					$saved_settings[ $key ] = [];
-				} elseif ( in_array( $key, [ 'enable_right_click_card', 'enable_hide_empty_columns', 'enable_hide_priority_column', 'enable_ticket_type_hiding', 'enable_conditional_hiding', 'enable_after_hours_notice', 'include_all_weekends', 'enable_queue_macro' ] ) ) {
-					$saved_settings[ $key ] = 0; // Handles all checkboxes.
-				}
-			}
-		}
+		// Merge the newly submitted settings into the existing settings.
+		// This correctly handles settings spread across multiple tabs.
+		$merged_settings = array_merge( $existing_settings, $input );
 
 		// Now, sanitize the ENTIRE merged array.
-		$sanitized_input = [];
-		foreach ( $saved_settings as $key => $value ) {
+		$sanitized_output = [];
+		foreach ( $merged_settings as $key => $value ) {
 			switch ( $key ) {
-				// Checkboxes
+				// Checkboxes (booleans stored as 1 or 0)
 				case 'enable_right_click_card':
 				case 'enable_hide_empty_columns':
 				case 'enable_hide_priority_column':
@@ -619,40 +592,37 @@ class SCP_Admin_Settings {
 				case 'enable_after_hours_notice':
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
-					$sanitized_input[ $key ] = (int) $value;
+					$sanitized_output[ $key ] = (int) $value;
 					break;
 
-				// Number fields
+				// Integer fields
 				case 'after_hours_start':
 				case 'before_hours_end':
-					$sanitized_input[ $key ] = absint( $value );
+				case 'ats_ticket_question_id':
+				case 'ats_technician_question_id':
+					$sanitized_output[ $key ] = absint( $value );
 					break;
 
-				// Text fields
+				// Simple text fields
 				case 'ticket_type_custom_field_name':
 				case 'ats_background_color':
 				case 'ats_ticket_url_base':
-					$sanitized_input[ $key ] = sanitize_text_field( $value );
+				case 'queue_macro_type_field':
+					$sanitized_output[ $key ] = sanitize_text_field( $value );
 					break;
 
-				// Number fields (from dropdowns)
-				case 'ats_ticket_question_id':
-				case 'ats_technician_question_id':
-					$sanitized_input[ $key ] = absint( $value );
-					break;
-
-				// Textarea
+				// Textareas (with line breaks)
 				case 'ticket_types_to_hide':
 				case 'holidays':
-					$sanitized_input[ $key ] = sanitize_textarea_field( $value );
+					$sanitized_output[ $key ] = sanitize_textarea_field( $value );
 					break;
 
-				// WP Editor
+				// WP Editor (allows safe HTML)
 				case 'after_hours_message':
-					$sanitized_input[ $key ] = wp_kses_post( $value );
+					$sanitized_output[ $key ] = wp_kses_post( $value );
 					break;
 
-				// Array field (rules)
+				// Array of rules for Conditional Hiding
 				case 'conditional_hiding_rules':
 					if ( is_array( $value ) ) {
 						$sanitized_rules = [];
@@ -667,40 +637,33 @@ class SCP_Admin_Settings {
 							$sanitized_rule['columns']   = isset( $rule['columns'] ) ? sanitize_text_field( $rule['columns'] ) : '';
 							$sanitized_rules[]         = $sanitized_rule;
 						}
-						$sanitized_input[ $key ] = $sanitized_rules;
+						$sanitized_output[ $key ] = $sanitized_rules;
 					} else {
-						$sanitized_input[ $key ] = [];
+						$sanitized_output[ $key ] = []; // Default to empty array if not an array.
 					}
 					break;
 
-				case 'queue_macro_type_field':
-					$sanitized_input[ $key ] = sanitize_text_field( $value );
-					break;
-
+				// Array of integers for Queue Macro statuses
 				case 'queue_macro_statuses':
 					if ( is_array( $value ) ) {
-						$sanitized_input[ $key ] = array_map( 'absint', $value );
+						$sanitized_output[ $key ] = array_map( 'absint', $value );
 					} else {
-						$sanitized_input[ $key ] = [];
+						$sanitized_output[ $key ] = []; // Default to empty array.
 					}
-					break;
-
-				// We don't need to save the page slug itself.
-				case 'page_slug':
 					break;
 
 				// Default case for any other fields that might exist.
 				default:
 					if ( is_string( $value ) ) {
-						$sanitized_input[ $key ] = sanitize_text_field( $value );
+						$sanitized_output[ $key ] = sanitize_text_field( $value );
 					} else {
-						$sanitized_input[ $key ] = $value;
+						$sanitized_output[ $key ] = $value;
 					}
 					break;
 			}
 		}
 
-		return $sanitized_input;
+		return $sanitized_output;
 	}
 }
 
