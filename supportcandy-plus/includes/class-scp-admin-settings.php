@@ -487,7 +487,7 @@ class SCP_Admin_Settings {
 	 */
 	public function render_checkbox_field( $args ) {
 		$options = get_option( 'scp_settings', [] );
-		$value   = isset( $options[ $args['id'] ] ) ? 1 : 0;
+		$value   = ! empty( $options[ $args['id'] ] ) ? 1 : 0;
 		// Add a hidden field with value 0. This ensures that when the checkbox is unchecked, a value of '0' is still submitted.
 		echo '<input type="hidden" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="0">';
 		// The actual checkbox. If checked, its value '1' will overwrite the hidden field's value.
