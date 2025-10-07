@@ -535,7 +535,7 @@ class SCP_Admin_Settings {
 	 */
 	public function render_wp_editor_field( $args ) {
 		$options = get_option( 'scp_settings', [] );
-		$content = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '<strong>After Hours</strong><br><br>You have submitted an IT ticket outside of normal business hours, and it will be handled in the order it was received. If this is an emergency, or has caused a complete stoppage of work, please call the IT On-Call number at: <u>719-266-2837</u> <br><br> (Available <b>5pm</b> to <b>11pm(EST) M-F, 8am to 11pm</b> weekends and Holidays)';
+		$content = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : $this->get_default_after_hours_message();
 		wp_editor(
 			$content,
 			'scp_settings_' . esc_attr( $args['id'] ),
@@ -547,6 +547,15 @@ class SCP_Admin_Settings {
 			]
 		);
 		if ( ! empty( $args['desc'] ) ) echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+	}
+
+	/**
+	 * Returns the default after-hours message.
+	 *
+	 * @return string The default message.
+	 */
+	private function get_default_after_hours_message() {
+		return '<strong>After Hours</strong><br><br>You have submitted an IT ticket outside of normal business hours, and it will be handled in the order it was received. If this is an emergency, or has caused a complete stoppage of work, please call the IT On-Call number at: <u>719-266-2837</u> <br><br> (Available <b>5pm</b> to <b>11pm(EST) M-F, 8am to 11pm</b> weekends and Holidays)';
 	}
 
 	/**
@@ -619,7 +628,12 @@ class SCP_Admin_Settings {
 
 				// WP Editor (allows safe HTML)
 				case 'after_hours_message':
-					$sanitized_output[ $key ] = wp_kses_post( $value );
+					// If the notice is enabled but the message is empty, use the default.
+					if ( ! empty( $merged_settings['enable_after_hours_notice'] ) && empty( $value ) ) {
+						$sanitized_output[ $key ] = $this->get_default_after_hours_message();
+					} else {
+						$sanitized_output[ $key ] = wp_kses_post( $value );
+					}
 					break;
 
 				// Array of rules for Conditional Hiding
