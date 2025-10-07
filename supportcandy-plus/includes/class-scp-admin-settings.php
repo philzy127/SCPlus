@@ -535,7 +535,7 @@ class SCP_Admin_Settings {
 	 */
 	public function render_wp_editor_field( $args ) {
 		$options = get_option( 'scp_settings', [] );
-		$content = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '<strong>CHP Helpdesk -- After Hours</strong><br><br>You have submitted an IT ticket outside of normal business hours, and it will be handled in the order it was received. If this is an emergency, or has caused a complete stoppage of work, please call the IT On-Call number at: <u>(202) 996-8415</u> <br><br> (Available <b>5pm</b> to <b>11pm(EST) M-F, 8am to 11pm</b> weekends and Holidays)';
+		$content = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : '<strong>After Hours</strong><br><br>You have submitted an IT ticket outside of normal business hours, and it will be handled in the order it was received. If this is an emergency, or has caused a complete stoppage of work, please call the IT On-Call number at: <u>719-266-2837</u> <br><br> (Available <b>5pm</b> to <b>11pm(EST) M-F, 8am to 11pm</b> weekends and Holidays)';
 		wp_editor(
 			$content,
 			'scp_settings_' . esc_attr( $args['id'] ),
