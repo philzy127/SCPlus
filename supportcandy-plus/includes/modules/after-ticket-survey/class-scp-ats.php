@@ -522,7 +522,7 @@ final class SCP_After_Ticket_Survey {
 		<h2>Manage Survey Submissions</h2>
 		<p>Select one or more submissions below and click "Delete" to permanently remove them.</p>
 		<?php if ( $submissions ) : ?>
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('Are you sure you want to delete the selected submissions? This action cannot be undone.');">
 				<input type="hidden" name="action" value="scp_ats_manage_submissions">
 				<?php wp_nonce_field( 'scp_ats_manage_submissions_nonce' ); ?>
 				<table class="wp-list-table widefat fixed striped">
@@ -734,7 +734,8 @@ final class SCP_After_Ticket_Survey {
 			$wpdb->query( "TRUNCATE TABLE {$this->survey_submissions_table_name}" );
 			$wpdb->query( "TRUNCATE TABLE {$this->survey_answers_table_name}" );
 
-			$wpdb->query( "INSERT INTO {$this->questions_table_name} SELECT * FROM {$old_questions_table}" );
+			// Explicitly map columns to handle the new 'report_heading' column
+			$wpdb->query( "INSERT INTO {$this->questions_table_name} (id, question_text, question_type, sort_order, is_required) SELECT id, question_text, question_type, sort_order, is_required FROM {$old_questions_table}" );
 			$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$old_dropdown_options_table}" );
 			$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$old_survey_submissions_table}" );
 			$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$old_survey_answers_table}" );
