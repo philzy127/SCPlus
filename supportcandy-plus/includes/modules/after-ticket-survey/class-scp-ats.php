@@ -35,23 +35,20 @@ final class SCP_After_Ticket_Survey {
 	private function init_hooks() {
 		register_activation_hook( SCP_PLUGIN_FILE, array( $this, 'install' ) );
 		add_action( 'plugins_loaded', array( $this, 'check_db_version' ) );
-
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_styles' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
-
-		add_shortcode( 'scp_after_ticket_survey', array( $this, 'survey_shortcode' ) );
-
 		add_action( 'admin_menu', array( $this, 'admin_menu' ), 99 );
-
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-
 		add_action( 'admin_post_scp_ats_manage_questions', array( $this, 'handle_manage_questions' ) );
 		add_action( 'admin_post_scp_ats_manage_submissions', array( $this, 'handle_manage_submissions' ) );
-		// add_action( 'admin_post_scp_ats_import_settings', array( $this, 'handle_import_settings' ) );
-
 		add_action( 'wp_ajax_scp_ats_update_report_heading', array( $this, 'handle_update_report_heading' ) );
-
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+
+		// Conditionally load frontend hooks based on settings
+		$options = get_option( 'scp_settings' );
+		if ( ! empty( $options['enable_ats'] ) ) {
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_styles' ) );
+			add_shortcode( 'scp_after_ticket_survey', array( $this, 'survey_shortcode' ) );
+		}
 	}
 
 	public function handle_update_report_heading() {
@@ -669,10 +666,21 @@ final class SCP_After_Ticket_Survey {
 
 	public function register_settings() {
 		add_settings_section( 'scp_ats_settings_section', '', null, 'scp-ats-survey' );
+		add_settings_field( 'enable_ats', 'Enable Feature', array( $this, 'render_checkbox_field' ), 'scp-ats-survey', 'scp_ats_settings_section', [ 'id' => 'enable_ats', 'desc' => 'Enable the After Ticket Survey feature.' ] );
 		add_settings_field( 'ats_background_color', 'Survey Page Background Color', array( $this, 'render_color_picker' ), 'scp-ats-survey', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_ticket_question_id', 'Ticket Number Question', array( $this, 'render_question_dropdown' ), 'scp-ats-survey', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_technician_question_id', 'Technician Question', array( $this, 'render_technician_question_dropdown' ), 'scp-ats-survey', 'scp_ats_settings_section' );
 		add_settings_field( 'ats_ticket_url_base', 'Ticket System Base URL', array( $this, 'render_text_field' ), 'scp-ats-survey', 'scp_ats_settings_section' );
+	}
+
+	public function render_checkbox_field( $args ) {
+		$options = get_option( 'scp_settings', [] );
+		$value   = ! empty( $options[ $args['id'] ] ) ? 1 : 0;
+		echo '<input type="hidden" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="0">';
+		echo '<input type="checkbox" id="' . esc_attr( $args['id'] ) . '" name="scp_settings[' . esc_attr( $args['id'] ) . ']" value="1" ' . checked( 1, $value, false ) . '>';
+		if ( ! empty( $args['desc'] ) ) {
+			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
+		}
 	}
 
 	public function render_color_picker() {
