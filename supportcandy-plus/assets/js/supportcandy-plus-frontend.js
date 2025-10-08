@@ -59,6 +59,10 @@
 		if (features.after_hours_notice?.enabled) {
 			feature_after_hours_notice();
 		}
+
+		if (features.hide_reply_close?.enabled) {
+			feature_hide_reply_close_button();
+		}
 	}
 
 	/**
@@ -371,6 +375,27 @@
 
 				ticketForm.prepend(message);
 				ticketForm.dataset.afterHoursNoticeAdded = 'true'; // Mark as added.
+			}
+		}
+	}
+
+
+	/**
+	 * Feature: Hide "Reply & Close" button for non-agents.
+	 *
+	 * Selects the button based on its unique `onclick` attribute content
+	 * to avoid relying on classes that might be used elsewhere.
+	 */
+	function feature_hide_reply_close_button() {
+		const isAgent = document.querySelector('.wpsc-menu-list.agent-profile, #menu-item-8128');
+
+		// This feature should only apply to non-agents.
+		if (!isAgent) {
+			// Find the button specifically containing the 'wpsc_it_reply_and_close' function call.
+			const replyCloseButton = document.querySelector('button.wpsc-it-editor-submit[onclick*="wpsc_it_reply_and_close"]');
+
+			if (replyCloseButton) {
+				replyCloseButton.style.display = 'none';
 			}
 		}
 	}

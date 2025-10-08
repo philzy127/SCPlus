@@ -102,6 +102,9 @@ final class SupportCandy_Plus {
 					'enabled' => ! empty( $options['enable_hide_empty_columns'] ),
 					'hide_priority' => ! empty( $options['enable_hide_priority_column'] ),
 				],
+				'hide_reply_close' => [
+					'enabled' => ! empty( $options['hide_reply_close_for_users'] ),
+				],
 				'ticket_type_hiding' => [
 					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
 					'field_id'      => $this->get_custom_field_id_by_name( ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '' ),

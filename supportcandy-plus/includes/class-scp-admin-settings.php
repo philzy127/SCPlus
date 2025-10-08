@@ -189,6 +189,7 @@ class SCP_Admin_Settings {
 		add_settings_section( 'scp_general_cleanup_section', __( 'General Cleanup', 'supportcandy-plus' ), null, 'supportcandy-plus' );
 		add_settings_field( 'scp_enable_hide_empty_columns', __( 'Hide Empty Columns', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_empty_columns', 'desc' => 'Automatically hide any column in the ticket list that is completely empty.' ] );
 		add_settings_field( 'scp_enable_hide_priority_column', __( 'Hide Priority Column', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_priority_column', 'desc' => 'Hides the "Priority" column if all visible tickets have a priority of "Low".' ] );
+		add_settings_field( 'scp_hide_reply_close_for_users', __( 'Hide "Reply & Close" for Users', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'hide_reply_close_for_users', 'desc' => 'Hides the "Reply & Close" button for non-agent users on the ticket reply form.' ] );
 
 		add_settings_section( 'scp_separator_2', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
@@ -596,6 +597,7 @@ class SCP_Admin_Settings {
 				case 'enable_right_click_card':
 				case 'enable_hide_empty_columns':
 				case 'enable_hide_priority_column':
+				case 'hide_reply_close_for_users':
 				case 'enable_ticket_type_hiding':
 				case 'enable_conditional_hiding':
 				case 'enable_after_hours_notice':
