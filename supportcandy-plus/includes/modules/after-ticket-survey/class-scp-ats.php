@@ -737,25 +737,36 @@ final class SCP_After_Ticket_Survey {
 			// Explicitly map columns to handle the new 'report_heading' column
 			$wpdb->query( "INSERT INTO {$this->questions_table_name} (id, question_text, question_type, sort_order, is_required) SELECT id, question_text, question_type, sort_order, is_required FROM {$old_questions_table}" );
 			$wpdb->query( "INSERT INTO {$this->dropdown_options_table_name} SELECT * FROM {$old_dropdown_options_table}" );
-			$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, user_id, submission_date FROM {$old_survey_submissions_table}" );
+			// The old table does not have a user_id column, so we must specify the columns and provide a default.
+			$wpdb->query( "INSERT INTO {$this->survey_submissions_table_name} (id, user_id, submission_date) SELECT id, 0, submission_date FROM {$old_survey_submissions_table}" );
 			$wpdb->query( "INSERT INTO {$this->survey_answers_table_name} SELECT * FROM {$old_survey_answers_table}" );
 		}
 
-		if ( $old_options_exist ) {
-			$old_options    = get_option( 'ats_survey_options' );
-			$scp_settings   = get_option( 'scp_settings', array() );
-			$option_mapping = array(
-				'background_color'     => 'ats_background_color',
-				'ticket_question_id'     => 'ats_ticket_question_id',
-				'technician_question_id' => 'ats_technician_question_id',
-				'ticket_url'             => 'ats_ticket_url_base',
+		if ( $old_options_exist || $old_tables_exist ) {
+			$scp_settings = get_option( 'scp_settings', array() );
+			if ( ! is_array( $scp_settings ) ) {
+				$scp_settings = array();
+			}
+
+			// Initialize imported settings with defaults from the old plugin's hardcoded values.
+			$imported_settings = array(
+				'ats_background_color' => '#c0d7e5', // Hardcoded color from old plugin's CSS.
+				'ats_ticket_url_base'  => '', // No equivalent in the old plugin.
 			);
-			$imported_settings = array();
-			foreach ( $option_mapping as $old_key => $new_key ) {
-				if ( isset( $old_options[ $old_key ] ) ) {
-					$imported_settings[ $new_key ] = $old_options[ $old_key ];
+
+			// If data was imported, try to find the question IDs.
+			if ( $old_tables_exist ) {
+				$ticket_q_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$this->questions_table_name} WHERE question_text = %s", 'What is your ticket number?' ) );
+				if ( $ticket_q_id ) {
+					$imported_settings['ats_ticket_question_id'] = (int) $ticket_q_id;
+				}
+
+				$tech_q_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$this->questions_table_name} WHERE question_text = %s", 'Who was your technician for this ticket?' ) );
+				if ( $tech_q_id ) {
+					$imported_settings['ats_technician_question_id'] = (int) $tech_q_id;
 				}
 			}
+
 			$new_options = array_merge( $scp_settings, $imported_settings );
 			update_option( 'scp_settings', $new_options );
 		}
