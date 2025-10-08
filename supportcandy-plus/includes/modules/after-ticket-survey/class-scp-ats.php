@@ -742,20 +742,21 @@ final class SCP_After_Ticket_Survey {
 		}
 
 		if ( $old_options_exist ) {
-			$old_options   = get_option( 'ats_survey_options' );
-			$new_options   = get_option( 'scp_settings', array() );
+			$old_options    = get_option( 'ats_survey_options' );
+			$scp_settings   = get_option( 'scp_settings', array() );
 			$option_mapping = array(
 				'background_color'     => 'ats_background_color',
 				'ticket_question_id'     => 'ats_ticket_question_id',
 				'technician_question_id' => 'ats_technician_question_id',
 				'ticket_url'             => 'ats_ticket_url_base',
 			);
+			$imported_settings = array();
 			foreach ( $option_mapping as $old_key => $new_key ) {
 				if ( isset( $old_options[ $old_key ] ) ) {
-					$new_options[ $new_key ] = $old_options[ $old_key ];
+					$imported_settings[ $new_key ] = $old_options[ $old_key ];
 				}
 			}
-			$new_options['page_slug'] = 'scp-ats-survey';
+			$new_options = array_merge( $scp_settings, $imported_settings );
 			update_option( 'scp_settings', $new_options );
 		}
 
