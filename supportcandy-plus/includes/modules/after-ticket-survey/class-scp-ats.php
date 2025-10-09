@@ -619,9 +619,9 @@ final class SCP_After_Ticket_Survey {
 		global $wpdb;
 		$options = get_option( 'scp_settings' );
 		$ticket_question_id = ! empty( $options['ats_ticket_question_id'] ) ? (int) $options['ats_ticket_question_id'] : 0;
-		$ticket_url_base = ! empty( $options['ats_ticket_url_base'] ) ? $options['ats_ticket_url_base'] : '';
-		$questions = $wpdb->get_results( "SELECT id, question_text, report_heading, question_type FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
-		$submissions = $wpdb->get_results( "SELECT s.*, u.display_name FROM {$this->survey_submissions_table_name} s LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID ORDER BY submission_date DESC", ARRAY_A );
+		$ticket_url_base    = ! empty( $options['ats_ticket_url_base'] ) ? $options['ats_ticket_url_base'] : '';
+		$questions          = $wpdb->get_results( "SELECT id, question_text, report_heading, question_type FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
+		$submissions        = $wpdb->get_results( "SELECT * FROM {$this->survey_submissions_table_name} ORDER BY submission_date DESC", ARRAY_A );
 		?>
 		<h2>View Survey Results</h2>
 		<table class="wp-list-table widefat fixed striped">
@@ -629,7 +629,6 @@ final class SCP_After_Ticket_Survey {
 				<tr>
 					<th>ID</th>
 					<th>Date</th>
-					<th>User</th>
 					<?php foreach ( $questions as $q ) : ?>
 						<th>
 							<?php echo esc_html( ! empty( $q['report_heading'] ) ? $q['report_heading'] : $q['question_text'] ); ?>
@@ -645,7 +644,7 @@ final class SCP_After_Ticket_Survey {
 			<tbody>
 			<?php foreach ( $submissions as $sub ) : ?>
 				<tr>
-					<td><?php echo $sub['id']; ?></td><td><?php echo $sub['submission_date']; ?></td><td><?php echo esc_html( $sub['display_name'] ?? 'Guest' ); ?></td>
+					<td><?php echo $sub['id']; ?></td><td><?php echo $sub['submission_date']; ?></td>
 					<?php
 					$answers = $wpdb->get_results( $wpdb->prepare( "SELECT question_id, answer_value FROM {$this->survey_answers_table_name} WHERE submission_id = %d", $sub['id'] ), OBJECT_K );
 					foreach ( $questions as $q ) {
