@@ -8,7 +8,7 @@ final class SCP_After_Ticket_Survey {
 
 	private static $instance = null;
 
-	private $db_version = '2.17';
+	private $db_version = '2.18';
 	private $questions_table_name;
 	private $dropdown_options_table_name;
 	private $survey_submissions_table_name;
@@ -97,6 +97,7 @@ final class SCP_After_Ticket_Survey {
 			question_text text NOT NULL,
 			report_heading varchar(255) DEFAULT '' NOT NULL,
 			question_type varchar(50) NOT NULL,
+			config text,
 			sort_order int(11) DEFAULT 0 NOT NULL,
 			is_required tinyint(1) DEFAULT 1 NOT NULL,
 			PRIMARY KEY  (id)
@@ -202,15 +203,45 @@ final class SCP_After_Ticket_Survey {
 
 	private function handle_survey_submission() {
 		global $wpdb;
-		$questions = $wpdb->get_results( "SELECT id, question_type, is_required FROM {$this->questions_table_name}", ARRAY_A );
-		$user_id = get_current_user_id();
+		$questions    = $wpdb->get_results( "SELECT id, question_type, is_required, config FROM {$this->questions_table_name}", ARRAY_A );
+		$user_id      = get_current_user_id();
+		$current_user = wp_get_current_user();
+
 		$wpdb->insert( $this->survey_submissions_table_name, array( 'user_id' => $user_id, 'submission_date' => current_time( 'mysql' ) ) );
 		$submission_id = $wpdb->insert_id;
+
 		if ( $submission_id ) {
 			foreach ( $questions as $question ) {
-				$input_name = 'scp_ats_q_' . $question['id'];
-				if ( isset( $_POST[ $input_name ] ) ) {
-					$wpdb->insert( $this->survey_answers_table_name, array( 'submission_id' => $submission_id, 'question_id' => $question['id'], 'answer_value' => sanitize_textarea_field( $_POST[ $input_name ] ) ) );
+				if ( 'hidden_user_details' === $question['question_type'] ) {
+					$answer_value = '';
+					if ( $current_user->ID ) {
+						$user_data_key = $question['config'];
+						if ( isset( $current_user->{$user_data_key} ) ) {
+							$answer_value = $current_user->{$user_data_key};
+						} else {
+							$answer_value = get_user_meta( $current_user->ID, $user_data_key, true );
+						}
+					}
+					$wpdb->insert(
+						$this->survey_answers_table_name,
+						array(
+							'submission_id' => $submission_id,
+							'question_id'   => $question['id'],
+							'answer_value'  => $answer_value,
+						)
+					);
+				} else {
+					$input_name = 'scp_ats_q_' . $question['id'];
+					if ( isset( $_POST[ $input_name ] ) ) {
+						$wpdb->insert(
+							$this->survey_answers_table_name,
+							array(
+								'submission_id' => $submission_id,
+								'question_id'   => $question['id'],
+								'answer_value'  => sanitize_textarea_field( $_POST[ $input_name ] ),
+							)
+						);
+					}
 				}
 			}
 			echo '<div class="ats-success-message">Thank you for completing our survey! Your feedback is invaluable and helps us improve our services.</div>';
@@ -226,7 +257,7 @@ final class SCP_After_Ticket_Survey {
 		$technician_question_id = ! empty( $options['ats_technician_question_id'] ) ? (int) $options['ats_technician_question_id'] : 0;
 		$prefill_ticket_id = isset( $_GET['ticket_id'] ) ? sanitize_text_field( $_GET['ticket_id'] ) : '';
 		$prefill_tech_name = isset( $_GET['tech'] ) ? sanitize_text_field( $_GET['tech'] ) : '';
-		$questions = $wpdb->get_results( "SELECT id, question_text, question_type, is_required FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
+		$questions         = $wpdb->get_results( "SELECT id, question_text, question_type, is_required, config FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
 		if ( empty( $questions ) ) {
 			echo '<p class="ats-no-questions-message">No survey questions configured yet. Please contact the administrator.</p>';
 			return;
@@ -235,10 +266,18 @@ final class SCP_After_Ticket_Survey {
 		<div class="ats-survey-container">
 			<p class="ats-intro-text">We are committed to providing excellent IT support. Your feedback helps us assess our performance and identify areas for improvement.</p>
 			<form method="post" class="ats-form">
-				<?php wp_nonce_field( 'scp_ats_survey_form_nonce', 'scp_ats_survey_nonce' ); ?>
-				<?php foreach ( $questions as $q_num => $q ) : ?>
+				<?php
+				wp_nonce_field( 'scp_ats_survey_form_nonce', 'scp_ats_survey_nonce' );
+				$visible_q_num = 0;
+				foreach ( $questions as $q ) :
+					if ( 'hidden_user_details' === $q['question_type'] ) {
+						$this->render_question_field( $q, $options, $prefill_ticket_id, $prefill_tech_name );
+						continue;
+					}
+					$visible_q_num++;
+					?>
 					<div class="ats-form-group">
-						<label for="scp_ats_q_<?php echo $q['id']; ?>" class="ats-label"><?php echo ( $q_num + 1 ) . '. ' . esc_html( $q['question_text'] ); ?><?php if ( $q['is_required'] ) echo ' <span class="ats-required-label">*</span>'; ?></label>
+						<label for="scp_ats_q_<?php echo $q['id']; ?>" class="ats-label"><?php echo $visible_q_num . '. ' . esc_html( $q['question_text'] ); ?><?php if ( $q['is_required'] ) echo ' <span class="ats-required-label">*</span>'; ?></label>
 						<?php $this->render_question_field( $q, $options, $prefill_ticket_id, $prefill_tech_name ); ?>
 					</div>
 				<?php endforeach; ?>
@@ -279,6 +318,10 @@ final class SCP_After_Ticket_Survey {
 					echo '<option value="' . esc_attr( $opt->option_value ) . '" ' . $selected . '>' . esc_html( $opt->option_value ) . '</option>';
 				}
 				echo '</select>';
+				break;
+			case 'hidden_user_details':
+				// This question type is handled on the backend during submission.
+				// It does not render any visible HTML on the form.
 				break;
 		}
 	}
@@ -430,6 +473,7 @@ final class SCP_After_Ticket_Survey {
 			}
 		}
 		$questions = $wpdb->get_results( "SELECT * FROM {$this->questions_table_name} ORDER BY sort_order ASC", ARRAY_A );
+		$user_data_fields = $this->get_user_data_fields();
 		?>
 		<div>
 
@@ -437,7 +481,7 @@ final class SCP_After_Ticket_Survey {
 			<div class="ats-questions-list">
 				<h2>Existing Questions</h2>
 				<table class="wp-list-table widefat fixed striped ats-admin-table">
-					<thead><tr><th class="manage-column">Order</th><th class="manage-column">Question Text</th><th class="manage-column">Type</th><th class="manage-column">Required</th><th class="manage-column">Options (for Dropdown)</th><th class="manage-column">Actions</th></tr></thead>
+					<thead><tr><th class="manage-column">Order</th><th class="manage-column">Question Text</th><th class="manage-column">Type</th><th class="manage-column">Required</th><th class="manage-column">Configuration</th><th class="manage-column">Actions</th></tr></thead>
 					<tbody>
 					<?php if ( empty( $questions ) ) : ?>
 						<tr><td colspan="6">No questions found.</td></tr>
@@ -445,7 +489,18 @@ final class SCP_After_Ticket_Survey {
 						<?php foreach ( $questions as $q ) : ?>
 						<tr>
 							<td><?php echo esc_html( $q['sort_order'] ); ?></td><td><?php echo esc_html( $q['question_text'] ); ?></td><td><?php echo esc_html( str_replace('_', ' ', ucfirst( $q['question_type'] )) ); ?></td><td><?php echo $q['is_required'] ? 'Yes' : 'No'; ?></td>
-							<td><?php if ( $q['question_type'] === 'dropdown' ) { $options = $wpdb->get_results( $wpdb->prepare( "SELECT option_value FROM {$this->dropdown_options_table_name} WHERE question_id = %d ORDER BY sort_order ASC", $q['id'] ), ARRAY_A ); echo esc_html( implode(', ', array_column($options, 'option_value')) ); } else { echo 'N/A'; } ?></td>
+							<td>
+								<?php
+								if ( $q['question_type'] === 'dropdown' ) {
+									$options = $wpdb->get_results( $wpdb->prepare( "SELECT option_value FROM {$this->dropdown_options_table_name} WHERE question_id = %d ORDER BY sort_order ASC", $q['id'] ), ARRAY_A );
+									echo 'Options: ' . esc_html( implode( ', ', array_column( $options, 'option_value' ) ) );
+								} elseif ( $q['question_type'] === 'hidden_user_details' ) {
+									echo 'Field: ' . esc_html( $user_data_fields[ $q['config'] ] ?? $q['config'] );
+								} else {
+									echo 'N/A';
+								}
+								?>
+							</td>
 							<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions&action=edit&question_id=' . $q['id'] ) ); ?>" class="button button-secondary">Edit</a> <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions&action=delete&question_id=' . $q['id'] ), 'scp_ats_delete_q' ) ); ?>" class="button button-secondary" onclick="return confirm('Are you sure?');">Delete</a></td>
 						</tr>
 						<?php endforeach; ?>
@@ -474,11 +529,12 @@ final class SCP_After_Ticket_Survey {
 					<div class="ats-form-row">
 						<div class="ats-form-group ats-form-group-type">
 							<label for="question_type" class="ats-label">Question Type:</label>
-							<select id="question_type" name="question_type" class="ats-input" required onchange="toggleDropdownOptions(this)">
+							<select id="question_type" name="question_type" class="ats-input" required onchange="toggleQuestionOptions(this)">
 								<option value="short_text" <?php selected( $editing_question['question_type'] ?? '', 'short_text' ); ?>>Short Text</option>
 								<option value="long_text" <?php selected( $editing_question['question_type'] ?? '', 'long_text' ); ?>>Long Text</option>
 								<option value="rating" <?php selected( $editing_question['question_type'] ?? '', 'rating' ); ?>>Rating (1-5)</option>
 								<option value="dropdown" <?php selected( $editing_question['question_type'] ?? '', 'dropdown' ); ?>>Dropdown</option>
+								<option value="hidden_user_details" <?php selected( $editing_question['question_type'] ?? '', 'hidden_user_details' ); ?>>Hidden User Details</option>
 							</select>
 						</div>
 						<div class="ats-form-group ats-form-group-sort">
@@ -496,6 +552,15 @@ final class SCP_After_Ticket_Survey {
 						<textarea id="ats_dropdown_options" name="ats_dropdown_options" rows="3" class="ats-input" placeholder="e.g., Option 1, Option 2"><?php echo esc_textarea( $editing_question['options_str'] ?? '' ); ?></textarea>
 					</div>
 
+					<div class="ats-form-group" id="ats_user_data_field_group" style="display: none;">
+						<label for="ats_user_data_field" class="ats-label">User Data Field:</label>
+						<select id="ats_user_data_field" name="config" class="ats-input">
+							<?php foreach ( $user_data_fields as $key => $label ) : ?>
+								<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $editing_question['config'] ?? '', $key ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+
 					<div class="ats-form-actions">
 						<button type="submit" class="button button-primary button-large ats-submit-button-admin"><?php echo $editing_question ? 'Update Question' : 'Add Question'; ?></button>
 						<?php if ( $editing_question ) : ?><a href="<?php echo esc_url( admin_url( 'admin.php?page=scp-ats-survey&tab=questions' ) ); ?>" class="button button-secondary ats-cancel-button-admin">Cancel Edit</a><?php endif; ?>
@@ -504,7 +569,22 @@ final class SCP_After_Ticket_Survey {
 				</div>
 			</div>
 		</div>
-		<script>function toggleDropdownOptions(selectElement) { document.getElementById('ats_dropdown_options_group').style.display = selectElement.value === 'dropdown' ? 'block' : 'none'; } document.addEventListener('DOMContentLoaded', function() { toggleDropdownOptions(document.getElementById('ats_question_type')); });</script>
+		<script>
+			function toggleQuestionOptions(selectElement) {
+				document.getElementById('ats_dropdown_options_group').style.display = selectElement.value === 'dropdown' ? 'block' : 'none';
+				document.getElementById('ats_user_data_field_group').style.display = selectElement.value === 'hidden_user_details' ? 'block' : 'none';
+				var required_cb = document.getElementById('ats_is_required');
+				if (selectElement.value === 'hidden_user_details') {
+					required_cb.checked = false;
+					required_cb.disabled = true;
+				} else {
+					required_cb.disabled = false;
+				}
+			}
+			document.addEventListener('DOMContentLoaded', function() {
+				toggleQuestionOptions(document.getElementById('question_type'));
+			});
+		</script>
 		<?php
 	}
 
@@ -627,6 +707,21 @@ final class SCP_After_Ticket_Survey {
 		<?php
 	}
 
+	private function get_user_data_fields() {
+		$fields = array(
+			'ID'           => 'User ID',
+			'user_login'   => 'Username',
+			'user_email'   => 'User Email',
+			'first_name'   => 'First Name',
+			'last_name'    => 'Last Name',
+			'display_name' => 'Display Name',
+			// Nextend Social Login common meta keys
+			'nsl_email'      => 'Nextend Email',
+			'nsl_picture'    => 'Nextend Profile Picture',
+		);
+		return apply_filters( 'scp_ats_user_data_fields', $fields );
+	}
+
 	public function handle_manage_submissions() {
 		if ( ! current_user_can( 'manage_options' ) ) return;
 		check_admin_referer( 'scp_ats_manage_submissions_nonce' );
@@ -641,24 +736,54 @@ final class SCP_After_Ticket_Survey {
 	}
 
 	public function handle_manage_questions() {
-		if ( ! current_user_can( 'manage_options' ) ) return;
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
 		check_admin_referer( 'scp_ats_manage_questions_nonce' );
 		global $wpdb;
-		$action = $_POST['ats_action'] ?? '';
-		$question_id = isset( $_POST['question_id'] ) ? intval( $_POST['question_id'] ) : 0;
-		$data = array( 'question_text' => sanitize_text_field( $_POST['question_text'] ), 'question_type' => sanitize_text_field( $_POST['question_type'] ), 'is_required' => isset( $_POST['is_required'] ) ? 1 : 0, 'sort_order' => intval( $_POST['sort_order'] ) );
-		if ( $action === 'add' ) {
+		$action        = $_POST['ats_action'] ?? '';
+		$question_id   = isset( $_POST['question_id'] ) ? intval( $_POST['question_id'] ) : 0;
+		$question_type = sanitize_text_field( $_POST['question_type'] );
+		$data          = array(
+			'question_text' => sanitize_text_field( $_POST['question_text'] ),
+			'question_type' => $question_type,
+			'is_required'   => ( 'hidden_user_details' !== $question_type && isset( $_POST['is_required'] ) ) ? 1 : 0,
+			'sort_order'    => intval( $_POST['sort_order'] ),
+			'config'        => null,
+		);
+
+		if ( 'hidden_user_details' === $data['question_type'] ) {
+			$data['config'] = sanitize_text_field( $_POST['config'] );
+		}
+
+		if ( 'add' === $action ) {
 			$wpdb->insert( $this->questions_table_name, $data );
 			$question_id = $wpdb->insert_id;
-			$message = 'added';
-		} elseif ( $action === 'update' && $question_id ) {
+			$message     = 'added';
+		} elseif ( 'update' === $action && $question_id ) {
 			$wpdb->update( $this->questions_table_name, $data, array( 'id' => $question_id ) );
 			$message = 'updated';
 		}
-		if ( $question_id && $data['question_type'] === 'dropdown' ) {
-			$wpdb->delete( $this->dropdown_options_table_name, array( 'question_id' => $question_id ) );
-			$options = array_map( 'trim', explode( ',', $_POST['dropdown_options'] ) );
-			foreach ( $options as $opt ) { if ( ! empty( $opt ) ) { $wpdb->insert( $this->dropdown_options_table_name, array( 'question_id' => $question_id, 'option_value' => $opt ) ); } }
+
+		if ( $question_id ) {
+			if ( 'dropdown' === $data['question_type'] ) {
+				$wpdb->delete( $this->dropdown_options_table_name, array( 'question_id' => $question_id ) );
+				$options = array_map( 'trim', explode( ',', $_POST['dropdown_options'] ) );
+				foreach ( $options as $opt ) {
+					if ( ! empty( $opt ) ) {
+						$wpdb->insert(
+							$this->dropdown_options_table_name,
+							array(
+								'question_id'  => $question_id,
+								'option_value' => $opt,
+							)
+						);
+					}
+				}
+			} else {
+				// If not a dropdown, ensure no dropdown options exist for this question.
+				$wpdb->delete( $this->dropdown_options_table_name, array( 'question_id' => $question_id ) );
+			}
 		}
 		wp_redirect( admin_url( 'admin.php?page=scp-ats-survey&tab=questions&message=' . ( $message ?? 'error' ) ) );
 		exit;
