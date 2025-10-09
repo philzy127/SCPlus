@@ -291,13 +291,18 @@ final class SCP_After_Ticket_Survey {
 		global $wpdb;
 		$input_name = 'scp_ats_q_' . $question['id'];
 		$required_attr = $question['is_required'] ? 'required' : '';
-		$input_value = ( $question['id'] == ( $options['ats_ticket_question_id'] ?? 0 ) && $prefill_ticket_id ) ? esc_attr( $prefill_ticket_id ) : '';
+		$input_value = '';
+		if ( $question['id'] == ( $options['ats_ticket_question_id'] ?? 0 ) && $prefill_ticket_id ) {
+			$input_value = $prefill_ticket_id;
+		} elseif ( $question['id'] == ( $options['ats_technician_question_id'] ?? 0 ) && $prefill_tech_name ) {
+			$input_value = $prefill_tech_name;
+		}
 		switch ( $question['question_type'] ) {
 			case 'short_text':
-				echo "<input type=\"text\" name=\"{$input_name}\" value=\"{$input_value}\" class=\"ats-input ats-short-text\" {$required_attr}>";
+				echo "<input type=\"text\" name=\"{$input_name}\" value=\"" . esc_attr( $input_value ) . "\" class=\"ats-input ats-short-text\" {$required_attr}>";
 				break;
 			case 'long_text':
-				echo "<textarea name=\"{$input_name}\" rows=\"4\" class=\"ats-input ats-long-text\" {$required_attr}></textarea>";
+				echo "<textarea name=\"{$input_name}\" rows=\"4\" class=\"ats-input ats-long-text\" {$required_attr}>" . esc_textarea( $input_value ) . "</textarea>";
 				break;
 			case 'rating':
 				echo '<div class="ats-rating-options">';
@@ -826,7 +831,7 @@ final class SCP_After_Ticket_Survey {
 		global $wpdb;
 		$options = get_option( 'scp_settings' );
 		$selected = $options['ats_technician_question_id'] ?? '';
-		$questions = $wpdb->get_results( "SELECT id, question_text FROM {$this->questions_table_name} WHERE question_type = 'dropdown' ORDER BY sort_order ASC" );
+		$questions = $wpdb->get_results( "SELECT id, question_text FROM {$this->questions_table_name} ORDER BY sort_order ASC" );
 		echo '<select name="scp_settings[ats_technician_question_id]"><option value="">-- Select --</option>';
 		foreach ( $questions as $q ) { echo '<option value="' . $q->id . '"' . selected( $selected, $q->id, false ) . '>' . esc_html( $q->question_text ) . '</option>'; }
 		echo '</select>';
