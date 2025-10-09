@@ -748,7 +748,7 @@ final class SCP_After_Ticket_Survey {
 			'question_text' => sanitize_text_field( $_POST['question_text'] ),
 			'question_type' => $question_type,
 			'is_required'   => ( 'hidden_user_details' !== $question_type && isset( $_POST['is_required'] ) ) ? 1 : 0,
-			'sort_order'    => intval( $_POST['sort_order'] ),
+			'sort_order'    => intval( $_POST['ats_sort_order'] ),
 			'config'        => null,
 		);
 
