@@ -317,7 +317,7 @@ final class SCP_After_Ticket_Survey {
 				echo '<option value="">-- Select --</option>';
 				foreach ( $dd_options as $opt ) {
 					$selected = '';
-					if ( $question['id'] == ( $options['ats_technician_question_id'] ?? 0 ) && ! empty( $prefill_tech_name ) && strtolower( $opt->option_value ) === strtolower( $prefill_tech_name ) ) {
+					if ( $question['id'] == ( $options['ats_technician_question_id'] ?? 0 ) && ! empty( $prefill_tech_name ) && strpos( strtolower( $prefill_tech_name ), strtolower( $opt->option_value ) ) !== false ) {
 						$selected = 'selected';
 					}
 					echo '<option value="' . esc_attr( $opt->option_value ) . '" ' . $selected . '>' . esc_html( $opt->option_value ) . '</option>';
