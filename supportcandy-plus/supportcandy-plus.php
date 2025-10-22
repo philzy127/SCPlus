@@ -63,33 +63,18 @@ final class SupportCandy_Plus {
 	}
 
 	/**
-	 * Helper function for logging debug messages to a file.
-	 */
-	private function log_message( $message ) {
-		$log_file = SCP_PLUGIN_PATH . 'debug.log';
-		$timestamp = wp_date( 'Y-m-d H:i:s' );
-		$log_entry = sprintf( "[%s] %s\n", $timestamp, print_r( $message, true ) );
-		file_put_contents( $log_file, $log_entry, FILE_APPEND );
-	}
-
-	/**
 	 * Apply the date/time formatting rules.
 	 */
 	public function apply_date_time_formats() {
-		$this->log_message( 'Running apply_date_time_formats...' );
 		$options = get_option( 'scp_settings', [] );
 		if ( empty( $options['enable_date_time_formatting'] ) ) {
-			$this->log_message( 'Date formatting feature is disabled. Aborting.' );
 			return;
 		}
-		$this->log_message( 'Date formatting feature is enabled.' );
 		$rules = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
 
 		if ( empty( $rules ) ) {
-			$this->log_message( 'No date formatting rules found. Aborting.' );
 			return;
 		}
-		$this->log_message( 'Found ' . count( $rules ) . ' rules.' );
 
 		// Store rules in a more accessible format.
 		$this->formatted_rules = [];
@@ -120,25 +105,19 @@ final class SupportCandy_Plus {
 	 */
 	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
 
-		$this->log_message( '---' );
-		$this->log_message( 'Filter triggered. Initial value: ' . $value );
-
 		// CONTEXT CHECK: Exit if not in a valid ticket list view.
 		$is_admin_list = is_admin() && get_current_screen() && get_current_screen()->id === 'toplevel_page_wpsc-tickets';
 		$is_frontend_list = isset( $_POST['is_frontend'] ) && $_POST['is_frontend'] === '1';
 
 		if ( ! $is_admin_list && ! $is_frontend_list ) {
-			$this->log_message( 'Context is not a valid ticket list. Bailing.' );
 			return $value;
 		}
-		$this->log_message( 'Context is a valid ticket list.' );
 
 		// GET SLUG: Reliably get the field slug from the filter name.
 		$current_filter = current_filter();
 		if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
 			$field_slug = substr( $current_filter, 22 );
 		} else {
-			$this->log_message( 'Could not determine field slug from filter name. Bailing.' );
 			return $value;
 		}
 
@@ -146,22 +125,18 @@ final class SupportCandy_Plus {
 		if ( 'datetime' === $field_slug && is_object( $cf ) ) {
 			$field_slug = $cf->slug;
 		}
-		$this->log_message( 'Field Slug: ' . $field_slug );
 
 		// FIND RULE: Check if a rule exists for this slug.
 		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
-			$this->log_message( 'No rule found for this slug. Bailing.' );
 			return $value;
 		}
 		$rule = $this->formatted_rules[ $field_slug ];
-		$this->log_message( 'Rule found: ' . print_r( $rule, true ) );
 
 		// GET DATE OBJECT: Get the raw date property from the ticket.
 		$date_object = $ticket->{$field_slug};
 
 		// VALIDATE DATE OBJECT: The most critical step. If it's not a valid DateTime object, bail.
 		if ( ! ( $date_object instanceof DateTime ) ) {
-			$this->log_message( 'Value is not a valid DateTime object. Bailing.' );
 			return $value;
 		}
 
@@ -185,8 +160,7 @@ final class SupportCandy_Plus {
 				break;
 		}
 
-		$this->log_message( 'Formatting successful. New value: ' . $new_value );
-		return $new_value;
+		return '<span title="' . esc_attr( $new_value ) . '">' . esc_html( $new_value ) . '</span>';
 	}
 
 

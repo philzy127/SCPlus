@@ -80,9 +80,6 @@
 		const tbody = table?.querySelector('tbody');
 		if (!table || !tbody || !tbody.rows.length) return;
 
-		console.log('SupportCandy Plus Debug: Ticket table body found. Inspect the HTML below to see formatted dates from the server.');
-		console.log(tbody.innerHTML);
-
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
 		const rows = Array.from(tbody.querySelectorAll('tr'));
 		if (!headers.length || !rows.length) return;
