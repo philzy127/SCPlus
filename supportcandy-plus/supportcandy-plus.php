@@ -156,6 +156,7 @@ final class SupportCandy_Plus {
 			$date_object = $ticket->custom_fields[ $cf->id ];
 		}
 
+		$this->log_message( 'Value of date object: ' . print_r( $date_object, true ) );
 		if ( ! is_object( $date_object ) || ! method_exists( $date_object, 'getTimestamp' ) ) {
 			$this->log_message( 'Date object is invalid or not found. Returning original value.' );
 			return $value;
