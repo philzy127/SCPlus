@@ -123,13 +123,14 @@ final class SupportCandy_Plus {
 		$this->log_message( 'format_date_time_callback triggered.' );
 		$this->log_message( 'Module: ' . $module );
 		if ( 'ticket-list' !== $module ) {
+			$this->log_message( 'Module is not ticket-list. Bailing.' );
 			return $value;
 		}
 
 		$field_slug = is_object( $cf ) ? $cf->slug : $cf;
-		$this->log_message( 'Field Slug: ' . $field_slug );
+		$this->log_message( 'Field Slug: ' . print_r( $field_slug, true ) );
 
-		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
+		if ( ! is_string( $field_slug ) || ! isset( $this->formatted_rules[ $field_slug ] ) ) {
 			$this->log_message( 'No rule found for this slug. Returning original value.' );
 			return $value;
 		}
