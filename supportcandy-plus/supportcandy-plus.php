@@ -122,13 +122,23 @@ final class SupportCandy_Plus {
 		$this->log_message( '---' );
 		$this->log_message( 'format_date_time_callback triggered.' );
 		$this->log_message( 'Module: ' . $module );
-		if ( 'ticket-list' !== $module ) {
-			$this->log_message( 'Module is not ticket-list. Bailing.' );
-			return $value;
+
+		// Get the field slug from the filter name itself for reliability.
+		$current_filter = current_filter();
+		$this->log_message( 'Current Filter: ' . $current_filter );
+		if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
+			$field_slug = substr( $current_filter, 24 );
+		} else {
+			$field_slug = is_object( $cf ) ? $cf->slug : $cf;
 		}
 
-		$field_slug = is_object( $cf ) ? $cf->slug : $cf;
 		$this->log_message( 'Field Slug: ' . print_r( $field_slug, true ) );
+
+		// For datetime custom fields, the slug is 'datetime', but we need the specific cf slug.
+		if ( 'datetime' === $field_slug && is_object( $cf ) ) {
+			$field_slug = $cf->slug;
+			$this->log_message( 'Identified custom datetime field. New Slug: ' . $field_slug );
+		}
 
 		if ( ! is_string( $field_slug ) || ! isset( $this->formatted_rules[ $field_slug ] ) ) {
 			$this->log_message( 'No rule found for this slug. Returning original value.' );
