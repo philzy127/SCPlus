@@ -332,6 +332,14 @@ class SCP_Admin_Settings {
 			'scp-date-time-formatting'
 		);
 		add_settings_field(
+			'scp_enable_date_time_formatting',
+			__( 'Enable Feature', 'supportcandy-plus' ),
+			array( $this, 'render_checkbox_field' ),
+			'scp-date-time-formatting',
+			'scp_date_time_formatting_section',
+			[ 'id' => 'enable_date_time_formatting', 'desc' => 'Enable custom date and time formatting for the ticket list.' ]
+		);
+		add_settings_field(
 			'scp_date_time_formatting_rules',
 			__( 'Rules', 'supportcandy-plus' ),
 			array( $this, 'render_date_time_formatting_rules_builder' ),
@@ -710,6 +718,7 @@ class SCP_Admin_Settings {
 				case 'enable_after_hours_notice':
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
+				case 'enable_date_time_formatting':
 				case 'enable_ats':
 					$sanitized_output[ $key ] = (int) $value;
 					break;

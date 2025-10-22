@@ -55,7 +55,7 @@ final class SupportCandy_Plus {
 		add_action( 'plugins_loaded', array( $this, 'on_plugins_loaded' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
-		add_action( 'plugins_loaded', array( $this, 'apply_date_time_formats' ) );
+		add_action( 'init', array( $this, 'apply_date_time_formats' ) );
 	}
 
 	public function on_plugins_loaded() {
@@ -67,7 +67,10 @@ final class SupportCandy_Plus {
 	 */
 	public function apply_date_time_formats() {
 		$options = get_option( 'scp_settings', [] );
-		$rules   = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
+		if ( empty( $options['enable_date_time_formatting'] ) ) {
+			return;
+		}
+		$rules = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
 
 		if ( empty( $rules ) ) {
 			return;
