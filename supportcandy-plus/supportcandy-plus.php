@@ -63,18 +63,33 @@ final class SupportCandy_Plus {
 	}
 
 	/**
+	 * Helper function for logging debug messages to a file.
+	 */
+	private function log_message( $message ) {
+		$log_file = SCP_PLUGIN_PATH . 'debug.log';
+		$timestamp = wp_date( 'Y-m-d H:i:s' );
+		$log_entry = sprintf( "[%s] %s\n", $timestamp, print_r( $message, true ) );
+		file_put_contents( $log_file, $log_entry, FILE_APPEND );
+	}
+
+	/**
 	 * Apply the date/time formatting rules.
 	 */
 	public function apply_date_time_formats() {
+		$this->log_message( 'Running apply_date_time_formats...' );
 		$options = get_option( 'scp_settings', [] );
 		if ( empty( $options['enable_date_time_formatting'] ) ) {
+			$this->log_message( 'Date formatting feature is disabled. Aborting.' );
 			return;
 		}
+		$this->log_message( 'Date formatting feature is enabled.' );
 		$rules = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
 
 		if ( empty( $rules ) ) {
+			$this->log_message( 'No date formatting rules found. Aborting.' );
 			return;
 		}
+		$this->log_message( 'Found ' . count( $rules ) . ' rules.' );
 
 		// Store rules in a more accessible format.
 		$this->formatted_rules = [];
@@ -104,15 +119,21 @@ final class SupportCandy_Plus {
 	 * Callback function to format the date/time value.
 	 */
 	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
+		$this->log_message( '---' );
+		$this->log_message( 'format_date_time_callback triggered.' );
+		$this->log_message( 'Module: ' . $module );
 		if ( 'ticket-list' !== $module ) {
 			return $value;
 		}
 
 		$field_slug = is_object( $cf ) ? $cf->slug : $cf;
+		$this->log_message( 'Field Slug: ' . $field_slug );
 
 		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
+			$this->log_message( 'No rule found for this slug. Returning original value.' );
 			return $value;
 		}
+		$this->log_message( 'Rule found for this slug.' );
 
 		$rule = $this->formatted_rules[ $field_slug ];
 
@@ -125,26 +146,34 @@ final class SupportCandy_Plus {
 		}
 
 		if ( ! is_object( $date_object ) || ! method_exists( $date_object, 'getTimestamp' ) ) {
+			$this->log_message( 'Date object is invalid or not found. Returning original value.' );
 			return $value;
 		}
 
 		$timestamp = $date_object->getTimestamp();
+		$this->log_message( 'Timestamp: ' . $timestamp );
 
+		$new_value = $value;
 		switch ( $rule['format_type'] ) {
 			case 'date_only':
-				return wp_date( get_option( 'date_format' ), $timestamp );
+				$new_value = wp_date( get_option( 'date_format' ), $timestamp );
+				break;
 			case 'time_only':
-				return wp_date( get_option( 'time_format' ), $timestamp );
+				$new_value = wp_date( get_option( 'time_format' ), $timestamp );
+				break;
 			case 'date_and_time':
-				return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
+				$new_value = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
+				break;
 			case 'custom':
 				if ( ! empty( $rule['custom_format'] ) ) {
-					return wp_date( $rule['custom_format'], $timestamp );
+					$new_value = wp_date( $rule['custom_format'], $timestamp );
 				}
 				break;
 		}
 
-		return $value;
+		$this->log_message( 'Original value: ' . $value );
+		$this->log_message( 'New value: ' . $new_value );
+		return $new_value;
 	}
 
 	public function get_custom_field_id_by_name( $field_name ) {
