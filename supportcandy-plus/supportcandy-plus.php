@@ -55,10 +55,93 @@ final class SupportCandy_Plus {
 		add_action( 'plugins_loaded', array( $this, 'on_plugins_loaded' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'plugins_loaded', array( $this, 'apply_date_time_formats' ) );
 	}
 
 	public function on_plugins_loaded() {
 		// Main initialization logic.
+	}
+
+	/**
+	 * Apply the date/time formatting rules.
+	 */
+	public function apply_date_time_formats() {
+		$options = get_option( 'scp_settings', [] );
+		$rules   = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
+
+		if ( empty( $rules ) ) {
+			return;
+		}
+
+		// Store rules in a more accessible format.
+		$this->formatted_rules = [];
+		foreach ( $rules as $rule ) {
+			if ( ! empty( $rule['column'] ) && 'default' !== $rule['format_type'] ) {
+				$this->formatted_rules[ $rule['column'] ] = $rule;
+			}
+		}
+
+		if ( empty( $this->formatted_rules ) ) {
+			return;
+		}
+
+		// Add a single filter for all datetime custom fields.
+		add_filter( 'wpsc_ticket_field_val_datetime', array( $this, 'format_date_time_callback' ), 10, 4 );
+
+		// Add filters for standard fields.
+		$standard_fields = [ 'date_created', 'last_reply_on', 'date_closed', 'date_updated' ];
+		foreach ( $standard_fields as $field ) {
+			if ( isset( $this->formatted_rules[ $field ] ) ) {
+				add_filter( 'wpsc_ticket_field_val_' . $field, array( $this, 'format_date_time_callback' ), 10, 4 );
+			}
+		}
+	}
+
+	/**
+	 * Callback function to format the date/time value.
+	 */
+	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
+		if ( 'ticket-list' !== $module ) {
+			return $value;
+		}
+
+		$field_slug = is_object( $cf ) ? $cf->slug : $cf;
+
+		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
+			return $value;
+		}
+
+		$rule = $this->formatted_rules[ $field_slug ];
+
+		// Get the raw date value from the ticket object.
+		$date_object = null;
+		if ( property_exists( $ticket, $field_slug ) ) {
+			$date_object = $ticket->{$field_slug};
+		} elseif ( is_object( $cf ) && isset( $ticket->custom_fields[ $cf->id ] ) ) {
+			$date_object = $ticket->custom_fields[ $cf->id ];
+		}
+
+		if ( ! is_object( $date_object ) || ! method_exists( $date_object, 'getTimestamp' ) ) {
+			return $value;
+		}
+
+		$timestamp = $date_object->getTimestamp();
+
+		switch ( $rule['format_type'] ) {
+			case 'date_only':
+				return wp_date( get_option( 'date_format' ), $timestamp );
+			case 'time_only':
+				return wp_date( get_option( 'time_format' ), $timestamp );
+			case 'date_and_time':
+				return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
+			case 'custom':
+				if ( ! empty( $rule['custom_format'] ) ) {
+					return wp_date( $rule['custom_format'], $timestamp );
+				}
+				break;
+		}
+
+		return $value;
 	}
 
 	public function get_custom_field_id_by_name( $field_name ) {
@@ -66,8 +149,7 @@ final class SupportCandy_Plus {
 		if ( empty( $field_name ) ) {
 			return 0;
 		}
-		// Use the literal table name as specified by the user.
-		$table_name = 'wpya_psmsc_custom_fields';
+		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
 		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
 			return 0;
 		}
@@ -136,6 +218,7 @@ final class SupportCandy_Plus {
 			'supportcandy-plus_page_scp-conditional-hiding',
 			'supportcandy-plus_page_scp-queue-macro',
 			'supportcandy-plus_page_scp-after-hours',
+			'supportcandy-plus_page_scp-date-time-formatting',
 			'supportcandy-plus_page_scp-how-to-use',
 			'supportcandy-plus_page_scp-ats-manage-questions',
 			'supportcandy-plus_page_scp-ats-view-results',
@@ -160,6 +243,16 @@ final class SupportCandy_Plus {
 			true
 		);
 
+		if ( 'supportcandy-plus_page_scp-date-time-formatting' === $hook_suffix ) {
+			wp_enqueue_script(
+				'scp-date-time-formatting',
+				SCP_PLUGIN_URL . 'assets/admin/js/scp-date-time-formatting.js',
+				array( 'jquery' ),
+				SCP_VERSION,
+				true
+			);
+		}
+
 		// Localize script for AJAX.
 		wp_localize_script(
 			'supportcandy-plus-admin',
@@ -175,8 +268,7 @@ final class SupportCandy_Plus {
 		global $wpdb;
 		$columns = [];
 
-		// Use the literal table name as specified by the user.
-		$custom_fields_table = 'wpya_psmsc_custom_fields';
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
 
 		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
 			$custom_fields = $wpdb->get_results( "SELECT slug, name FROM `{$custom_fields_table}`", ARRAY_A );
@@ -188,6 +280,45 @@ final class SupportCandy_Plus {
 		}
 		asort( $columns ); // Sort the columns alphabetically by name.
 		return $columns;
+	}
+
+	/**
+	 * Get all date-based columns for the settings page.
+	 */
+	public function get_date_columns() {
+		global $wpdb;
+		$columns = [];
+
+		// Standard SupportCandy date fields.
+		$standard_fields = [
+			'date_created' => __( 'Date Created', 'supportcandy-plus' ),
+			'last_reply_on'   => __( 'Last Reply', 'supportcandy-plus' ),
+			'date_closed'  => __( 'Date Closed', 'supportcandy-plus' ),
+			'date_updated' => __( 'Date Updated', 'supportcandy-plus' ),
+		];
+
+		// Get custom fields of type 'datetime'.
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
+			$custom_fields = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT slug, name FROM `{$custom_fields_table}` WHERE type = %s",
+					'datetime'
+				),
+				ARRAY_A
+			);
+			if ( $custom_fields ) {
+				foreach ( $custom_fields as $field ) {
+					$columns[ $field['slug'] ] = $field['name'];
+				}
+			}
+		}
+
+		// Merge and sort.
+		$all_columns = array_merge( $standard_fields, $columns );
+		asort( $all_columns );
+
+		return $all_columns;
 	}
 }
 
