@@ -127,7 +127,7 @@ final class SupportCandy_Plus {
 		$current_filter = current_filter();
 		$this->log_message( 'Current Filter: ' . $current_filter );
 		if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
-			$field_slug = substr( $current_filter, 24 );
+			$field_slug = substr( $current_filter, 22 );
 		} else {
 			$field_slug = is_object( $cf ) ? $cf->slug : $cf;
 		}
