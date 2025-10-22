@@ -119,52 +119,54 @@ final class SupportCandy_Plus {
 	 * Callback function to format the date/time value.
 	 */
 	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
-		$this->log_message( '---' );
-		$this->log_message( 'format_date_time_callback triggered.' );
-		$this->log_message( 'Module: ' . $module );
 
-		// Get the field slug from the filter name itself for reliability.
+		$this->log_message( '---' );
+		$this->log_message( 'Filter triggered. Initial value: ' . $value );
+
+		// CONTEXT CHECK: Exit if not in a valid ticket list view.
+		$is_admin_list = is_admin() && get_current_screen() && get_current_screen()->id === 'toplevel_page_wpsc-tickets';
+		$is_frontend_list = isset( $_POST['is_frontend'] ) && $_POST['is_frontend'] === '1';
+
+		if ( ! $is_admin_list && ! $is_frontend_list ) {
+			$this->log_message( 'Context is not a valid ticket list. Bailing.' );
+			return $value;
+		}
+		$this->log_message( 'Context is a valid ticket list.' );
+
+		// GET SLUG: Reliably get the field slug from the filter name.
 		$current_filter = current_filter();
-		$this->log_message( 'Current Filter: ' . $current_filter );
 		if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
 			$field_slug = substr( $current_filter, 22 );
 		} else {
-			$field_slug = is_object( $cf ) ? $cf->slug : $cf;
+			$this->log_message( 'Could not determine field slug from filter name. Bailing.' );
+			return $value;
 		}
-
-		$this->log_message( 'Field Slug: ' . print_r( $field_slug, true ) );
 
 		// For datetime custom fields, the slug is 'datetime', but we need the specific cf slug.
 		if ( 'datetime' === $field_slug && is_object( $cf ) ) {
 			$field_slug = $cf->slug;
-			$this->log_message( 'Identified custom datetime field. New Slug: ' . $field_slug );
 		}
+		$this->log_message( 'Field Slug: ' . $field_slug );
 
-		if ( ! is_string( $field_slug ) || ! isset( $this->formatted_rules[ $field_slug ] ) ) {
-			$this->log_message( 'No rule found for this slug. Returning original value.' );
+		// FIND RULE: Check if a rule exists for this slug.
+		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
+			$this->log_message( 'No rule found for this slug. Bailing.' );
 			return $value;
 		}
-		$this->log_message( 'Rule found for this slug.' );
-
 		$rule = $this->formatted_rules[ $field_slug ];
+		$this->log_message( 'Rule found: ' . print_r( $rule, true ) );
 
-		// Get the raw date value from the ticket object.
-		$date_object = null;
-		if ( property_exists( $ticket, $field_slug ) ) {
-			$date_object = $ticket->{$field_slug};
-		} elseif ( is_object( $cf ) && isset( $ticket->custom_fields[ $cf->id ] ) ) {
-			$date_object = $ticket->custom_fields[ $cf->id ];
-		}
+		// GET DATE OBJECT: Get the raw date property from the ticket.
+		$date_object = $ticket->{$field_slug};
 
-		$this->log_message( 'Value of date object: ' . print_r( $date_object, true ) );
-		if ( ! is_object( $date_object ) || ! method_exists( $date_object, 'getTimestamp' ) ) {
-			$this->log_message( 'Date object is invalid or not found. Returning original value.' );
+		// VALIDATE DATE OBJECT: The most critical step. If it's not a valid DateTime object, bail.
+		if ( ! ( $date_object instanceof DateTime ) ) {
+			$this->log_message( 'Value is not a valid DateTime object. Bailing.' );
 			return $value;
 		}
 
+		// APPLY FORMAT: If all checks pass, format the date.
 		$timestamp = $date_object->getTimestamp();
-		$this->log_message( 'Timestamp: ' . $timestamp );
-
 		$new_value = $value;
 		switch ( $rule['format_type'] ) {
 			case 'date_only':
@@ -183,10 +185,10 @@ final class SupportCandy_Plus {
 				break;
 		}
 
-		$this->log_message( 'Original value: ' . $value );
-		$this->log_message( 'New value: ' . $new_value );
+		$this->log_message( 'Formatting successful. New value: ' . $new_value );
 		return $new_value;
 	}
+
 
 	public function get_custom_field_id_by_name( $field_name ) {
 		global $wpdb;
