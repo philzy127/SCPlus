@@ -118,17 +118,21 @@ final class SupportCandy_Plus {
 	 */
 	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
 
-		$this->log_message( '---' );
 		$current_filter = current_filter();
-		$this->log_message( 'TRACE: Filter triggered: ' . $current_filter );
+		$ticket_id      = isset( $ticket->id ) ? $ticket->id : 'N/A';
 
-		// CONTEXT CHECK: Exit if not in a valid ticket list view.
-		$is_admin_list = is_admin() && get_current_screen() && get_current_screen()->id === 'toplevel_page_wpsc-tickets';
-		$is_frontend_list = isset( $_POST['is_frontend'] ) && $_POST['is_frontend'] === '1';
+		$this->log_message( '--- START ---' );
+		$this->log_message( "[TICKET: {$ticket_id}] Filter Triggered: {$current_filter}" );
 
+		// CONTEXT CHECK
+		$is_admin_list    = is_admin() && get_current_screen() && get_current_screen()->id === 'toplevel_page_wpsc-tickets';
+		$is_frontend_list = isset( $_POST['is_frontend'] ) && '1' === $_POST['is_frontend'];
 		if ( ! $is_admin_list && ! $is_frontend_list ) {
 			return $value;
 		}
+
+		// LOG ALL AVAILABLE RULES
+		$this->log_message( "[TICKET: {$ticket_id}] All Available Rules: " . print_r( $this->formatted_rules, true ) );
 
 		// GET SLUG
 		$field_slug = null;
@@ -143,41 +147,38 @@ final class SupportCandy_Plus {
 		}
 
 		if ( ! $field_slug ) {
-			$this->log_message( 'TRACE: Could not determine a valid field slug from filter. Bailing.' );
+			$this->log_message( "[TICKET: {$ticket_id}] Could not parse slug from filter. Bailing." );
 			return $value;
 		}
-		$this->log_message( 'TRACE: Extracted Field Slug: ' . $field_slug );
+		$this->log_message( "[TICKET: {$ticket_id}] Parsed Slug: {$field_slug}" );
 
-		// FIND RULE: Check if a rule exists for this slug.
+		// FIND AND LOG MATCHING RULE
 		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
-			$this->log_message( 'TRACE: No rule found for this slug. Bailing.' );
+			$this->log_message( "[TICKET: {$ticket_id}] No rule found for this slug. Bailing." );
 			return $value;
 		}
 		$rule = $this->formatted_rules[ $field_slug ];
-		$this->log_message( 'TRACE: Applying Rule: ' . print_r( $rule, true ) );
+		$this->log_message( "[TICKET: {$ticket_id}] Matched Rule: " . print_r( $rule, true ) );
 
-		// GET DATE OBJECT: Get the raw date property from the ticket.
-		$date_object = $ticket->{$field_slug};
-
-		// VALIDATE DATE OBJECT: The most critical step. If it's not a valid DateTime object, bail.
+		// GET AND VALIDATE DATE OBJECT
+		// Special case for 'last_reply_on' which has a property name of 'last_reply' on the ticket object.
+		$property_name = ( 'last_reply_on' === $field_slug ) ? 'last_reply' : $field_slug;
+		$date_object   = $ticket->{$property_name};
 		if ( ! ( $date_object instanceof DateTime ) ) {
-			$this->log_message( 'TRACE: Value is not a valid DateTime object. Bailing.' );
+			$this->log_message( "[TICKET: {$ticket_id}] Value for '{$field_slug}' is not a valid DateTime object. Bailing." );
 			return $value;
 		}
+		$this->log_message( "[TICKET: {$ticket_id}] Date object is valid." );
 
-		// APPLY FORMAT: If all checks pass, format the date.
-		$timestamp = $date_object->getTimestamp();
-		$new_value = $value;
-
-		// Define self-contained date and time formats.
+		// APPLY FORMAT
+		$timestamp         = $date_object->getTimestamp();
+		$new_value         = $value;
 		$short_date_format = 'm/d/Y';
 		$long_date_format  = 'F j, Y';
-		$time_format       = get_option( 'time_format' ); // Time format can still respect WP settings.
-
-		$date_format = ! empty( $rule['use_long_date'] ) ? $long_date_format : $short_date_format;
+		$time_format       = get_option( 'time_format' );
+		$date_format       = ! empty( $rule['use_long_date'] ) ? $long_date_format : $short_date_format;
 
 		if ( ! empty( $rule['show_day_of_week'] ) ) {
-			// Prepend the day of the week. 'D' for short day (e.g., 'Mon'), 'l' for long day (e.g., 'Monday').
 			$day_prefix  = ! empty( $rule['use_long_date'] ) ? 'l, ' : 'D, ';
 			$date_format = $day_prefix . $date_format;
 		}
@@ -199,7 +200,8 @@ final class SupportCandy_Plus {
 				break;
 		}
 
-		$this->log_message( 'Formatting successful. New value: ' . $new_value );
+		$this->log_message( "[TICKET: {$ticket_id}] FINAL VALUE: {$new_value}" );
+		$this->log_message( '--- END ---' );
 		return $new_value;
 	}
 
