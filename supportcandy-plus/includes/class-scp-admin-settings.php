@@ -685,13 +685,13 @@ class SCP_Admin_Settings {
 					</select>
 				</div>
 
-				<div class="scp-date-rule-row scp-date-rule-row-bottom" style="<?php echo in_array( $format_type, [ 'default', 'time_only' ], true ) ? 'display: none;' : ''; ?>">
-					<div class="scp-date-options" style="<?php echo in_array( $format_type, [ 'date_only', 'date_and_time' ], true ) ? '' : 'display: none;'; ?>">
-					<label>
-						<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="0">
-						<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="1" <?php checked( $use_long_date ); ?>>
-						<?php esc_html_e( 'Use Long Date Format', 'supportcandy-plus' ); ?>
-					</label>
+				<div class="scp-date-rule-row scp-date-rule-row-bottom">
+					<div class="scp-date-options">
+						<label>
+							<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="0">
+							<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="1" <?php checked( $use_long_date ); ?>>
+							<?php esc_html_e( 'Use Long Date Format', 'supportcandy-plus' ); ?>
+						</label>
 						<span class="scp-date-day-toggle scp-checkbox-indent">
 							<label>
 								<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][show_day_of_week]" value="0">
@@ -707,7 +707,6 @@ class SCP_Admin_Settings {
 						name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][custom_format]"
 						value="<?php echo esc_attr( $custom_format ); ?>"
 						placeholder="<?php esc_attr_e( 'e.g., Y-m-d H:i', 'supportcandy-plus' ); ?>"
-						style="<?php echo 'custom' === $format_type ? '' : 'display: none;'; ?>"
 					/>
 				</div>
 			</div>
@@ -720,6 +719,9 @@ class SCP_Admin_Settings {
 	 * Sanitize the settings with a simpler, more robust method.
 	 */
 	public function sanitize_settings( $input ) {
+		// Log the raw input for debugging.
+		error_log('SCP Debug - Raw sanitize_settings input: ' . print_r($input, true));
+
 		// Get the full array of currently saved settings from the database.
 		$existing_settings = get_option( 'scp_settings', [] );
 		if ( ! is_array( $existing_settings ) ) {

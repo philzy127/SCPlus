@@ -8,26 +8,29 @@
     function initializeDateFormatRuleBuilder() {
       function toggleDateOptions($rule) {
         var formatType = $rule.find(".scp-date-format-type").val();
+        var $bottomRow = $rule.find(".scp-date-rule-row-bottom");
         var $customFormatInput = $rule.find(".scp-date-custom-format");
         var $dateOptions = $rule.find(".scp-date-options");
 
+        // Hide everything in the bottom row initially.
+        $bottomRow.hide();
+        $customFormatInput.hide();
+        $dateOptions.hide();
+
         if (formatType === "custom") {
+          $bottomRow.show();
           $customFormatInput.show();
-          $dateOptions.hide();
         } else if (
           formatType === "date_only" ||
           formatType === "date_and_time"
         ) {
-          $customFormatInput.hide();
+          $bottomRow.show();
           $dateOptions.show();
-        } else {
-          $customFormatInput.hide();
-          $dateOptions.hide();
         }
       }
 
       // Initial setup on page load.
-      $(".scp-date-rule").each(function () {
+      $(".scp-date-rule-wrapper").each(function () {
         toggleDateOptions($(this));
       });
 
@@ -43,8 +46,8 @@
       // Add a new rule.
       $("#scp-add-date-rule").on("click", function () {
         var ruleTemplate = $("#scp-date-rule-template").html();
-        var ruleCount = $("#scp-date-rules-container .scp-date-rule").length;
-        var newRule = ruleTemplate.replace(/__INDEX__/g, ruleCount);
+        var newIndex = new Date().getTime(); // Use a timestamp for a unique index.
+        var newRule = ruleTemplate.replace(/__INDEX__/g, newIndex);
         $("#scp-no-date-rules-message").hide();
         $("#scp-date-rules-container").append(newRule);
       });
@@ -54,8 +57,8 @@
         "click",
         ".scp-remove-date-rule",
         function () {
-          $(this).closest(".scp-date-rule").remove();
-          if ($("#scp-date-rules-container .scp-date-rule").length === 0) {
+          $(this).closest(".scp-date-rule-wrapper").remove();
+          if ($("#scp-date-rules-container .scp-date-rule-wrapper").length === 0) {
             $("#scp-no-date-rules-message").show();
           }
         }
