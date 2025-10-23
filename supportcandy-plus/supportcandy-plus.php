@@ -169,20 +169,17 @@ final class SupportCandy_Plus {
 		$timestamp = $date_object->getTimestamp();
 		$new_value = $value;
 
-		// Get WordPress's date and time formats.
-		$short_date_format = get_option( 'date_format' ); // e.g., F j, Y
-		$long_date_format  = 'F j, Y'; // Fallback, but should be overridden by WP settings.
-		if ( function_exists( 'wp_get_long_date_format' ) ) {
-			$long_date_format = wp_get_long_date_format();
-		}
-
-		$time_format = get_option( 'time_format' ); // e.g., g:i a
+		// Define self-contained date and time formats.
+		$short_date_format = 'm/d/Y';
+		$long_date_format  = 'F j, Y';
+		$time_format       = get_option( 'time_format' ); // Time format can still respect WP settings.
 
 		$date_format = ! empty( $rule['use_long_date'] ) ? $long_date_format : $short_date_format;
 
 		if ( ! empty( $rule['show_day_of_week'] ) ) {
-			$day_format  = ! empty( $rule['use_long_date'] ) ? 'l' : 'D'; // 'l' for full day name, 'D' for short.
-			$date_format = $day_format . ', ' . $date_format;
+			// Prepend the day of the week. 'D' for short day (e.g., 'Mon'), 'l' for long day (e.g., 'Monday').
+			$day_prefix  = ! empty( $rule['use_long_date'] ) ? 'l, ' : 'D, ';
+			$date_format = $day_prefix . $date_format;
 		}
 
 		switch ( $rule['format_type'] ) {

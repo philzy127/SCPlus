@@ -39,6 +39,31 @@
     color: #a01a1a;
 }
 
+.scp-date-rule-wrapper {
+    display: flex;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background-color: #f6f7f7;
+    padding: 10px;
+    gap: 10px;
+}
+
+.scp-date-rule-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scp-date-rule-row-top {
+    margin-bottom: 10px;
+}
+
+.scp-date-rule-wrapper .scp-remove-date-rule {
+    margin-left: auto;
+    align-self: center;
+}
+
 #scp-no-rules-message {
     color: #666;
     font-style: italic;
@@ -129,4 +154,8 @@
     padding: 2px 5px;
     border-radius: 3px;
     font-family: monospace;
+}
+
+.scp-add-rule-button {
+    margin-top: 15px;
 }
