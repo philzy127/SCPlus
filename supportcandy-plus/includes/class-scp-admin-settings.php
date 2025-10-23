@@ -721,9 +721,6 @@ class SCP_Admin_Settings {
 	 * Sanitize the settings with a simpler, more robust method.
 	 */
 	public function sanitize_settings( $input ) {
-		// Log the raw input for debugging.
-		error_log('SCP Debug - Raw sanitize_settings input: ' . print_r($input, true));
-
 		// Get the full array of currently saved settings from the database.
 		$existing_settings = get_option( 'scp_settings', [] );
 		if ( ! is_array( $existing_settings ) ) {
@@ -816,23 +813,30 @@ class SCP_Admin_Settings {
 
 				// Array of rules for Date & Time Formatting
 				case 'date_format_rules':
-					if ( is_array( $value ) ) {
-						$sanitized_rules = [];
-						foreach ( $value as $rule ) {
-							if ( ! is_array( $rule ) || empty( $rule['column'] ) ) {
-								continue;
+					// Important: Only process this if it's actually in the submitted input.
+					// This prevents settings from other tabs from wiping out the rules.
+					if ( isset( $input['date_format_rules'] ) ) {
+						if ( is_array( $value ) ) {
+							$sanitized_rules = [];
+							foreach ( $value as $rule ) {
+								if ( ! is_array( $rule ) || empty( $rule['column'] ) ) {
+									continue;
+								}
+								$sanitized_rule                   = [];
+								$sanitized_rule['column']         = sanitize_text_field( $rule['column'] );
+								$sanitized_rule['format_type']    = in_array( $rule['format_type'], [ 'default', 'date_only', 'time_only', 'date_and_time', 'custom' ], true ) ? $rule['format_type'] : 'default';
+								$sanitized_rule['custom_format']  = sanitize_text_field( $rule['custom_format'] );
+								$sanitized_rule['use_long_date']    = ! empty( $rule['use_long_date'] ) ? 1 : 0;
+								$sanitized_rule['show_day_of_week'] = ! empty( $rule['show_day_of_week'] ) ? 1 : 0;
+								$sanitized_rules[]              = $sanitized_rule;
 							}
-							$sanitized_rule                   = [];
-							$sanitized_rule['column']         = sanitize_text_field( $rule['column'] );
-							$sanitized_rule['format_type']    = in_array( $rule['format_type'], [ 'default', 'date_only', 'time_only', 'date_and_time', 'custom' ], true ) ? $rule['format_type'] : 'default';
-							$sanitized_rule['custom_format']  = sanitize_text_field( $rule['custom_format'] );
-							$sanitized_rule['use_long_date']    = ! empty( $rule['use_long_date'] ) ? 1 : 0;
-							$sanitized_rule['show_day_of_week'] = ! empty( $rule['show_day_of_week'] ) ? 1 : 0;
-							$sanitized_rules[]              = $sanitized_rule;
+							$sanitized_output[ $key ] = $sanitized_rules;
+						} else {
+							$sanitized_output[ $key ] = []; // If it's not an array, wipe it.
 						}
-						$sanitized_output[ $key ] = $sanitized_rules;
-					} else {
-						$sanitized_output[ $key ] = []; // Default to empty array.
+					} elseif ( isset( $existing_settings['date_format_rules'] ) ) {
+						// If the rules are not in the current submission, keep the old ones.
+						$sanitized_output[ $key ] = $existing_settings['date_format_rules'];
 					}
 					break;
 

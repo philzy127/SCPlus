@@ -35,17 +35,6 @@
 		// Initial run on page load.
 		run_features();
 
-		// Also, specifically re-run date formatting on AJAX completion.
-		// SupportCandy's AJAX uses jQuery, so we can tap into its global events.
-		$(document).ajaxComplete(function(event, xhr, settings) {
-			// A simple check to see if it's a SupportCandy ticket list update.
-			if (settings.data && settings.data.includes('wpsc_get_ticket_list')) {
-				if (features.date_formatting?.enabled) {
-					// Add a small delay to ensure the DOM is fully updated by SC's scripts.
-					setTimeout(feature_apply_custom_date_formats, 100);
-				}
-			}
-		});
 	}
 
 	/**
@@ -74,10 +63,6 @@
 
 		if (features.hide_reply_close?.enabled) {
 			feature_hide_reply_close_button();
-		}
-
-		if (features.date_formatting?.enabled) {
-			feature_apply_custom_date_formats();
 		}
 	}
 
@@ -419,52 +404,5 @@
 
 	// Wait for the DOM to be ready before initializing.
 	$(document).ready(init);
-
-	/**
-	 * Feature: Apply Custom Date Formats.
-	 * Replaces the "time ago" text with the formatted date from the title attribute.
-	 */
-	function feature_apply_custom_date_formats() {
-		const config = features.date_formatting;
-		if (!config?.enabled || !config.rules?.length) {
-			return;
-		}
-
-		console.log('SupportCandy Plus Debug: Applying custom date formats. Rules:', config.rules);
-
-		const table = document.querySelector('table.wpsc-ticket-list-tbl');
-		if (!table) return;
-
-		// Get header indexes to identify date columns
-		const headers = Array.from(table.querySelectorAll('thead tr th'));
-		const dateColumnIndexes = [];
-		const columnMap = config.columns || {}; // slug -> Name
-
-		const headerIndexMap = {};
-		headers.forEach((th, index) => {
-			headerIndexMap[th.textContent.trim()] = index;
-		});
-
-		config.rules.forEach(rule => {
-			const columnLabel = columnMap[rule.column];
-			if (columnLabel && headerIndexMap[columnLabel] !== undefined) {
-				dateColumnIndexes.push(headerIndexMap[columnLabel]);
-			}
-		});
-
-		if (!dateColumnIndexes.length) return;
-
-		const rows = Array.from(table.querySelectorAll('tbody tr.wpsc_tl_tr'));
-		rows.forEach(row => {
-			dateColumnIndexes.forEach(index => {
-				const cell = row.children[index];
-				const span = cell?.querySelector('span[title]');
-				if (span && span.title && !span.dataset.scpDateFormatApplied) {
-					span.textContent = span.title;
-					span.dataset.scpDateFormatApplied = 'true';
-				}
-			});
-		});
-	}
 
 })(jQuery);

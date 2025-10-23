@@ -118,12 +118,6 @@ final class SupportCandy_Plus {
 	 */
 	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
 
-		$current_filter = current_filter();
-		$ticket_id      = isset( $ticket->id ) ? $ticket->id : 'N/A';
-
-		$this->log_message( '--- START ---' );
-		$this->log_message( "[TICKET: {$ticket_id}] Filter Triggered: {$current_filter}" );
-
 		// CONTEXT CHECK
 		$is_admin_list    = is_admin() && get_current_screen() && get_current_screen()->id === 'toplevel_page_wpsc-tickets';
 		$is_frontend_list = isset( $_POST['is_frontend'] ) && '1' === $_POST['is_frontend'];
@@ -131,11 +125,9 @@ final class SupportCandy_Plus {
 			return $value;
 		}
 
-		// LOG ALL AVAILABLE RULES
-		$this->log_message( "[TICKET: {$ticket_id}] All Available Rules: " . print_r( $this->formatted_rules, true ) );
-
 		// GET SLUG
-		$field_slug = null;
+		$current_filter = current_filter();
+		$field_slug     = null;
 		if ( strpos( $current_filter, 'wpsc_ticket_field_val_datetime' ) !== false ) {
 			if ( is_object( $cf ) && isset( $cf->slug ) ) {
 				$field_slug = $cf->slug;
@@ -147,28 +139,27 @@ final class SupportCandy_Plus {
 		}
 
 		if ( ! $field_slug ) {
-			$this->log_message( "[TICKET: {$ticket_id}] Could not parse slug from filter. Bailing." );
 			return $value;
 		}
-		$this->log_message( "[TICKET: {$ticket_id}] Parsed Slug: {$field_slug}" );
 
-		// FIND AND LOG MATCHING RULE
+		// FIND RULE
 		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
-			$this->log_message( "[TICKET: {$ticket_id}] No rule found for this slug. Bailing." );
 			return $value;
 		}
 		$rule = $this->formatted_rules[ $field_slug ];
-		$this->log_message( "[TICKET: {$ticket_id}] Matched Rule: " . print_r( $rule, true ) );
+
+		// THE OFFICIAL METHOD: Change the display mode on the field object.
+		if ( is_object( $cf ) ) {
+			$cf->date_display_as = 'date';
+		}
 
 		// GET AND VALIDATE DATE OBJECT
-		// Special case for 'last_reply_on' which has a property name of 'last_reply' on the ticket object.
-		$property_name = ( 'last_reply_on' === $field_slug ) ? 'last_reply' : $field_slug;
-		$date_object   = $ticket->{$property_name};
+		// Note: The new documentation confirms the property name matches the slug,
+		// e.g., $ticket->last_reply_on. The previous special case was incorrect.
+		$date_object = $ticket->{$field_slug};
 		if ( ! ( $date_object instanceof DateTime ) ) {
-			$this->log_message( "[TICKET: {$ticket_id}] Value for '{$field_slug}' is not a valid DateTime object. Bailing." );
 			return $value;
 		}
-		$this->log_message( "[TICKET: {$ticket_id}] Date object is valid." );
 
 		// APPLY FORMAT
 		$timestamp         = $date_object->getTimestamp();
@@ -200,8 +191,6 @@ final class SupportCandy_Plus {
 				break;
 		}
 
-		$this->log_message( "[TICKET: {$ticket_id}] FINAL VALUE: {$new_value}" );
-		$this->log_message( '--- END ---' );
 		return $new_value;
 	}
 
@@ -266,11 +255,6 @@ final class SupportCandy_Plus {
 					'include_weekends' => ! empty( $options['include_all_weekends'] ),
 					'holidays'         => ! empty( $options['holidays'] ) ? array_map( 'trim', explode( "\n", $options['holidays'] ) ) : [],
 					'message'          => ! empty( $options['after_hours_message'] ) ? wpautop( wp_kses_post( $options['after_hours_message'] ) ) : '',
-				],
-				'date_formatting'    => [
-					'enabled' => ! empty( $options['enable_date_time_formatting'] ),
-					'rules'   => isset( $options['date_format_rules'] ) ? $options['date_format_rules'] : [],
-					'columns' => $this->get_date_columns(),
 				],
 			],
 		];
