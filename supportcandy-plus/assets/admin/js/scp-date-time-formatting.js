@@ -6,17 +6,29 @@
      * Handles the dynamic behavior of the date format rule builder.
      */
     function initializeDateFormatRuleBuilder() {
-      // Show/hide custom format field on initial load.
-      $(".scp-date-format-type").each(function () {
-        var $this = $(this);
-        var $customFormatInput = $this
-          .closest(".scp-date-rule")
-          .find(".scp-date-custom-format");
-        if ($this.val() === "custom") {
+      function toggleDateOptions($rule) {
+        var formatType = $rule.find(".scp-date-format-type").val();
+        var $customFormatInput = $rule.find(".scp-date-custom-format");
+        var $dateOptions = $rule.find(".scp-date-options");
+
+        if (formatType === "custom") {
           $customFormatInput.show();
+          $dateOptions.hide();
+        } else if (
+          formatType === "date_only" ||
+          formatType === "date_and_time"
+        ) {
+          $customFormatInput.hide();
+          $dateOptions.show();
         } else {
           $customFormatInput.hide();
+          $dateOptions.hide();
         }
+      }
+
+      // Initial setup on page load.
+      $(".scp-date-rule").each(function () {
+        toggleDateOptions($(this));
       });
 
       // Handle change event for the format type dropdown.
@@ -24,15 +36,7 @@
         "change",
         ".scp-date-format-type",
         function () {
-          var $this = $(this);
-          var $customFormatInput = $this
-            .closest(".scp-date-rule")
-            .find(".scp-date-custom-format");
-          if ($this.val() === "custom") {
-            $customFormatInput.show();
-          } else {
-            $customFormatInput.hide();
-          }
+          toggleDateOptions($(this).closest(".scp-date-rule"));
         }
       );
 

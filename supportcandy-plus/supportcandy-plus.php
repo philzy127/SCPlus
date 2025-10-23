@@ -168,15 +168,32 @@ final class SupportCandy_Plus {
 		// APPLY FORMAT: If all checks pass, format the date.
 		$timestamp = $date_object->getTimestamp();
 		$new_value = $value;
+
+		// Get WordPress's date and time formats.
+		$short_date_format = get_option( 'date_format' ); // e.g., F j, Y
+		$long_date_format  = 'F j, Y'; // Fallback, but should be overridden by WP settings.
+		if ( function_exists( 'wp_get_long_date_format' ) ) {
+			$long_date_format = wp_get_long_date_format();
+		}
+
+		$time_format = get_option( 'time_format' ); // e.g., g:i a
+
+		$date_format = ! empty( $rule['use_long_date'] ) ? $long_date_format : $short_date_format;
+
+		if ( ! empty( $rule['show_day_of_week'] ) ) {
+			$day_format  = ! empty( $rule['use_long_date'] ) ? 'l' : 'D'; // 'l' for full day name, 'D' for short.
+			$date_format = $day_format . ', ' . $date_format;
+		}
+
 		switch ( $rule['format_type'] ) {
 			case 'date_only':
-				$new_value = wp_date( get_option( 'date_format' ), $timestamp );
+				$new_value = wp_date( $date_format, $timestamp );
 				break;
 			case 'time_only':
-				$new_value = wp_date( get_option( 'time_format' ), $timestamp );
+				$new_value = wp_date( $time_format, $timestamp );
 				break;
 			case 'date_and_time':
-				$new_value = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $timestamp );
+				$new_value = wp_date( $date_format . ' ' . $time_format, $timestamp );
 				break;
 			case 'custom':
 				if ( ! empty( $rule['custom_format'] ) ) {
@@ -254,6 +271,7 @@ final class SupportCandy_Plus {
 				'date_formatting'    => [
 					'enabled' => ! empty( $options['enable_date_time_formatting'] ),
 					'rules'   => isset( $options['date_format_rules'] ) ? $options['date_format_rules'] : [],
+					'columns' => $this->get_date_columns(),
 				],
 			],
 		];

@@ -375,7 +375,7 @@ class SCP_Admin_Settings {
 			}
 			?>
 		</div>
-		<button type="button" class="button" id="scp-add-date-rule"><?php esc_html_e( 'Add New Rule', 'supportcandy-plus' ); ?></button>
+		<button type="button" class="button scp-add-rule-button" id="scp-add-date-rule"><?php esc_html_e( 'Add New Rule', 'supportcandy-plus' ); ?></button>
 
 		<div class="scp-date-rule-template-wrapper" style="display: none;">
 			<script type="text/template" id="scp-date-rule-template">
@@ -389,9 +389,11 @@ class SCP_Admin_Settings {
 	 * Renders the HTML for a single date format rule row.
 	 */
 	private function render_date_format_rule_template( $index, $rule, $columns ) {
-		$column        = $rule['column'] ?? '';
-		$format_type   = $rule['format_type'] ?? 'default';
-		$custom_format = $rule['custom_format'] ?? '';
+		$column          = $rule['column'] ?? '';
+		$format_type     = $rule['format_type'] ?? 'default';
+		$custom_format   = $rule['custom_format'] ?? '';
+		$use_long_date   = ! empty( $rule['use_long_date'] );
+		$show_day_of_week = ! empty( $rule['show_day_of_week'] );
 		?>
 		<div class="scp-date-rule">
 			<label class="scp-date-rule-label"><?php esc_html_e( 'FOR COLUMN', 'supportcandy-plus' ); ?></label>
@@ -410,6 +412,19 @@ class SCP_Admin_Settings {
 				<option value="date_and_time" <?php selected( $format_type, 'date_and_time' ); ?>><?php esc_html_e( 'Date and Time', 'supportcandy-plus' ); ?></option>
 				<option value="custom" <?php selected( $format_type, 'custom' ); ?>><?php esc_html_e( 'Custom', 'supportcandy-plus' ); ?></option>
 			</select>
+
+			<div class="scp-date-options" style="<?php echo in_array( $format_type, [ 'date_only', 'date_and_time' ], true ) ? '' : 'display: none;'; ?>">
+				<label>
+					<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="0">
+					<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="1" <?php checked( $use_long_date ); ?>>
+					<?php esc_html_e( 'Use Long Date Format', 'supportcandy-plus' ); ?>
+				</label>
+				<label>
+					<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][show_day_of_week]" value="0">
+					<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][show_day_of_week]" value="1" <?php checked( $show_day_of_week ); ?>>
+					<?php esc_html_e( 'Show Day of the Week', 'supportcandy-plus' ); ?>
+				</label>
+			</div>
 
 			<input
 				type="text"
@@ -793,11 +808,13 @@ class SCP_Admin_Settings {
 							if ( ! is_array( $rule ) || empty( $rule['column'] ) ) {
 								continue;
 							}
-							$sanitized_rule                  = [];
-							$sanitized_rule['column']        = sanitize_text_field( $rule['column'] );
-							$sanitized_rule['format_type']   = in_array( $rule['format_type'], [ 'default', 'date_only', 'time_only', 'date_and_time', 'custom' ], true ) ? $rule['format_type'] : 'default';
-							$sanitized_rule['custom_format'] = sanitize_text_field( $rule['custom_format'] );
-							$sanitized_rules[]             = $sanitized_rule;
+							$sanitized_rule                   = [];
+							$sanitized_rule['column']         = sanitize_text_field( $rule['column'] );
+							$sanitized_rule['format_type']    = in_array( $rule['format_type'], [ 'default', 'date_only', 'time_only', 'date_and_time', 'custom' ], true ) ? $rule['format_type'] : 'default';
+							$sanitized_rule['custom_format']  = sanitize_text_field( $rule['custom_format'] );
+							$sanitized_rule['use_long_date']    = ! empty( $rule['use_long_date'] ) ? 1 : 0;
+							$sanitized_rule['show_day_of_week'] = ! empty( $rule['show_day_of_week'] ) ? 1 : 0;
+							$sanitized_rules[]              = $sanitized_rule;
 						}
 						$sanitized_output[ $key ] = $sanitized_rules;
 					} else {

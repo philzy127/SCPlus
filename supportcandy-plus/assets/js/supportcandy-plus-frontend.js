@@ -426,13 +426,17 @@
 		// Get header indexes to identify date columns
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
 		const dateColumnIndexes = [];
-		const ruleColumns = config.rules.map(rule => rule.column);
+		const columnMap = config.columns || {}; // slug -> Name
 
+		const headerIndexMap = {};
 		headers.forEach((th, index) => {
-			const headerText = th.textContent.trim();
-			// A bit of a weak check, but should cover 'Date Created', 'Last Reply', etc.
-			if (headerText.toLowerCase().includes('date') || headerText.toLowerCase().includes('reply')) {
-				dateColumnIndexes.push(index);
+			headerIndexMap[th.textContent.trim()] = index;
+		});
+
+		config.rules.forEach(rule => {
+			const columnLabel = columnMap[rule.column];
+			if (columnLabel && headerIndexMap[columnLabel] !== undefined) {
+				dateColumnIndexes.push(headerIndexMap[columnLabel]);
 			}
 		});
 
