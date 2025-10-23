@@ -163,3 +163,69 @@
 .scp-add-rule-button {
     margin-top: 15px;
 }
+.scp-add-rule-button {
+    margin-top: 15px;
+}
+
+
+.scp-date-rule-wrapper {
+    display: flex;
+    align-items: center; /* Vertically center items */
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.scp-date-rule-wrapper > div {
+    flex-grow: 1;
+}
+
+.scp-date-rule-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.scp-date-rule-row:last-child {
+    margin-bottom: 0;
+}
+
+.scp-date-rule-row .scp-rule-label {
+    margin: 0 5px;
+}
+
+.scp-date-rule-row select,
+.scp-date-rule-row input[type="text"] {
+    margin: 0 5px;
+}
+
+.scp-remove-date-rule {
+    margin-left: 10px;
+    padding: 2px 8px !important;
+    line-height: 1.5 !important;
+    min-height: 0 !important;
+    color: #a00 !important;
+    border-color: #a00 !important;
+}
+
+.scp-remove-date-rule:hover {
+    background-color: #a00 !important;
+    color: #fff !important;
+}
+
+.scp-date-options {
+    display: flex;
+    align-items: center;
+    margin-left: 5px;
+    padding-top: 5px;
+}
+
+.scp-checkbox-indent {
+    margin-left: 20px;
+}
+
+/* Add margin to the "Add New Rule" button */
+#scp-add-date-rule {
+    margin-top: 10px;
+}

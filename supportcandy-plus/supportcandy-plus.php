@@ -106,12 +106,10 @@ final class SupportCandy_Plus {
 		// Add a single filter for all datetime custom fields.
 		add_filter( 'wpsc_ticket_field_val_datetime', array( $this, 'format_date_time_callback' ), 10, 4 );
 
-		// Add filters for standard fields.
+		// Add filters for all potential standard fields. The callback will check if a rule exists.
 		$standard_fields = [ 'date_created', 'last_reply_on', 'date_closed', 'date_updated' ];
 		foreach ( $standard_fields as $field ) {
-			if ( isset( $this->formatted_rules[ $field ] ) ) {
-				add_filter( 'wpsc_ticket_field_val_' . $field, array( $this, 'format_date_time_callback' ), 10, 4 );
-			}
+			add_filter( 'wpsc_ticket_field_val_' . $field, array( $this, 'format_date_time_callback' ), 10, 4 );
 		}
 	}
 
