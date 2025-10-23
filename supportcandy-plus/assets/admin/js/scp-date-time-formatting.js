@@ -23,6 +23,8 @@
           $bottomRow.show();
         } else {
           $bottomRow.hide();
+          // Uncheck the checkboxes when they are hidden to prevent saving unwanted values.
+          $bottomRow.find('input[type="checkbox"]').prop("checked", false);
         }
       }
 

@@ -119,56 +119,49 @@ final class SupportCandy_Plus {
 	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
 
 		$this->log_message( '---' );
-		$this->log_message( 'Filter triggered. Initial value: ' . $value );
+		$current_filter = current_filter();
+		$this->log_message( 'TRACE: Filter triggered: ' . $current_filter );
 
 		// CONTEXT CHECK: Exit if not in a valid ticket list view.
 		$is_admin_list = is_admin() && get_current_screen() && get_current_screen()->id === 'toplevel_page_wpsc-tickets';
 		$is_frontend_list = isset( $_POST['is_frontend'] ) && $_POST['is_frontend'] === '1';
 
 		if ( ! $is_admin_list && ! $is_frontend_list ) {
-			$this->log_message( 'Context is not a valid ticket list. Bailing.' );
 			return $value;
 		}
-		$this->log_message( 'Context is a valid ticket list.' );
 
-		// GET SLUG: This logic is tricky due to how SC handles standard vs. custom fields.
-		// For standard fields, the filter name IS the slug.
-		// For custom fields, the filter name is generic ('datetime'), and the slug is in the $cf object.
-		$current_filter = current_filter();
+		// GET SLUG
 		$field_slug = null;
-
 		if ( strpos( $current_filter, 'wpsc_ticket_field_val_datetime' ) !== false ) {
-			// It's a custom field. The slug is in the $cf object.
 			if ( is_object( $cf ) && isset( $cf->slug ) ) {
 				$field_slug = $cf->slug;
 			}
 		} else {
-			// It's a standard field. The slug is the end of the filter name.
 			if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
 				$field_slug = substr( $current_filter, 22 );
 			}
 		}
 
 		if ( ! $field_slug ) {
-			$this->log_message( 'Could not determine a valid field slug. Bailing.' );
+			$this->log_message( 'TRACE: Could not determine a valid field slug from filter. Bailing.' );
 			return $value;
 		}
-		$this->log_message( 'Final Field Slug for lookup: ' . $field_slug );
+		$this->log_message( 'TRACE: Extracted Field Slug: ' . $field_slug );
 
 		// FIND RULE: Check if a rule exists for this slug.
 		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
-			$this->log_message( 'No rule found for this slug. Bailing.' );
+			$this->log_message( 'TRACE: No rule found for this slug. Bailing.' );
 			return $value;
 		}
 		$rule = $this->formatted_rules[ $field_slug ];
-		$this->log_message( 'Rule found: ' . print_r( $rule, true ) );
+		$this->log_message( 'TRACE: Applying Rule: ' . print_r( $rule, true ) );
 
 		// GET DATE OBJECT: Get the raw date property from the ticket.
 		$date_object = $ticket->{$field_slug};
 
 		// VALIDATE DATE OBJECT: The most critical step. If it's not a valid DateTime object, bail.
 		if ( ! ( $date_object instanceof DateTime ) ) {
-			$this->log_message( 'Value is not a valid DateTime object. Bailing.' );
+			$this->log_message( 'TRACE: Value is not a valid DateTime object. Bailing.' );
 			return $value;
 		}
 
