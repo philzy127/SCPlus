@@ -63,6 +63,10 @@
 		if (features.hide_reply_close?.enabled) {
 			feature_hide_reply_close_button();
 		}
+
+		if (features.date_formatting?.enabled) {
+			feature_apply_custom_date_formats();
+		}
 	}
 
 	/**
@@ -79,9 +83,6 @@
 		const table = document.querySelector('table.wpsc-ticket-list-tbl');
 		const tbody = table?.querySelector('tbody');
 		if (!table || !tbody || !tbody.rows.length) return;
-
-		console.log('SupportCandy Plus Debug: Ticket table body found. Inspect the HTML below to see formatted dates from the server.');
-		console.log(tbody.innerHTML);
 
 		const headers = Array.from(table.querySelectorAll('thead tr th'));
 		const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -406,5 +407,48 @@
 
 	// Wait for the DOM to be ready before initializing.
 	$(document).ready(init);
+
+	/**
+	 * Feature: Apply Custom Date Formats.
+	 * Replaces the "time ago" text with the formatted date from the title attribute.
+	 */
+	function feature_apply_custom_date_formats() {
+		const config = features.date_formatting;
+		if (!config?.enabled || !config.rules?.length) {
+			return;
+		}
+
+		console.log('SupportCandy Plus Debug: Applying custom date formats. Rules:', config.rules);
+
+		const table = document.querySelector('table.wpsc-ticket-list-tbl');
+		if (!table) return;
+
+		// Get header indexes to identify date columns
+		const headers = Array.from(table.querySelectorAll('thead tr th'));
+		const dateColumnIndexes = [];
+		const ruleColumns = config.rules.map(rule => rule.column);
+
+		headers.forEach((th, index) => {
+			const headerText = th.textContent.trim();
+			// A bit of a weak check, but should cover 'Date Created', 'Last Reply', etc.
+			if (headerText.toLowerCase().includes('date') || headerText.toLowerCase().includes('reply')) {
+				dateColumnIndexes.push(index);
+			}
+		});
+
+		if (!dateColumnIndexes.length) return;
+
+		const rows = Array.from(table.querySelectorAll('tbody tr.wpsc_tl_tr'));
+		rows.forEach(row => {
+			dateColumnIndexes.forEach(index => {
+				const cell = row.children[index];
+				const span = cell?.querySelector('span[title]');
+				if (span && span.title && !span.dataset.scpDateFormatApplied) {
+					span.textContent = span.title;
+					span.dataset.scpDateFormatApplied = 'true';
+				}
+			});
+		});
+	}
 
 })(jQuery);

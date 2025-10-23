@@ -186,7 +186,7 @@ final class SupportCandy_Plus {
 		}
 
 		$this->log_message( 'Formatting successful. New value: ' . $new_value );
-		return '<span title="' . esc_attr( $new_value ) . '">' . esc_html( $new_value ) . '</span>';
+		return $new_value;
 	}
 
 
@@ -250,6 +250,10 @@ final class SupportCandy_Plus {
 					'include_weekends' => ! empty( $options['include_all_weekends'] ),
 					'holidays'         => ! empty( $options['holidays'] ) ? array_map( 'trim', explode( "\n", $options['holidays'] ) ) : [],
 					'message'          => ! empty( $options['after_hours_message'] ) ? wpautop( wp_kses_post( $options['after_hours_message'] ) ) : '',
+				],
+				'date_formatting'    => [
+					'enabled' => ! empty( $options['enable_date_time_formatting'] ),
+					'rules'   => isset( $options['date_format_rules'] ) ? $options['date_format_rules'] : [],
 				],
 			],
 		];
