@@ -9,23 +9,20 @@
       function toggleDateOptions($rule) {
         var formatType = $rule.find(".scp-date-format-type").val();
         var $bottomRow = $rule.find(".scp-date-rule-row-bottom");
-        var $customFormatInput = $rule.find(".scp-date-custom-format");
-        var $dateOptions = $rule.find(".scp-date-options");
+        var $customFormatWrapper = $rule.find(".scp-custom-format-wrapper");
 
-        // Hide everything in the bottom row initially.
-        $bottomRow.hide();
-        $customFormatInput.hide();
-        $dateOptions.hide();
-
+        // Handle visibility of the custom format input.
         if (formatType === "custom") {
+          $customFormatWrapper.show();
+        } else {
+          $customFormatWrapper.hide();
+        }
+
+        // Handle visibility of the checkboxes row.
+        if (formatType === "date_only" || formatType === "date_and_time") {
           $bottomRow.show();
-          $customFormatInput.show();
-        } else if (
-          formatType === "date_only" ||
-          formatType === "date_and_time"
-        ) {
-          $bottomRow.show();
-          $dateOptions.show();
+        } else {
+          $bottomRow.hide();
         }
       }
 
@@ -39,7 +36,7 @@
         "change",
         ".scp-date-format-type",
         function () {
-          toggleDateOptions($(this).closest(".scp-date-rule"));
+          toggleDateOptions($(this).closest(".scp-date-rule-wrapper"));
         }
       );
 

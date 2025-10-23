@@ -677,15 +677,25 @@ class SCP_Admin_Settings {
 					</select>
 					<span class="scp-rule-label"><?php esc_html_e( 'as', 'supportcandy-plus' ); ?></span>
 					<select class="scp-date-format-type" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][format_type]">
-					<option value="default" <?php selected( $format_type, 'default' ); ?>><?php esc_html_e( 'Default - Hours Ago', 'supportcandy-plus' ); ?></option>
+						<option value="default" <?php selected( $format_type, 'default' ); ?>><?php esc_html_e( 'Hours/Days Ago', 'supportcandy-plus' ); ?></option>
 						<option value="date_only" <?php selected( $format_type, 'date_only' ); ?>><?php esc_html_e( 'Date Only', 'supportcandy-plus' ); ?></option>
 						<option value="time_only" <?php selected( $format_type, 'time_only' ); ?>><?php esc_html_e( 'Time Only', 'supportcandy-plus' ); ?></option>
 						<option value="date_and_time" <?php selected( $format_type, 'date_and_time' ); ?>><?php esc_html_e( 'Date and Time', 'supportcandy-plus' ); ?></option>
 						<option value="custom" <?php selected( $format_type, 'custom' ); ?>><?php esc_html_e( 'Custom', 'supportcandy-plus' ); ?></option>
 					</select>
+					<span class="scp-custom-format-wrapper" style="<?php echo 'custom' === $format_type ? '' : 'display: none;'; ?>">
+						<span class="scp-rule-label"><?php esc_html_e( 'Custom Format:', 'supportcandy-plus' ); ?></span>
+						<input
+							type="text"
+							class="scp-date-custom-format"
+							name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][custom_format]"
+							value="<?php echo esc_attr( $custom_format ); ?>"
+							placeholder="<?php esc_attr_e( 'e.g., Y-m-d H:i', 'supportcandy-plus' ); ?>"
+						/>
+					</span>
 				</div>
 
-				<div class="scp-date-rule-row scp-date-rule-row-bottom">
+				<div class="scp-date-rule-row scp-date-rule-row-bottom" style="<?php echo in_array( $format_type, [ 'date_only', 'date_and_time' ], true ) ? '' : 'display: none;'; ?>">
 					<div class="scp-date-options">
 						<label>
 							<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="0">
@@ -700,14 +710,6 @@ class SCP_Admin_Settings {
 							</label>
 						</span>
 					</div>
-
-					<input
-						type="text"
-						class="scp-date-custom-format"
-						name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][custom_format]"
-						value="<?php echo esc_attr( $custom_format ); ?>"
-						placeholder="<?php esc_attr_e( 'e.g., Y-m-d H:i', 'supportcandy-plus' ); ?>"
-					/>
 				</div>
 			</div>
 			<button type="button" class="button scp-remove-date-rule">&times;</button>

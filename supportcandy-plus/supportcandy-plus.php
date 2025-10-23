@@ -133,20 +133,29 @@ final class SupportCandy_Plus {
 		}
 		$this->log_message( 'Context is a valid ticket list.' );
 
-		// GET SLUG: Reliably get the field slug from the filter name.
+		// GET SLUG: This logic is tricky due to how SC handles standard vs. custom fields.
+		// For standard fields, the filter name IS the slug.
+		// For custom fields, the filter name is generic ('datetime'), and the slug is in the $cf object.
 		$current_filter = current_filter();
-		if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
-			$field_slug = substr( $current_filter, 22 );
+		$field_slug = null;
+
+		if ( strpos( $current_filter, 'wpsc_ticket_field_val_datetime' ) !== false ) {
+			// It's a custom field. The slug is in the $cf object.
+			if ( is_object( $cf ) && isset( $cf->slug ) ) {
+				$field_slug = $cf->slug;
+			}
 		} else {
-			$this->log_message( 'Could not determine field slug from filter name. Bailing.' );
-			return $value;
+			// It's a standard field. The slug is the end of the filter name.
+			if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
+				$field_slug = substr( $current_filter, 22 );
+			}
 		}
 
-		// For datetime custom fields, the slug is 'datetime', but we need the specific cf slug.
-		if ( 'datetime' === $field_slug && is_object( $cf ) ) {
-			$field_slug = $cf->slug;
+		if ( ! $field_slug ) {
+			$this->log_message( 'Could not determine a valid field slug. Bailing.' );
+			return $value;
 		}
-		$this->log_message( 'Field Slug: ' . $field_slug );
+		$this->log_message( 'Final Field Slug for lookup: ' . $field_slug );
 
 		// FIND RULE: Check if a rule exists for this slug.
 		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
