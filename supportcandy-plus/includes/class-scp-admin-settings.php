@@ -668,13 +668,14 @@ class SCP_Admin_Settings {
 		<div class="scp-date-rule-wrapper">
 			<div>
 				<div class="scp-date-rule-row scp-date-rule-row-top">
+					<span class="scp-rule-label"><?php esc_html_e( 'Display', 'supportcandy-plus' ); ?></span>
 					<select name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][column]">
 						<option value=""><?php esc_html_e( '-- Select a Column --', 'supportcandy-plus' ); ?></option>
 						<?php foreach ( $columns as $slug => $name ) : ?>
 							<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $column, $slug ); ?>><?php echo esc_html( $name ); ?></option>
 						<?php endforeach; ?>
 					</select>
-
+					<span class="scp-rule-label"><?php esc_html_e( 'as', 'supportcandy-plus' ); ?></span>
 					<select class="scp-date-format-type" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][format_type]">
 					<option value="default" <?php selected( $format_type, 'default' ); ?>><?php esc_html_e( 'Default - Hours Ago', 'supportcandy-plus' ); ?></option>
 						<option value="date_only" <?php selected( $format_type, 'date_only' ); ?>><?php esc_html_e( 'Date Only', 'supportcandy-plus' ); ?></option>
@@ -691,7 +692,7 @@ class SCP_Admin_Settings {
 						<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="1" <?php checked( $use_long_date ); ?>>
 						<?php esc_html_e( 'Use Long Date Format', 'supportcandy-plus' ); ?>
 					</label>
-						<span class="scp-date-day-toggle">
+						<span class="scp-date-day-toggle scp-checkbox-indent">
 							<label>
 								<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][show_day_of_week]" value="0">
 								<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][show_day_of_week]" value="1" <?php checked( $show_day_of_week ); ?>>

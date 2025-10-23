@@ -64,6 +64,10 @@
     align-self: center;
 }
 
+.scp-checkbox-indent {
+    margin-left: 20px;
+}
+
 #scp-no-rules-message {
     color: #666;
     font-style: italic;

@@ -34,6 +34,18 @@
 
 		// Initial run on page load.
 		run_features();
+
+		// Also, specifically re-run date formatting on AJAX completion.
+		// SupportCandy's AJAX uses jQuery, so we can tap into its global events.
+		$(document).ajaxComplete(function(event, xhr, settings) {
+			// A simple check to see if it's a SupportCandy ticket list update.
+			if (settings.data && settings.data.includes('wpsc_get_ticket_list')) {
+				if (features.date_formatting?.enabled) {
+					// Add a small delay to ensure the DOM is fully updated by SC's scripts.
+					setTimeout(feature_apply_custom_date_formats, 100);
+				}
+			}
+		});
 	}
 
 	/**
