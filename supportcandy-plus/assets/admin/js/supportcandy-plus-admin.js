@@ -42,7 +42,7 @@ jQuery(document).ready(function ($) {
         });
     });
 
-    // Before submitting the form, select all items in the 'selected' list for the queue macro
+    // Before submitting the form, select all items in the 'selected' lists.
     $('form[action="options.php"]').on('submit', function () {
         $('#scp_selected_statuses option').prop('selected', true);
         $('#scp_selected_utm_columns option').prop('selected', true);
