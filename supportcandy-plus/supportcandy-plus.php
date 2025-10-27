@@ -43,6 +43,8 @@ final class SupportCandy_Plus {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
 		SCP_Queue_Macro::get_instance();
+		include_once SCP_PLUGIN_PATH . 'includes/class-scp-utm.php';
+		SCP_UTM::get_instance();
 
 		// After Ticket Survey Module
 		include_once SCP_PLUGIN_PATH . 'includes/modules/after-ticket-survey/class-scp-ats.php';
@@ -331,6 +333,48 @@ final class SupportCandy_Plus {
 		}
 		asort( $columns ); // Sort the columns alphabetically by name.
 		return $columns;
+	}
+
+	/**
+	 * Get all standard and custom columns for the UTM settings page.
+	 */
+	public function get_scp_utm_columns() {
+		global $wpdb;
+		$columns = [];
+
+		// Standard SupportCandy fields.
+		$standard_fields = [
+			'id'             => __( 'Ticket ID', 'supportcandy-plus' ),
+			'subject'        => __( 'Subject', 'supportcandy-plus' ),
+			'status'         => __( 'Status', 'supportcandy-plus' ),
+			'category'       => __( 'Category', 'supportcandy-plus' ),
+			'priority'       => __( 'Priority', 'supportcandy-plus' ),
+			'customer'       => __( 'Customer', 'supportcandy-plus' ),
+			'agent_assigned' => __( 'Assigned Agent', 'supportcandy-plus' ),
+			'last_reply_by'  => __( 'Last Reply By', 'supportcandy-plus' ),
+			'date_created'   => __( 'Date Created', 'supportcandy-plus' ),
+			'last_reply_on'  => __( 'Last Reply On', 'supportcandy-plus' ),
+			'date_closed'    => __( 'Date Closed', 'supportcandy-plus' ),
+			'date_updated'   => __( 'Date Updated', 'supportcandy-plus' ),
+			'source'         => __( 'Source', 'supportcandy-plus' ),
+		];
+
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
+			$custom_fields = $wpdb->get_results( "SELECT slug, name FROM `{$custom_fields_table}`", ARRAY_A );
+			if ( $custom_fields ) {
+				foreach ( $custom_fields as $field ) {
+					$columns[ $field['slug'] ] = $field['name'];
+				}
+			}
+		}
+
+		// Merge and sort.
+		$all_columns = array_merge( $standard_fields, $columns );
+		asort( $all_columns );
+
+		return $all_columns;
 	}
 
 	/**

@@ -45,6 +45,32 @@ jQuery(document).ready(function ($) {
     // Before submitting the form, select all items in the 'selected' list for the queue macro
     $('form[action="options.php"]').on('submit', function () {
         $('#scp_selected_statuses option').prop('selected', true);
+        $('#scp_selected_utm_columns option').prop('selected', true);
+    });
+
+    // Dual list for UTM Columns
+    $('#scp_add_utm_column').on('click', function () {
+        $('#scp_available_utm_columns option:selected').each(function () {
+            $(this).remove().appendTo('#scp_selected_utm_columns');
+        });
+    });
+
+    $('#scp_remove_utm_column').on('click', function () {
+        $('#scp_selected_utm_columns option:selected').each(function () {
+            $(this).remove().appendTo('#scp_available_utm_columns');
+        });
+    });
+
+    $('#scp_add_utm_column_all').on('click', function () {
+        $('#scp_available_utm_columns option').each(function () {
+            $(this).remove().appendTo('#scp_selected_utm_columns');
+        });
+    });
+
+    $('#scp_remove_utm_column_all').on('click', function () {
+        $('#scp_selected_utm_columns option').each(function () {
+            $(this).remove().appendTo('#scp_available_utm_columns');
+        });
     });
 
     // Test button for Queue Macro
