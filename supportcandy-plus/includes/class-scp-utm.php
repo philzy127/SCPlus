@@ -84,7 +84,9 @@ class SCP_UTM {
 		}
 		$this->log_message( 'Loading ticket with ID: ' . $ticket_id );
 		$ticket = new WPSC_Ticket( $ticket_id );
-		$this->log_message( 'Inspecting the loaded $ticket object: ' . print_r( $ticket, true ) );
+		// Explicitly load the ticket data from the database to bypass potential race conditions.
+		$ticket->load();
+		$this->log_message( 'Inspecting the loaded $ticket object after explicit load: ' . print_r( $ticket, true ) );
 
 		if ( ! $ticket->id ) {
 			$this->log_message( 'Failed to load ticket object.' );
@@ -103,15 +105,15 @@ class SCP_UTM {
 			$label = isset( $all_columns_map[ $slug ] ) ? $all_columns_map[ $slug ] : ucfirst( str_replace( '_', ' ', $slug ) );
 			$this->log_message( "  - Label: '{$label}'" );
 
-			// Standard fields
-			if ( property_exists( $ticket, $slug ) ) {
-				$value = $ticket->$slug;
-				$this->log_message( "  - Found as a standard property. Raw value: " . print_r( $value, true ) );
-			}
+			// The WPSC_Ticket class uses a magic __get method to access properties from its private 'data' array.
+			// The previous `property_exists()` check was too strict and prevented this from working.
+			// We now attempt direct access first, which should trigger the magic method for standard fields.
+			$value = $ticket->$slug;
+			$this->log_message( "  - Attempted direct property access (\$ticket->{$slug}). Raw value: " . print_r( $value, true ) );
 
-			// Custom fields are in a separate property
+			// If direct access didn't yield a value, check the custom fields array as a fallback.
 			if ( is_null( $value ) && isset( $ticket->custom_fields ) && is_array( $ticket->custom_fields ) ) {
-				$this->log_message( '  - Not a standard property or was null. Checking custom fields...' );
+				$this->log_message( '  - Direct access was null. Checking custom fields...' );
 				foreach ( $ticket->custom_fields as $cf ) {
 					if ( is_object( $cf ) && isset( $cf->slug ) && $cf->slug === $slug ) {
 						$value = $cf->value;
