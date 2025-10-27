@@ -59,6 +59,9 @@ class SCP_UTM {
 		$selected_columns = isset( $options['utm_columns'] ) ? $options['utm_columns'] : [];
 		$this->log_message( 'Retrieved settings. Selected columns: ' . print_r( $selected_columns, true ) );
 
+		// Log the entire thread object to inspect its structure
+		$this->log_message( 'Inspecting the $thread object: ' . print_r( $thread, true ) );
+
 		if ( empty( $selected_columns ) ) {
 			$this->log_message( 'No columns selected in settings. Replacing macro with empty string.' );
 			$data['body'] = str_replace( '{{scp_unified_ticket}}', '', $data['body'] );
