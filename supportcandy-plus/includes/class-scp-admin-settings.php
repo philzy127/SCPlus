@@ -97,6 +97,15 @@ class SCP_Admin_Settings {
 			'scp-after-hours',
 			array( $this, 'after_hours_page_content' )
 		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'Date & Time Formatting', 'supportcandy-plus' ),
+			__( 'Date & Time Formatting', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-date-time-formatting',
+			array( $this, 'date_time_formatting_page_content' )
+		);
 	}
 
 	/**
@@ -153,6 +162,13 @@ class SCP_Admin_Settings {
 	}
 
 	/**
+	 * Render the Date & Time Formatting settings page content.
+	 */
+	public function date_time_formatting_page_content() {
+		$this->render_settings_page_wrapper( 'scp-date-time-formatting' );
+	}
+
+	/**
 	 * Render a generic settings page wrapper.
 	 *
 	 * @param string $page_slug The slug of the page to render sections for.
@@ -171,6 +187,10 @@ class SCP_Admin_Settings {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Render the description for the Date & Time Formatting section.
+	 */
 
 	/**
 	 * Register the settings sections and fields.
@@ -307,6 +327,29 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_queue_macro_statuses', __( 'Non-Closed Statuses', 'supportcandy-plus' ), array( $this, 'render_statuses_dual_list_field' ), 'scp-queue-macro', 'scp_queue_macro_section', [ 'id' => 'queue_macro_statuses', 'desc' => 'Select which ticket statuses should count toward the queue.' ] );
 
 		add_settings_field( 'scp_queue_macro_test', __( 'Test Queue Counts', 'supportcandy-plus' ), array( $this, 'render_test_button_field' ), 'scp-queue-macro', 'scp_queue_macro_section' );
+
+		// Page: Date & Time Formatting
+		add_settings_section(
+			'scp_date_time_formatting_section',
+			__( 'Date & Time Formatting Rules', 'supportcandy-plus' ),
+			array( $this, 'render_date_time_formatting_description' ),
+			'scp-date-time-formatting'
+		);
+		add_settings_field(
+			'scp_enable_date_time_formatting',
+			__( 'Enable Feature', 'supportcandy-plus' ),
+			array( $this, 'render_checkbox_field' ),
+			'scp-date-time-formatting',
+			'scp_date_time_formatting_section',
+			[ 'id' => 'enable_date_time_formatting', 'desc' => 'Enable custom date and time formatting for the ticket list.' ]
+		);
+		add_settings_field(
+			'scp_date_time_formatting_rules',
+			__( 'Rules', 'supportcandy-plus' ),
+			array( $this, 'render_date_time_formatting_rules_builder' ),
+			'scp-date-time-formatting',
+			'scp_date_time_formatting_section'
+		);
 	}
 
 	/**
@@ -358,7 +401,7 @@ class SCP_Admin_Settings {
 			}
 			?>
 		</div>
-		<button type="button" class="button" id="scp-add-rule"><?php esc_html_e( 'Add New Rule', 'supportcandy-plus' ); ?></button>
+		<button type="button" class="button scp-add-rule-button" id="scp-add-date-rule"><?php esc_html_e( 'Add New Rule', 'supportcandy-plus' ); ?></button>
 
 		<div class="scp-rule-template-wrapper" style="display: none;">
 			<script type="text/template" id="scp-rule-template">
@@ -576,6 +619,105 @@ class SCP_Admin_Settings {
 	}
 
 	/**
+	 * Render the description for the Date & Time Formatting section.
+	 */
+	public function render_date_time_formatting_description() {
+		echo '<p>' . esc_html__( 'Create rules to customize the date and time format for specific columns in the ticket list.', 'supportcandy-plus' ) . '</p>';
+	}
+
+	/**
+	 * Render the rule builder for Date & Time Formatting.
+	 */
+	public function render_date_time_formatting_rules_builder() {
+		$options = get_option( 'scp_settings', [] );
+		$rules   = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
+		$columns = supportcandy_plus()->get_date_columns();
+		?>
+		<input type="hidden" name="scp_settings[date_format_rules]" value="">
+		<div id="scp-date-rules-container">
+			<?php
+			if ( ! empty( $rules ) ) {
+				foreach ( $rules as $index => $rule ) {
+					$this->render_date_format_rule_template( $index, $rule, $columns );
+				}
+			} else {
+				echo '<p id="scp-no-date-rules-message">' . esc_html__( 'No rules defined yet. Click "Add New Rule" to start.', 'supportcandy-plus' ) . '</p>';
+			}
+			?>
+		</div>
+		<button type="button" class="button scp-add-rule-button" id="scp-add-date-rule"><?php esc_html_e( 'Add New Rule', 'supportcandy-plus' ); ?></button>
+
+		<div class="scp-date-rule-template-wrapper" style="display: none;">
+			<script type="text/template" id="scp-date-rule-template">
+				<?php $this->render_date_format_rule_template( '__INDEX__', [], $columns ); ?>
+			</script>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Renders the HTML for a single date format rule row.
+	 */
+	private function render_date_format_rule_template( $index, $rule, $columns ) {
+		$column          = $rule['column'] ?? '';
+		$format_type     = $rule['format_type'] ?? 'default';
+		$custom_format   = $rule['custom_format'] ?? '';
+		$use_long_date    = ! empty( $rule['use_long_date'] );
+		$show_day_of_week = ! empty( $rule['show_day_of_week'] );
+		?>
+		<div class="scp-date-rule-wrapper">
+			<div>
+				<div class="scp-date-rule-row scp-date-rule-row-top">
+					<span class="scp-rule-label"><?php esc_html_e( 'Display', 'supportcandy-plus' ); ?></span>
+					<select name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][column]">
+						<option value=""><?php esc_html_e( '-- Select a Column --', 'supportcandy-plus' ); ?></option>
+						<?php foreach ( $columns as $slug => $name ) : ?>
+							<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $column, $slug ); ?>><?php echo esc_html( $name ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<span class="scp-rule-label"><?php esc_html_e( 'as', 'supportcandy-plus' ); ?></span>
+					<select class="scp-date-format-type" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][format_type]">
+						<option value="default" <?php selected( $format_type, 'default' ); ?>><?php esc_html_e( 'Hours/Days Ago', 'supportcandy-plus' ); ?></option>
+						<option value="date_only" <?php selected( $format_type, 'date_only' ); ?>><?php esc_html_e( 'Date Only', 'supportcandy-plus' ); ?></option>
+						<option value="time_only" <?php selected( $format_type, 'time_only' ); ?>><?php esc_html_e( 'Time Only', 'supportcandy-plus' ); ?></option>
+						<option value="date_and_time" <?php selected( $format_type, 'date_and_time' ); ?>><?php esc_html_e( 'Date and Time', 'supportcandy-plus' ); ?></option>
+						<option value="custom" <?php selected( $format_type, 'custom' ); ?>><?php esc_html_e( 'Custom', 'supportcandy-plus' ); ?></option>
+					</select>
+					<span class="scp-custom-format-wrapper" style="<?php echo 'custom' === $format_type ? '' : 'display: none;'; ?>">
+						<span class="scp-rule-label"><?php esc_html_e( 'Custom Format:', 'supportcandy-plus' ); ?></span>
+						<input
+							type="text"
+							class="scp-date-custom-format"
+							name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][custom_format]"
+							value="<?php echo esc_attr( $custom_format ); ?>"
+							placeholder="<?php esc_attr_e( 'e.g., Y-m-d H:i', 'supportcandy-plus' ); ?>"
+						/>
+					</span>
+				</div>
+
+				<div class="scp-date-rule-row scp-date-rule-row-bottom" style="<?php echo in_array( $format_type, [ 'date_only', 'date_and_time' ], true ) ? '' : 'display: none;'; ?>">
+					<div class="scp-date-options">
+						<label>
+							<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="0">
+							<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][use_long_date]" value="1" <?php checked( $use_long_date ); ?>>
+							<?php esc_html_e( 'Use Long Date Format', 'supportcandy-plus' ); ?>
+						</label>
+						<span class="scp-date-day-toggle scp-checkbox-indent">
+							<label>
+								<input type="hidden" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][show_day_of_week]" value="0">
+								<input type="checkbox" name="scp_settings[date_format_rules][<?php echo esc_attr( $index ); ?>][show_day_of_week]" value="1" <?php checked( $show_day_of_week ); ?>>
+								<?php esc_html_e( 'Show Day of the Week', 'supportcandy-plus' ); ?>
+							</label>
+						</span>
+					</div>
+				</div>
+			</div>
+			<button type="button" class="button scp-remove-date-rule">&times;</button>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Sanitize the settings with a simpler, more robust method.
 	 */
 	public function sanitize_settings( $input ) {
@@ -666,6 +808,35 @@ class SCP_Admin_Settings {
 						$sanitized_output[ $key ] = array_map( 'absint', $value );
 					} else {
 						$sanitized_output[ $key ] = []; // Default to empty array.
+					}
+					break;
+
+				// Array of rules for Date & Time Formatting
+				case 'date_format_rules':
+					// Important: Only process this if it's actually in the submitted input.
+					// This prevents settings from other tabs from wiping out the rules.
+					if ( isset( $input['date_format_rules'] ) ) {
+						if ( is_array( $value ) ) {
+							$sanitized_rules = [];
+							foreach ( $value as $rule ) {
+								if ( ! is_array( $rule ) || empty( $rule['column'] ) ) {
+									continue;
+								}
+								$sanitized_rule                   = [];
+								$sanitized_rule['column']         = sanitize_text_field( $rule['column'] );
+								$sanitized_rule['format_type']    = in_array( $rule['format_type'], [ 'default', 'date_only', 'time_only', 'date_and_time', 'custom' ], true ) ? $rule['format_type'] : 'default';
+								$sanitized_rule['custom_format']  = sanitize_text_field( $rule['custom_format'] );
+								$sanitized_rule['use_long_date']    = ! empty( $rule['use_long_date'] ) ? 1 : 0;
+								$sanitized_rule['show_day_of_week'] = ! empty( $rule['show_day_of_week'] ) ? 1 : 0;
+								$sanitized_rules[]              = $sanitized_rule;
+							}
+							$sanitized_output[ $key ] = $sanitized_rules;
+						} else {
+							$sanitized_output[ $key ] = []; // If it's not an array, wipe it.
+						}
+					} elseif ( isset( $existing_settings['date_format_rules'] ) ) {
+						// If the rules are not in the current submission, keep the old ones.
+						$sanitized_output[ $key ] = $existing_settings['date_format_rules'];
 					}
 					break;
 
