@@ -84,6 +84,7 @@ class SCP_UTM {
 		}
 		$this->log_message( 'Loading ticket with ID: ' . $ticket_id );
 		$ticket = new WPSC_Ticket( $ticket_id );
+		$this->log_message( 'Inspecting the loaded $ticket object: ' . print_r( $ticket, true ) );
 
 		if ( ! $ticket->id ) {
 			$this->log_message( 'Failed to load ticket object.' );
