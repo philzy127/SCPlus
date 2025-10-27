@@ -74,10 +74,11 @@ class SCP_UTM {
 			return $data;
 		}
 
-		$ticket_id = (int) $thread->ticket;
+		$thread_data = (array) $thread;
+		$ticket_id   = isset( $thread_data["\0WPSC_Thread\0data"]['ticket'] ) ? (int) $thread_data["\0WPSC_Thread\0data"]['ticket'] : 0;
 
 		if ( ! $ticket_id ) {
-			$this->log_message( 'Thread object does not contain a valid ticket ID. Value: ' . print_r( $thread->ticket ?? 'not set', true ) );
+			$this->log_message( 'Could not extract ticket ID from thread object.' );
 			$data['body'] = str_replace( '{{scp_unified_ticket}}', '', $data['body'] );
 			return $data;
 		}
