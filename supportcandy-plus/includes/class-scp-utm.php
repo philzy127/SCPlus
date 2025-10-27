@@ -74,13 +74,15 @@ class SCP_UTM {
 			return $data;
 		}
 
-		if ( ! isset( $thread->ticket ) || ! $thread->ticket ) {
-			$this->log_message( 'Thread object does not contain a valid ticket ID.' );
+		$ticket_id = (int) $thread->ticket;
+
+		if ( ! $ticket_id ) {
+			$this->log_message( 'Thread object does not contain a valid ticket ID. Value: ' . print_r( $thread->ticket ?? 'not set', true ) );
 			$data['body'] = str_replace( '{{scp_unified_ticket}}', '', $data['body'] );
 			return $data;
 		}
-		$this->log_message( 'Loading ticket with ID: ' . $thread->ticket );
-		$ticket = new WPSC_Ticket( $thread->ticket );
+		$this->log_message( 'Loading ticket with ID: ' . $ticket_id );
+		$ticket = new WPSC_Ticket( $ticket_id );
 
 		if ( ! $ticket->id ) {
 			$this->log_message( 'Failed to load ticket object.' );
