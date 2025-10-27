@@ -595,23 +595,23 @@ class SCP_Admin_Settings {
 		?>
 		<input type="hidden" name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>]" value="">
 		<div class="dual-list-container">
-			<div class="dual-list-box" style="display: inline-block; vertical-align: top;">
+			<div class="dual-list-box">
 				<h3><?php _e( 'Available Columns', 'supportcandy-plus' ); ?></h3>
-				<select multiple id="scp_available_utm_columns" size="10" style="width: 250px; height: 200px;">
+				<select multiple id="scp_available_utm_columns" size="10">
 					<?php foreach ( $available_columns_map as $slug => $name ) : ?>
 						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</div>
-			<div class="dual-buttons" style="display: inline-block; vertical-align: middle; margin: 0 10px;">
-				<button type="button" class="button" id="scp_add_utm_column_all" style="display: block; margin-bottom: 5px;">&gt;&gt;</button>
-				<button type="button" class="button" id="scp_add_utm_column" style="display: block; margin-bottom: 5px;">&gt;</button>
-				<button type="button" class="button" id="scp_remove_utm_column" style="display: block; margin-bottom: 5px;">&lt;</button>
-				<button type="button" class="button" id="scp_remove_utm_column_all" style="display: block;">&lt;&lt;</button>
+			<div class="dual-buttons">
+				<button type="button" class="button" id="scp_add_utm_column_all">&gt;&gt;</button>
+				<button type="button" class="button" id="scp_add_utm_column">&gt;</button>
+				<button type="button" class="button" id="scp_remove_utm_column">&lt;</button>
+				<button type="button" class="button" id="scp_remove_utm_column_all">&lt;&lt;</button>
 			</div>
-			<div class="dual-list-box" style="display: inline-block; vertical-align: top;">
+			<div class="dual-list-box">
 				<h3><?php _e( 'Selected Columns', 'supportcandy-plus' ); ?></h3>
-				<select multiple name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>][]" id="scp_selected_utm_columns" size="10" style="width: 250px; height: 200px;">
+				<select multiple name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>][]" id="scp_selected_utm_columns" size="10">
 					<?php foreach ( $selected_columns_map as $slug => $name ) : ?>
 						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
 					<?php endforeach; ?>
