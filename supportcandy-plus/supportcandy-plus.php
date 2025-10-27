@@ -270,6 +270,7 @@ final class SupportCandy_Plus {
 			'toplevel_page_supportcandy-plus',
 			'supportcandy-plus_page_scp-conditional-hiding',
 			'supportcandy-plus_page_scp-queue-macro',
+			'supportcandy-plus_page_scp-utm',
 			'supportcandy-plus_page_scp-after-hours',
 			'supportcandy-plus_page_scp-date-time-formatting',
 			'supportcandy-plus_page_scp-how-to-use',
