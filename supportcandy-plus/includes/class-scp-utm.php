@@ -85,7 +85,9 @@ class SCP_UTM {
 
 		// Get maps of all possible field slugs to their display names and metadata.
 		$all_columns_map = supportcandy_plus()->get_scp_utm_columns();
+		$this->log_message( '[replace_utm_in_email] Calling get_all_custom_field_data()...' );
 		$custom_fields_meta = supportcandy_plus()->get_all_custom_field_data();
+		$this->log_message( '[replace_utm_in_email] Returned from get_all_custom_field_data(). Found ' . count( $custom_fields_meta ) . ' fields with metadata.' );
 		$output_rows = '';
 
 		// Iterate through the selected columns and build the table rows.

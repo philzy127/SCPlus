@@ -439,14 +439,19 @@ final class SupportCandy_Plus {
 	 * Results are cached for the duration of the request.
 	 */
 	public function get_all_custom_field_data() {
+		$this->log_message( '[get_all_custom_field_data] Function called.' );
 		if ( ! is_null( $this->custom_field_data_cache ) ) {
+			$this->log_message( '[get_all_custom_field_data] Returning cached data.' );
 			return $this->custom_field_data_cache;
 		}
+		$this->log_message( '[get_all_custom_field_data] No cache found, proceeding with database query.' );
 
 		global $wpdb;
 		$fields_table = $wpdb->prefix . 'psmsc_custom_fields';
 		$options_table = $wpdb->prefix . 'psmsc_options';
 		$results = [];
+
+		$this->log_message( "[get_all_custom_field_data] Tables: Fields='{$fields_table}', Options='{$options_table}'" );
 
 		$query = "
             SELECT
@@ -462,7 +467,17 @@ final class SupportCandy_Plus {
             ORDER BY cf.slug, opt.name ASC
         ";
 
+		$this->log_message( '[get_all_custom_field_data] Executing query: ' . $query );
 		$db_results = $wpdb->get_results( $query, ARRAY_A );
+
+		// CRITICAL: Check for database errors immediately after the query.
+		if ( ! empty( $wpdb->last_error ) ) {
+			$this->log_message( '[get_all_custom_field_data] FATAL: WPDB Error: ' . $wpdb->last_error );
+			// Return an empty array to prevent further processing on error.
+			return [];
+		}
+
+		$this->log_message( '[get_all_custom_field_data] Query executed. Found ' . count( $db_results ) . ' raw rows.' );
 
 		if ( $db_results ) {
 			foreach ( $db_results as $row ) {
@@ -482,6 +497,7 @@ final class SupportCandy_Plus {
 			}
 		}
 
+		$this->log_message( '[get_all_custom_field_data] Processed data into ' . count( $results ) . ' unique fields.' );
 		$this->custom_field_data_cache = $results;
 		return $this->custom_field_data_cache;
 	}
