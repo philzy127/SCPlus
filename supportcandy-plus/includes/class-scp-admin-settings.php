@@ -64,15 +64,6 @@ class SCP_Admin_Settings {
 
 		add_submenu_page(
 			'supportcandy-plus',
-			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
-			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
-			'manage_options',
-			'scp-utm',
-			array( $this, 'utm_page_content' )
-		);
-
-		add_submenu_page(
-			'supportcandy-plus',
 			__( 'General Settings', 'supportcandy-plus' ),
 			__( 'General Settings', 'supportcandy-plus' ),
 			'manage_options',
@@ -168,13 +159,6 @@ class SCP_Admin_Settings {
 	 */
 	public function queue_macro_page_content() {
 		$this->render_settings_page_wrapper( 'scp-queue-macro' );
-	}
-
-	/**
-	 * Render the UTM settings page content.
-	 */
-	public function utm_page_content() {
-		$this->render_settings_page_wrapper( 'scp-utm' );
 	}
 
 	/**
@@ -343,38 +327,6 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_queue_macro_statuses', __( 'Non-Closed Statuses', 'supportcandy-plus' ), array( $this, 'render_statuses_dual_list_field' ), 'scp-queue-macro', 'scp_queue_macro_section', [ 'id' => 'queue_macro_statuses', 'desc' => 'Select which ticket statuses should count toward the queue.' ] );
 
 		add_settings_field( 'scp_queue_macro_test', __( 'Test Queue Counts', 'supportcandy-plus' ), array( $this, 'render_test_button_field' ), 'scp-queue-macro', 'scp_queue_macro_section' );
-
-		// Page: Unified Ticket Macro
-		add_settings_section(
-			'scp_utm_section',
-			__( 'Unified Ticket Macro Settings', 'supportcandy-plus' ),
-			null,
-			'scp-utm'
-		);
-
-		add_settings_field(
-			'scp_enable_utm',
-			__( 'Enable Feature', 'supportcandy-plus' ),
-			array( $this, 'render_checkbox_field' ),
-			'scp-utm',
-			'scp_utm_section',
-			[
-				'id'   => 'enable_utm',
-				'desc' => __( 'Adds {{scp_unified_ticket}} macro to show a formatted list of ticket fields.', 'supportcandy-plus' ),
-			]
-		);
-
-		add_settings_field(
-			'scp_utm_columns',
-			__( 'Ticket Fields', 'supportcandy-plus' ),
-			array( $this, 'render_utm_columns_dual_list_field' ),
-			'scp-utm',
-			'scp_utm_section',
-			[
-				'id'   => 'utm_columns',
-				'desc' => __( 'Select the ticket fields to include in the macro output. The order of selected columns will be maintained.', 'supportcandy-plus' ),
-			]
-		);
 
 		// Page: Date & Time Formatting
 		add_settings_section(
@@ -573,61 +525,6 @@ class SCP_Admin_Settings {
 		<p class="description"><?php echo esc_html( $args['desc'] ); ?></p>
 		<?php
 	}
-
-	/**
-	 * Render the dual list for UTM columns.
-	 */
-	public function render_utm_columns_dual_list_field( $args ) {
-		$options          = get_option( 'scp_settings', [] );
-		$selected_columns = isset( $options[ $args['id'] ] ) ? (array) $options[ $args['id'] ] : [];
-		$all_columns      = supportcandy_plus()->get_scp_utm_columns();
-
-		$available_columns_map = [];
-		$selected_columns_map  = [];
-
-		// Create a correctly ordered list of selected columns first
-		foreach ( $selected_columns as $slug ) {
-			if ( isset( $all_columns[ $slug ] ) ) {
-				$selected_columns_map[ $slug ] = $all_columns[ $slug ];
-			}
-		}
-
-		// Then, populate available columns, excluding any that are already selected
-		foreach ( $all_columns as $slug => $name ) {
-			if ( ! isset( $selected_columns_map[ $slug ] ) ) {
-				$available_columns_map[ $slug ] = $name;
-			}
-		}
-		?>
-		<input type="hidden" name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>]" value="">
-		<div class="dual-list-container">
-			<div class="dual-list-box" style="display: inline-block; vertical-align: top;">
-				<h3><?php _e( 'Available Columns', 'supportcandy-plus' ); ?></h3>
-				<select multiple id="scp_available_utm_columns" size="10" style="width: 250px; height: 200px;">
-					<?php foreach ( $available_columns_map as $slug => $name ) : ?>
-						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
-					<?php endforeach; ?>
-				</select>
-			</div>
-			<div class="dual-buttons" style="display: inline-block; vertical-align: middle; margin: 0 10px;">
-				<button type="button" class="button" id="scp_add_utm_column_all" style="display: block; margin-bottom: 5px;">&gt;&gt;</button>
-				<button type="button" class="button" id="scp_add_utm_column" style="display: block; margin-bottom: 5px;">&gt;</button>
-				<button type="button" class="button" id="scp_remove_utm_column" style="display: block; margin-bottom: 5px;">&lt;</button>
-				<button type="button" class="button" id="scp_remove_utm_column_all" style="display: block;">&lt;&lt;</button>
-			</div>
-			<div class="dual-list-box" style="display: inline-block; vertical-align: top;">
-				<h3><?php _e( 'Selected Columns', 'supportcandy-plus' ); ?></h3>
-				<select multiple name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>][]" id="scp_selected_utm_columns" size="10" style="width: 250px; height: 200px;">
-					<?php foreach ( $selected_columns_map as $slug => $name ) : ?>
-						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
-					<?php endforeach; ?>
-				</select>
-			</div>
-		</div>
-		<p class="description"><?php echo esc_html( $args['desc'] ); ?></p>
-		<?php
-	}
-
 
 	/**
 	 * Render a checkbox field.
@@ -848,7 +745,6 @@ class SCP_Admin_Settings {
 				case 'enable_after_hours_notice':
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
-				case 'enable_utm':
 				case 'enable_ats':
 					$sanitized_output[ $key ] = (int) $value;
 					break;
@@ -910,15 +806,6 @@ class SCP_Admin_Settings {
 				case 'queue_macro_statuses':
 					if ( is_array( $value ) ) {
 						$sanitized_output[ $key ] = array_map( 'absint', $value );
-					} else {
-						$sanitized_output[ $key ] = []; // Default to empty array.
-					}
-					break;
-
-				// Array of strings for UTM columns
-				case 'utm_columns':
-					if ( is_array( $value ) ) {
-						$sanitized_output[ $key ] = array_map( 'sanitize_text_field', $value );
 					} else {
 						$sanitized_output[ $key ] = []; // Default to empty array.
 					}
