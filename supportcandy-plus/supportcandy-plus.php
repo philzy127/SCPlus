@@ -67,9 +67,10 @@ final class SupportCandy_Plus {
 
 	/**
 	 * Helper function for logging debug messages to a file.
+	 * This is intentionally pointed to the UTM log file for unified debugging.
 	 */
 	private function log_message( $message ) {
-		$log_file = SCP_PLUGIN_PATH . 'debug.log';
+		$log_file = SCP_PLUGIN_PATH . 'scp-utm-debug.log';
 		$timestamp = wp_date( 'Y-m-d H:i:s' );
 		$log_entry = sprintf( "[%s] %s\n", $timestamp, print_r( $message, true ) );
 		file_put_contents( $log_file, $log_entry, FILE_APPEND );
