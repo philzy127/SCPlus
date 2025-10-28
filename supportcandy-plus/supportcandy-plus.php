@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class SupportCandy_Plus {
 
 	private static $instance = null;
+	private $custom_field_data_cache = null;
 
 	public static function get_instance() {
 		if ( is_null( self::$instance ) ) {
@@ -43,6 +44,8 @@ final class SupportCandy_Plus {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
 		SCP_Queue_Macro::get_instance();
+		include_once SCP_PLUGIN_PATH . 'includes/class-scp-utm.php';
+		SCP_UTM::get_instance();
 
 		// After Ticket Survey Module
 		include_once SCP_PLUGIN_PATH . 'includes/modules/after-ticket-survey/class-scp-ats.php';
@@ -370,6 +373,115 @@ final class SupportCandy_Plus {
 		asort( $all_columns );
 
 		return $all_columns;
+	}
+
+	/**
+	 * Get all standard and custom columns for the UTM settings page.
+	 */
+	public function get_scp_utm_columns() {
+		global $wpdb;
+		$columns = [];
+
+		// Standard SupportCandy fields.
+		$standard_fields = [
+			'id'              => __( 'Ticket ID', 'supportcandy-plus' ),
+			'subject'         => __( 'Subject', 'supportcandy-plus' ),
+			'description'     => __( 'Description', 'supportcandy-plus' ),
+			'status'          => __( 'Status', 'supportcandy-plus' ),
+			'category'        => __( 'Category', 'supportcandy-plus' ),
+			'priority'        => __( 'Priority', 'supportcandy-plus' ),
+			'customer'        => __( 'Customer', 'supportcandy-plus' ),
+			'name'            => __( 'Customer Name', 'supportcandy-plus' ),
+			'email'           => __( 'Customer Email', 'supportcandy-plus' ),
+			'agent_created'   => __( 'Created By Agent', 'supportcandy-plus' ),
+			'assigned_agent'  => __( 'Assigned Agent', 'supportcandy-plus' ),
+			'prev_assignee'   => __( 'Previous Assignee', 'supportcandy-plus' ),
+			'usergroups'      => __( 'Usergroups', 'supportcandy-plus' ),
+			'date_created'    => __( 'Date Created', 'supportcandy-plus' ),
+			'last_reply_on'   => __( 'Last Reply On', 'supportcandy-plus' ),
+			'last_reply_by'   => __( 'Last Reply By', 'supportcandy-plus' ),
+			'last_reply_source' => __( 'Last Reply Source', 'supportcandy-plus' ),
+			'date_closed'     => __( 'Date Closed', 'supportcandy-plus' ),
+			'date_updated'    => __( 'Date Updated', 'supportcandy-plus' ),
+			'source'          => __( 'Source', 'supportcandy-plus' ),
+			'ip_address'      => __( 'IP Address', 'supportcandy-plus' ),
+			'os'              => __( 'Operating System', 'supportcandy-plus' ),
+			'browser'         => __( 'Browser', 'supportcandy-plus' ),
+			'tags'            => __( 'Tags', 'supportcandy-plus' ),
+			'add_recipients'  => __( 'Additional Recipients', 'supportcandy-plus' ),
+			'rating'          => __( 'Rating', 'supportcandy-plus' ),
+			'sf_date'         => __( 'Satisfaction Survey Date', 'supportcandy-plus' ),
+			'sf_feedback'     => __( 'Satisfaction Survey Feedback', 'supportcandy-plus' ),
+		];
+
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
+			$custom_fields = $wpdb->get_results( "SELECT slug, name FROM `{$custom_fields_table}`", ARRAY_A );
+			if ( $custom_fields ) {
+				foreach ( $custom_fields as $field ) {
+					$columns[ $field['slug'] ] = $field['name'];
+				}
+			}
+		}
+
+		// Merge and sort.
+		$all_columns = array_merge( $standard_fields, $columns );
+		asort( $all_columns );
+
+		return $all_columns;
+	}
+
+	/**
+	 * Get all custom fields with their types and options.
+	 * This is a more comprehensive data fetcher than get_supportcandy_columns.
+	 * Results are cached for the duration of the request.
+	 */
+	public function get_all_custom_field_data() {
+		if ( ! is_null( $this->custom_field_data_cache ) ) {
+			return $this->custom_field_data_cache;
+		}
+
+		global $wpdb;
+		$fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		$options_table = $wpdb->prefix . 'psmsc_options';
+		$results = [];
+
+		$query = "
+            SELECT
+                cf.id,
+                cf.slug,
+                cf.name,
+                cf.type,
+                opt.id as option_id,
+                opt.name as option_name
+            FROM {$fields_table} AS cf
+            LEFT JOIN {$options_table} AS opt ON cf.id = opt.field
+            ORDER BY cf.slug, opt.name ASC
+        ";
+
+		$db_results = $wpdb->get_results( $query, ARRAY_A );
+
+		if ( $db_results ) {
+			foreach ( $db_results as $row ) {
+				$slug = $row['slug'];
+				if ( ! isset( $results[ $slug ] ) ) {
+					$results[ $slug ] = [
+						'id'      => (int) $row['id'],
+						'slug'    => $slug,
+						'name'    => $row['name'],
+						'type'    => $row['type'],
+						'options' => [],
+					];
+				}
+				if ( ! empty( $row['option_id'] ) ) {
+					$results[ $slug ]['options'][ $row['option_id'] ] = $row['option_name'];
+				}
+			}
+		}
+
+		$this->custom_field_data_cache = $results;
+		return $this->custom_field_data_cache;
 	}
 }
 
