@@ -80,20 +80,20 @@ final class SupportCandy_Plus {
 	 * Apply the date/time formatting rules.
 	 */
 	public function apply_date_time_formats() {
-		$this->log_message( 'Running apply_date_time_formats...' );
+		// $this->log_message( 'Running apply_date_time_formats...' );
 		$options = get_option( 'scp_settings', [] );
 		if ( empty( $options['enable_date_time_formatting'] ) ) {
-			$this->log_message( 'Date formatting feature is disabled. Aborting.' );
+			// $this->log_message( 'Date formatting feature is disabled. Aborting.' );
 			return;
 		}
-		$this->log_message( 'Date formatting feature is enabled.' );
+		// $this->log_message( 'Date formatting feature is enabled.' );
 		$rules = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
 
 		if ( empty( $rules ) ) {
-			$this->log_message( 'No date formatting rules found. Aborting.' );
+			// $this->log_message( 'No date formatting rules found. Aborting.' );
 			return;
 		}
-		$this->log_message( 'Found ' . count( $rules ) . ' rules.' );
+		// $this->log_message( 'Found ' . count( $rules ) . ' rules.' );
 
 		// Store rules in a more accessible format.
 		$this->formatted_rules = [];
@@ -464,7 +464,6 @@ final class SupportCandy_Plus {
                 opt.name as option_name
             FROM {$fields_table} AS cf
             LEFT JOIN {$options_table} AS opt ON cf.id = opt.field_id
-            WHERE cf.is_active = 1
             ORDER BY cf.slug, opt.name ASC
         ";
 
