@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class SupportCandy_Plus {
 
 	private static $instance = null;
+	private $custom_field_data_cache = null;
 
 	public static function get_instance() {
 		if ( is_null( self::$instance ) ) {
@@ -430,6 +431,59 @@ final class SupportCandy_Plus {
 		asort( $all_columns );
 
 		return $all_columns;
+	}
+
+	/**
+	 * Get all custom fields with their types and options.
+	 * This is a more comprehensive data fetcher than get_supportcandy_columns.
+	 * Results are cached for the duration of the request.
+	 */
+	public function get_all_custom_field_data() {
+		if ( ! is_null( $this->custom_field_data_cache ) ) {
+			return $this->custom_field_data_cache;
+		}
+
+		global $wpdb;
+		$fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		$options_table = $wpdb->prefix . 'psmsc_options';
+		$results = [];
+
+		$query = "
+            SELECT
+                cf.id,
+                cf.slug,
+                cf.name,
+                cf.type,
+                opt.id as option_id,
+                opt.name as option_name
+            FROM {$fields_table} AS cf
+            LEFT JOIN {$options_table} AS opt ON cf.id = opt.field_id
+            WHERE cf.is_active = 1
+            ORDER BY cf.slug, opt.name ASC
+        ";
+
+		$db_results = $wpdb->get_results( $query, ARRAY_A );
+
+		if ( $db_results ) {
+			foreach ( $db_results as $row ) {
+				$slug = $row['slug'];
+				if ( ! isset( $results[ $slug ] ) ) {
+					$results[ $slug ] = [
+						'id'      => (int) $row['id'],
+						'slug'    => $slug,
+						'name'    => $row['name'],
+						'type'    => $row['type'],
+						'options' => [],
+					];
+				}
+				if ( ! empty( $row['option_id'] ) ) {
+					$results[ $slug ]['options'][ $row['option_id'] ] = $row['option_name'];
+				}
+			}
+		}
+
+		$this->custom_field_data_cache = $results;
+		return $this->custom_field_data_cache;
 	}
 }
 
