@@ -456,7 +456,7 @@ final class SupportCandy_Plus {
                 opt.id as option_id,
                 opt.name as option_name
             FROM {$fields_table} AS cf
-            LEFT JOIN {$options_table} AS opt ON cf.id = opt.field
+            LEFT JOIN {$options_table} AS opt ON cf.id = opt.custom_field
             ORDER BY cf.slug, opt.name ASC
         ";
 
