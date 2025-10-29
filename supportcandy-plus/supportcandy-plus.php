@@ -55,17 +55,7 @@ final class SupportCandy_Plus {
 	 * Constructor.
 	 */
 	private function __construct() {
-		add_action( 'plugins_loaded', array( $this, 'check_dependencies' ) );
 		add_action( 'init', array( $this, 'load_plugin' ) );
-	}
-
-	/**
-	 * Check if SupportCandy is active.
-	 */
-	public function check_dependencies() {
-		if ( ! class_exists( 'SupportCandy' ) ) {
-			add_action( 'admin_notices', array( $this, 'dependency_missing_notice' ) );
-		}
 	}
 
 	/**
@@ -80,8 +70,10 @@ final class SupportCandy_Plus {
 	 * Load the plugin's features.
 	 */
 	public function load_plugin() {
+		// Check for SupportCandy dependency.
 		if ( ! class_exists( 'SupportCandy' ) ) {
-			return; // Don't load if the base plugin isn't active.
+			add_action( 'admin_notices', array( $this, 'dependency_missing_notice' ) );
+			return;
 		}
 
 		// Load text domain for localization.
@@ -293,5 +285,7 @@ function supportcandy_plus() {
 	return SupportCandy_Plus::get_instance();
 }
 
-// Initialize the plugin.
-supportcandy_plus();
+function scp_run_supportcandy_plus() {
+	supportcandy_plus();
+}
+add_action( 'init', 'scp_run_supportcandy_plus' );
