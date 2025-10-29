@@ -106,6 +106,15 @@ class SCP_Admin_Settings {
 			'scp-date-time-formatting',
 			array( $this, 'date_time_formatting_page_content' )
 		);
+
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
+			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-utm',
+			array( $this, 'utm_page_content' )
+		);
 	}
 
 	/**
@@ -166,6 +175,13 @@ class SCP_Admin_Settings {
 	 */
 	public function date_time_formatting_page_content() {
 		$this->render_settings_page_wrapper( 'scp-date-time-formatting' );
+	}
+
+	/**
+	 * Render the UTM settings page content.
+	 */
+	public function utm_page_content() {
+		$this->render_settings_page_wrapper( 'scp-utm' );
 	}
 
 	/**
@@ -349,6 +365,38 @@ class SCP_Admin_Settings {
 			array( $this, 'render_date_time_formatting_rules_builder' ),
 			'scp-date-time-formatting',
 			'scp_date_time_formatting_section'
+		);
+
+		// Page: Unified Ticket Macro
+		add_settings_section(
+			'scp_utm_section',
+			__( 'Unified Ticket Macro Settings', 'supportcandy-plus' ),
+			null,
+			'scp-utm'
+		);
+
+		add_settings_field(
+			'scp_enable_utm',
+			__( 'Enable Feature', 'supportcandy-plus' ),
+			array( $this, 'render_checkbox_field' ),
+			'scp-utm',
+			'scp_utm_section',
+			[
+				'id'   => 'enable_utm',
+				'desc' => __( 'Adds the {{scp_unified_ticket}} macro to the notification builder.', 'supportcandy-plus' ),
+			]
+		);
+
+		add_settings_field(
+			'scp_utm_columns',
+			__( 'Ticket Fields to Include', 'supportcandy-plus' ),
+			array( $this, 'render_utm_columns_field' ),
+			'scp-utm',
+			'scp_utm_section',
+			[
+				'id'   => 'utm_columns',
+				'desc' => __( 'Select the ticket fields that will be included in the macro output.', 'supportcandy-plus' ),
+			]
 		);
 	}
 
@@ -718,6 +766,66 @@ class SCP_Admin_Settings {
 	}
 
 	/**
+	 * Render the dual list for UTM columns.
+	 */
+	public function render_utm_columns_field( $args ) {
+		$options         = get_option( 'scp_settings', [] );
+		$selected_cols   = isset( $options[ $args['id'] ] ) ? $options[ $args['id'] ] : [];
+		$all_cols        = supportcandy_plus()->get_scp_utm_columns();
+		$available_cols_map = [];
+		$selected_cols_map  = [];
+
+		// Create a map of selected columns for easy lookup.
+		$selected_lookup = array_flip( $selected_cols );
+
+		// Populate the selected and available maps.
+		foreach ( $all_cols as $slug => $name ) {
+			if ( isset( $selected_lookup[ $slug ] ) ) {
+				$selected_cols_map[ $slug ] = $name;
+			} else {
+				$available_cols_map[ $slug ] = $name;
+			}
+		}
+
+		// Ensure the selected columns are in the saved order.
+		$ordered_selected_map = [];
+		foreach ( $selected_cols as $slug ) {
+			if ( isset( $selected_cols_map[ $slug ] ) ) {
+				$ordered_selected_map[ $slug ] = $selected_cols_map[ $slug ];
+			}
+		}
+
+		?>
+		<input type="hidden" name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>]" value="">
+		<div class="scp-duallist-container">
+			<div class="scp-duallist-box">
+				<h3><?php _e( 'Available Columns', 'supportcandy-plus' ); ?></h3>
+				<select multiple id="scp_utm_available_columns" size="10">
+					<?php foreach ( $available_cols_map as $slug => $name ) : ?>
+						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<div class="scp-duallist-buttons">
+				<button type="button" class="button" id="scp_utm_add_all_columns">&gt;&gt;</button>
+				<button type="button" class="button" id="scp_utm_add_column">&gt;</button>
+				<button type="button" class="button" id="scp_utm_remove_column">&lt;</button>
+				<button type="button" class="button" id="scp_utm_remove_all_columns">&lt;&lt;</button>
+			</div>
+			<div class="scp-duallist-box">
+				<h3><?php _e( 'Selected Columns', 'supportcandy-plus' ); ?></h3>
+				<select multiple name="scp_settings[<?php echo esc_attr( $args['id'] ); ?>][]" id="scp_utm_selected_columns" size="10">
+					<?php foreach ( $ordered_selected_map as $slug => $name ) : ?>
+						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+		</div>
+		<p class="description"><?php echo esc_html( $args['desc'] ); ?></p>
+		<?php
+	}
+
+	/**
 	 * Sanitize the settings with a simpler, more robust method.
 	 */
 	public function sanitize_settings( $input ) {
@@ -746,6 +854,7 @@ class SCP_Admin_Settings {
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
 				case 'enable_ats':
+				case 'enable_utm':
 					$sanitized_output[ $key ] = (int) $value;
 					break;
 
@@ -808,6 +917,15 @@ class SCP_Admin_Settings {
 						$sanitized_output[ $key ] = array_map( 'absint', $value );
 					} else {
 						$sanitized_output[ $key ] = []; // Default to empty array.
+					}
+					break;
+
+				// Array of strings for UTM columns
+				case 'utm_columns':
+					if ( is_array( $value ) ) {
+						$sanitized_output[ $key ] = array_map( 'sanitize_text_field', $value );
+					} else {
+						$sanitized_output[ $key ] = [];
 					}
 					break;
 
