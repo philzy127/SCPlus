@@ -233,7 +233,7 @@ final class SupportCandy_Plus {
 
 		global $wpdb;
 		$cf_table     = $wpdb->prefix . 'psmsc_custom_fields';
-		$options_table = $wpdb->prefix . 'psmsc_custom_field_options';
+		$options_table = $wpdb->prefix . 'psmsc_options';
 
 		$fields = [];
 
