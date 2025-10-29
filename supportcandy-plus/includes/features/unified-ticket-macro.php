@@ -33,13 +33,21 @@ class SCP_Unified_Ticket_Macro {
 	/**
 	 * Replace the macro with the formatted ticket data.
 	 */
-	public function replace_macro( $body, $thread ) {
+	public function replace_macro( $email_data, $thread ) {
+		// Handle polymorphic argument: could be a string or an array.
+		if ( is_array( $email_data ) ) {
+			$body = $email_data['body'] ?? '';
+		} else {
+			$body = $email_data;
+		}
+
 		if ( false === strpos( $body, '{{scp_unified_ticket}}' ) ) {
-			return $body;
+			return $email_data;
 		}
 
 		if ( ! $thread || ! $thread->ticket ) {
-			return str_replace( '{{scp_unified_ticket}}', '', $body ); // Remove macro if ticket not found.
+			$body = str_replace( '{{scp_unified_ticket}}', '', $body );
+			return is_array( $email_data ) ? [ 'body' => $body ] : $body;
 		}
 
 		// Load the full ticket object.
@@ -76,12 +84,23 @@ class SCP_Unified_Ticket_Macro {
 				$cf_id = $custom_fields_map[ $slug ]['id'];
 				if ( isset( $ticket->custom_fields[ $cf_id ] ) ) {
 					$raw_value = $ticket->custom_fields[ $cf_id ];
-					// Check if there are predefined options for this custom field.
-					if ( ! empty( $custom_fields_map[ $slug ]['options'] ) && isset( $custom_fields_map[ $slug ]['options'][ $raw_value ] ) ) {
-						// Map the stored value (ID) to its label.
+
+					// Handle multi-value fields (e.g., checkboxes).
+					if ( is_array( $raw_value ) ) {
+						$mapped_values = [];
+						foreach ( $raw_value as $single_value ) {
+							if ( ! empty( $custom_fields_map[ $slug ]['options'] ) && isset( $custom_fields_map[ $slug ]['options'][ $single_value ] ) ) {
+								$mapped_values[] = $custom_fields_map[ $slug ]['options'][ $single_value ];
+							} else {
+								$mapped_values[] = $single_value;
+							}
+						}
+						$field_value = implode( ', ', $mapped_values );
+					} elseif ( ! empty( $custom_fields_map[ $slug ]['options'] ) && isset( $custom_fields_map[ $slug ]['options'][ $raw_value ] ) ) {
+						// Handle single-value fields with options (e.g., dropdown).
 						$field_value = $custom_fields_map[ $slug ]['options'][ $raw_value ];
 					} else {
-						// For fields like text, date, etc., that don't have predefined options.
+						// Handle fields with no options (e.g., text, date).
 						$field_value = $raw_value;
 					}
 				}
@@ -133,8 +152,14 @@ class SCP_Unified_Ticket_Macro {
 		$log_message = 'UTM Safe Debug Snapshot:' . "\n" . print_r( $debug_snapshot, true );
 		error_log( $log_message, 3, SCP_PLUGIN_PATH . 'scp-utm-debug.log' );
 
+		$body = str_replace( '{{scp_unified_ticket}}', $output, $body );
 
-		return str_replace( '{{scp_unified_ticket}}', $output, $body );
+		// Return the data in the same format it was received.
+		if ( is_array( $email_data ) ) {
+			$email_data['body'] = $body;
+			return $email_data;
+		}
+		return $body;
 	}
 
 	/**
