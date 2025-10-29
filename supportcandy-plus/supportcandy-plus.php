@@ -55,20 +55,18 @@ final class SupportCandy_Plus {
 	 * Constructor.
 	 */
 	private function __construct() {
-		add_action( 'plugins_loaded', array( $this, 'check_dependencies' ) );
-		add_action( 'init', array( $this, 'load_plugin' ) );
+		add_action( 'plugins_loaded', array( $this, 'load_plugin' ) );
 	}
 
 	/**
 	 * Load the plugin's features.
 	 * This is the main entry point for the plugin.
 	 */
-	public function check_dependencies() {
+	public function load_plugin() {
 		if ( ! class_exists( 'SupportCandy' ) ) {
 			add_action( 'admin_notices', array( $this, 'dependency_missing_notice' ) );
+			return;
 		}
-	}
-	public function load_plugin() {
 
 		// Load text domain for localization.
 		load_plugin_textdomain( 'supportcandy-plus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
@@ -239,7 +237,7 @@ final class SupportCandy_Plus {
 		$field_ids = wp_list_pluck( $custom_fields, 'id' );
 
 		// Step 2: Get all options for these fields in a single query.
-		$options_sql = "SELECT custom_field, option_value, option_name FROM {$options_table} WHERE custom_field IN (" . implode( ',', array_map( 'absint', $field_ids ) ) . ')';
+		$options_sql = "SELECT custom_field, id, name FROM {$options_table} WHERE custom_field IN (" . implode( ',', array_map( 'absint', $field_ids ) ) . ')';
 		$all_options = $wpdb->get_results( $options_sql );
 
 		// Detailed logging for diagnostics.
@@ -259,7 +257,7 @@ final class SupportCandy_Plus {
 			if ( ! isset( $options_map[ $option->custom_field ] ) ) {
 				$options_map[ $option->custom_field ] = [];
 			}
-			$options_map[ $option->custom_field ][ $option->option_value ] = $option->option_name;
+			$options_map[ $option->custom_field ][ $option->id ] = $option->name;
 		}
 
 		// Step 4: Combine field data with its options.
