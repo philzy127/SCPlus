@@ -99,9 +99,10 @@ class SCP_Unified_Ticket_Macro {
 						$value = $ticket->last_reply; // Property name mismatch.
 						break;
 					default:
-						if ( property_exists( $ticket, $slug ) ) {
-							$value = $ticket->$slug;
-						} elseif ( property_exists( $thread, $slug ) ) {
+						// Use direct access to allow the __get magic method to work.
+						$value = $ticket->$slug;
+						if ( is_null( $value ) && isset( $thread->$slug ) ) {
+							// Fallback to the thread object for fields like ip_address.
 							$value = $thread->$slug;
 						}
 						break;

@@ -55,7 +55,31 @@ final class SupportCandy_Plus {
 	 * Constructor.
 	 */
 	private function __construct() {
+		add_action( 'plugins_loaded', array( $this, 'check_dependencies' ) );
 		add_action( 'init', array( $this, 'load_plugin' ) );
+	}
+
+	/**
+	 * Load the plugin's features.
+	 * This is the main entry point for the plugin.
+	 */
+	public function check_dependencies() {
+		if ( ! class_exists( 'SupportCandy' ) ) {
+			add_action( 'admin_notices', array( $this, 'dependency_missing_notice' ) );
+		}
+	}
+	public function load_plugin() {
+
+		// Load text domain for localization.
+		load_plugin_textdomain( 'supportcandy-plus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+
+		// Load admin settings and features.
+		if ( is_admin() ) {
+			require_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
+			require_once SCP_PLUGIN_PATH . 'assets/admin/js/admin-scripts-loader.php';
+		}
+
+		$this->load_features();
 	}
 
 	/**
@@ -64,31 +88,6 @@ final class SupportCandy_Plus {
 	public function dependency_missing_notice() {
 		echo '<div class="error"><p>' . esc_html__( 'SupportCandy Plus requires the SupportCandy plugin to be installed and active.', 'supportcandy-plus' ) . '</p></div>';
 	}
-
-
-	/**
-	 * Load the plugin's features.
-	 */
-	public function load_plugin() {
-		// Check for SupportCandy dependency.
-		if ( ! class_exists( 'SupportCandy' ) ) {
-			add_action( 'admin_notices', array( $this, 'dependency_missing_notice' ) );
-			return;
-		}
-
-		// Load text domain for localization.
-		load_plugin_textdomain( 'supportcandy-plus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-
-		// Load admin settings.
-		if ( is_admin() ) {
-			require_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
-			require_once SCP_PLUGIN_PATH . 'assets/admin/js/admin-scripts-loader.php'; // Correctly load admin scripts.
-		}
-
-		// Load features based on settings.
-		$this->load_features();
-	}
-
 
 	/**
 	 * Load features based on saved settings.
@@ -145,7 +144,7 @@ final class SupportCandy_Plus {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
 		$columns    = [];
-		$results    = $wpdb->get_results( "SELECT slug, name FROM {$table_name} WHERE is_active = 1 ORDER BY name ASC" );
+		$results    = $wpdb->get_results( "SELECT slug, name FROM {$table_name} ORDER BY name ASC" );
 		if ( $results ) {
 			foreach ( $results as $row ) {
 				$columns[ $row->slug ] = $row->name;
@@ -230,7 +229,7 @@ final class SupportCandy_Plus {
 		$fields = [];
 
 		// Step 1: Get all active custom fields.
-		$custom_fields = $wpdb->get_results( "SELECT id, name, slug FROM {$cf_table} WHERE is_active = 1" );
+		$custom_fields = $wpdb->get_results( "SELECT id, name, slug FROM {$cf_table}" );
 
 		if ( ! $custom_fields ) {
 			$this->custom_field_data_cache = [];
@@ -285,7 +284,5 @@ function supportcandy_plus() {
 	return SupportCandy_Plus::get_instance();
 }
 
-function scp_run_supportcandy_plus() {
-	supportcandy_plus();
-}
-add_action( 'init', 'scp_run_supportcandy_plus' );
+// Initialize the plugin.
+supportcandy_plus();

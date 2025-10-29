@@ -50,7 +50,8 @@ jQuery( document ).ready(
 				$.post(
 					ajaxurl,
 					{
-						action: 'scp_test_queue_macro'
+						action: 'scp_test_queue_macro',
+						_ajax_nonce: scp_admin_ajax.nonce
 					},
 					function (response) {
 						$( '#scp_test_results_content' ).html( response );
