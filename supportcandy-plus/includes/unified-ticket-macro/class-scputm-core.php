@@ -24,6 +24,17 @@ class SCPUTM_Core {
 	}
 
 	/**
+	 * Helper function for logging debug messages.
+	 */
+	private function _log( $message ) {
+		if ( ! defined('SCP_PLUGIN_PATH') ) return;
+		$log_file = SCP_PLUGIN_PATH . 'debug.log';
+		$timestamp = wp_date( 'Y-m-d H:i:s' );
+		$log_entry = sprintf( "[%s] [UTM] %s\n", $timestamp, print_r( $message, true ) );
+		file_put_contents( $log_file, $log_entry, FILE_APPEND );
+	}
+
+	/**
 	 * Initialize the core logic.
 	 */
 	private function __construct() {
@@ -31,6 +42,8 @@ class SCPUTM_Core {
 		if ( empty( $options['enable_utm'] ) ) {
 			return;
 		}
+
+		$this->_log('Initializing UTM feature hooks.');
 
 		// === NEW ARCHITECTURE: DELAY THE EMAIL ===
 
@@ -45,20 +58,17 @@ class SCPUTM_Core {
 
 		// === STANDARD CACHE AND MACRO HOOKS ===
 
-		// Hooks for updating the cache on ticket updates (replies, status changes, etc.).
 		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_status', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_priority', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_assign_agent', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 
-		// Hooks for replacing the macro in all relevant emails.
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_agent_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_customer_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_close_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
-		// Register macro tag.
 		add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
 	}
 
@@ -66,6 +76,7 @@ class SCPUTM_Core {
 	 * Schedule the background job to build the cache and send the delayed email.
 	 */
 	public function scputm_schedule_delayed_email( $ticket_id ) {
+		$this->_log( "Action 'wpsc_create_new_ticket' fired for ticket ID: {$ticket_id}. Scheduling delayed email job." );
 		wp_schedule_single_event( time() + 15, 'scputm_send_delayed_email_hook', array( 'ticket_id' => $ticket_id ) );
 	}
 
@@ -74,43 +85,51 @@ class SCPUTM_Core {
 	 */
 	public function scputm_send_delayed_email_action( $args ) {
 		$ticket_id = isset( $args['ticket_id'] ) ? intval( $args['ticket_id'] ) : 0;
+		$this->_log( "Cron job 'scputm_send_delayed_email_hook' started for ticket ID: {$ticket_id}." );
+
 		if ( ! $ticket_id ) {
+			$this->_log( 'Error: Cron job terminated. Ticket ID is zero or missing.' );
 			return;
 		}
 
-		// First, build and save the cache so it's ready for the email.
+		$this->_log( "Step 1: Building and saving cache for ticket {$ticket_id}." );
 		$this->scputm_update_utm_cache( $ticket_id );
+		$this->_log( 'Step 1: Cache update complete.' );
 
-		// Temporarily remove our disabling filter so the email can be sent.
+		$this->_log( 'Step 2: Temporarily removing email disabling filter.' );
 		remove_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_disable_default_new_ticket_email' ), 999 );
 
-		// Manually trigger the "New Ticket Created" email notification.
+		$this->_log( "Step 3: Manually triggering 'create_ticket' email for ticket {$ticket_id}." );
 		if ( class_exists('WPSC_Email') ) {
 			$wpsc_email = new WPSC_Email();
 			if ( method_exists( $wpsc_email, 'create_ticket' ) ) {
 				$wpsc_email->create_ticket( $ticket_id );
+				$this->_log( "Step 3: Email trigger method called successfully for ticket {$ticket_id}." );
+			} else {
+				$this->_log( "Error: WPSC_Email->create_ticket() method does not exist." );
 			}
+		} else {
+			$this->_log( 'Error: WPSC_Email class does not exist.' );
 		}
 
-		// Add the disabling filter back for the next ticket submission.
+		$this->_log( 'Step 4: Re-adding email disabling filter.' );
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_disable_default_new_ticket_email' ), 999, 1 );
+		$this->_log( "Cron job finished for ticket ID: {$ticket_id}." );
 	}
 
 	/**
 	 * Disables the default "New Ticket Created" email by returning false.
 	 */
 	public function scputm_disable_default_new_ticket_email( $data ) {
+		$this->_log( 'Filter `wpsc_create_ticket_email_data` intercepted. Disabling default email.' );
 		return false;
 	}
 
 	/**
-	 * Register the macro tag so it appears in the UI.
+	 * Register the macro tag.
 	 */
 	public function register_macro( $macros ) {
-		$macros[] = array(
-			'tag'   => '{{scp_unified_ticket}}',
-			'title' => esc_attr__( 'Unified Ticket Macro', 'supportcandy-plus' ),
-		);
+		$macros[] = array( 'tag' => '{{scp_unified_ticket}}', 'title' => esc_attr__( 'Unified Ticket Macro', 'supportcandy-plus' ) );
 		return $macros;
 	}
 
@@ -160,19 +179,13 @@ class SCPUTM_Core {
 	 * Replaces the macro in the email body with the cached content.
 	 */
 	public function scputm_replace_utm_macro( $data, $thread ) {
-		// If our disabling hook has already returned false, respect that.
 		if ( $data === false ) return false;
-
 		if ( strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) return $data;
-
 		$ticket = $thread->ticket;
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) return $data;
-
 		$misc_data   = $ticket->misc;
 		$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
-
 		$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
-
 		return $data;
 	}
 }
