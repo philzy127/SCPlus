@@ -123,6 +123,9 @@ class SCPUTM_Core {
 				if ( is_a( $field_value, 'WPSC_Customer' ) ) {
 					$field_value = isset( $field_value->display_name ) ? $field_value->display_name : $field_value->name;
 				}
+				if ( $field_value instanceof DateTime ) {
+					$field_value = $field_value->format('m/d/Y');
+				}
 				if ( is_array( $field_value ) ) {
 					$display_values = array();
 					foreach ( $field_value as $value ) {
