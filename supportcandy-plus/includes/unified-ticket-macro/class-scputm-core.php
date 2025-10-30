@@ -117,7 +117,7 @@ class SCPUTM_Core {
 			$field_value = $ticket->{$field_slug};
 			if ( ! empty( $field_value ) ) {
 				$field_name = isset( $field_map[ $field_slug ] ) ? $field_map[ $field_slug ] : $field_slug;
-				if ( is_a( $field_value, 'WPSC_Option' ) ) {
+				if ( is_a( $field_value, 'WPSC_Option' ) || is_a( $field_value, 'WPSC_Category' ) || is_a( $field_value, 'WPSC_Priority' ) ) {
 					$field_value = $field_value->name;
 				}
 				if ( is_array( $field_value ) ) {
