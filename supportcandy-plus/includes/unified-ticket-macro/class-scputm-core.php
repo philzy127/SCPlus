@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SCPUTM_Core {
 
 	private static $instance = null;
+	private $is_delayed_email = false;
 
 	public static function get_instance() {
 		error_log('[UTM] SCPUTM_Core::get_instance() - Enter');
@@ -69,7 +70,7 @@ class SCPUTM_Core {
 
 		$this->scputm_update_utm_cache( $ticket_id );
 
-		remove_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_disable_default_new_ticket_email' ), 999 );
+		$this->is_delayed_email = true;
 
 		if ( class_exists('WPSC_Email') ) {
 			$wpsc_email = new WPSC_Email();
@@ -78,13 +79,17 @@ class SCPUTM_Core {
 			}
 		}
 
-		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_disable_default_new_ticket_email' ), 999, 1 );
+		$this->is_delayed_email = false;
 		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
 	}
 
 	public function scputm_disable_default_new_ticket_email( $data ) {
 		error_log('[UTM] scputm_disable_default_new_ticket_email() - Enter');
-		error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit');
+		if ( $this->is_delayed_email ) {
+			error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit (Is Delayed Email)');
+			return $data;
+		}
+		error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit (Disabling)');
 		return false;
 	}
 
