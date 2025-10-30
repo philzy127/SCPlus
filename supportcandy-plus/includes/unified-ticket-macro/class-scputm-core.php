@@ -18,9 +18,11 @@ class SCPUTM_Core {
 	private $is_delayed_email = false;
 
 	public static function get_instance() {
+		error_log('[UTM] SCPUTM_Core::get_instance() - Enter');
 		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
 		}
+		error_log('[UTM] SCPUTM_Core::get_instance() - Exit');
 		return self::$instance;
 	}
 
@@ -28,8 +30,10 @@ class SCPUTM_Core {
 	 * Initialize the core logic.
 	 */
 	private function __construct() {
+		error_log('[UTM] SCPUTM_Core::__construct() - Enter');
 		$options = get_option( 'scp_settings', [] );
 		if ( empty( $options['enable_utm'] ) ) {
+			error_log('[UTM] SCPUTM_Core::__construct() - Exit (Feature Disabled)');
 			return;
 		}
 
@@ -48,14 +52,19 @@ class SCPUTM_Core {
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
 		add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
+		error_log('[UTM] SCPUTM_Core::__construct() - Exit');
 	}
 
 	public function scputm_schedule_delayed_email( $ticket_id ) {
+		error_log('[UTM] scputm_schedule_delayed_email() - Enter');
 		wp_schedule_single_event( time() + 15, 'scputm_send_delayed_email_hook', array( $ticket_id ) );
+		error_log('[UTM] scputm_schedule_delayed_email() - Exit');
 	}
 
 	public function scputm_send_delayed_email_action( $ticket_id ) {
+		error_log('[UTM] scputm_send_delayed_email_action() - Enter');
 		if ( ! $ticket_id ) {
+			error_log('[UTM] scputm_send_delayed_email_action() - Exit (No Ticket ID)');
 			return;
 		}
 
@@ -71,26 +80,34 @@ class SCPUTM_Core {
 		}
 
 		$this->is_delayed_email = false;
+		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
 	}
 
 	public function scputm_disable_default_new_ticket_email( $data ) {
+		error_log('[UTM] scputm_disable_default_new_ticket_email() - Enter');
 		if ( $this->is_delayed_email ) {
+			error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit (Is Delayed Email)');
 			return $data;
 		}
-		return false;
+		error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit (Disabling)');
+		return array();
 	}
 
 	public function register_macro( $macros ) {
+		error_log('[UTM] register_macro() - Enter');
 		$macros[] = array( 'tag' => '{{scp_unified_ticket}}', 'title' => esc_attr__( 'Unified Ticket Macro', 'supportcandy-plus' ) );
+		error_log('[UTM] register_macro() - Exit');
 		return $macros;
 	}
 
 	private function _scputm_build_live_utm_html( $ticket ) {
+		error_log('[UTM] _scputm_build_live_utm_html() - Enter');
 		$options = get_option( 'scp_settings', [] );
 		$selected_fields = isset( $options['scputm_selected_fields'] ) && is_array( $options['scputm_selected_fields'] ) ? $options['scputm_selected_fields'] : [];
 		$field_map = isset( $options['scputm_field_map'] ) && is_array( $options['scputm_field_map'] ) ? $options['scputm_field_map'] : [];
 
 		if ( empty( $selected_fields ) ) {
+			error_log('[UTM] _scputm_build_live_utm_html() - Exit (No Fields)');
 			return '<table></table>';
 		}
 
@@ -107,16 +124,19 @@ class SCPUTM_Core {
 			}
 		}
 		$html_output .= '</table>';
+		error_log('[UTM] _scputm_build_live_utm_html() - Exit');
 		return $html_output;
 	}
 
 	public function scputm_update_utm_cache( $ticket_or_thread_or_id ) {
+		error_log('[UTM] scputm_update_utm_cache() - Enter');
 		$ticket = null;
 		if ( is_a( $ticket_or_thread_or_id, 'WPSC_Ticket' ) ) $ticket = $ticket_or_thread_or_id;
 		elseif ( is_a( $ticket_or_thread_or_id, 'WPSC_Thread' ) ) $ticket = $ticket_or_thread_or_id->ticket;
 		elseif ( is_numeric( $ticket_or_thread_or_id ) ) $ticket = new WPSC_Ticket( intval( $ticket_or_thread_or_id ) );
 
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) || ! $ticket->id ) {
+			error_log('[UTM] scputm_update_utm_cache() - Exit (Invalid Ticket)');
 			return;
 		}
 
@@ -126,22 +146,24 @@ class SCPUTM_Core {
 		$misc_data['scputm_utm_html'] = $html_to_cache;
 		$ticket->misc = $misc_data;
 		$ticket->save();
+		error_log('[UTM] scputm_update_utm_cache() - Exit');
 	}
 
 	public function scputm_replace_utm_macro( $data, $thread ) {
-		if ( $data === false ) {
-			return false;
-		}
-		if ( strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
+		error_log('[UTM] scputm_replace_utm_macro() - Enter');
+		if ( ! is_array($data) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
+			error_log('[UTM] scputm_replace_utm_macro() - Exit (Macro not found or invalid data)');
 			return $data;
 		}
 		$ticket = $thread->ticket;
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) {
+			error_log('[UTM] scputm_replace_utm_macro() - Exit (Invalid Ticket)');
 			return $data;
 		}
 		$misc_data   = $ticket->misc;
 		$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
 		$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
+		error_log('[UTM] scputm_replace_utm_macro() - Exit');
 		return $data;
 	}
 }
