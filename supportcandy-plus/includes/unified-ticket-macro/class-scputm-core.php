@@ -120,7 +120,17 @@ class SCPUTM_Core {
 				if ( is_a( $field_value, 'WPSC_Option' ) ) {
 					$field_value = $field_value->name;
 				}
-				if ( is_array( $field_value ) ) $field_value = implode( ', ', $field_value );
+				if ( is_array( $field_value ) ) {
+					$display_values = array();
+					foreach ( $field_value as $value ) {
+						if ( is_a( $value, 'WPSC_Agent' ) ) {
+							$display_values[] = $value->name;
+						} else {
+							$display_values[] = $value;
+						}
+					}
+					$field_value = implode( ', ', $display_values );
+				}
 				$html_output .= '<tr><td>' . esc_html( $field_name ) . ':</td><td>' . esc_html( $field_value ) . '</td></tr>';
 			}
 		}
