@@ -1,49 +1,23 @@
 <?php
 /**
- * Plugin Name: SupportCandy Plus
- * Description: An addon for SupportCandy that adds advanced features.
- * Version: 1.0.0
- * Author: Your Name
+ * Plugin Name: SupportCandy Plus!
+ * Description: A collection of enhancements for the SupportCandy plugin.
+ * Version: 2.3.1
+ * Author: StackBoost
+ * Author URI: https://stackBoost.net
  * Text Domain: supportcandy-plus
  * Domain Path: /languages
+ * Requires Plugins:  supportcandy
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-define( 'SCP_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
-define( 'SCP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-
-/**
- * The main SupportCandy_Plus class.
- */
 final class SupportCandy_Plus {
 
-	/**
-	 * The single instance of the class.
-	 *
-	 * @var SupportCandy_Plus
-	 */
 	private static $instance = null;
 
-	/**
-	 * Settings cache.
-	 *
-	 * @var array|null
-	 */
-	private $settings_cache = null;
-
-	/**
-	 * Custom field data cache.
-	 *
-	 * @var array|null
-	 */
-	private $custom_field_data_cache = null;
-
-	/**
-	 * Main SupportCandy_Plus Instance.
-	 */
 	public static function get_instance() {
 		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
@@ -51,236 +25,373 @@ final class SupportCandy_Plus {
 		return self::$instance;
 	}
 
-	/**
-	 * Constructor.
-	 */
 	private function __construct() {
-		add_action( 'plugins_loaded', array( $this, 'load_plugin' ) );
+		$this->define_constants();
+		$this->includes();
+		$this->init_hooks();
+	}
+
+	private function define_constants() {
+		define( 'SCP_PLUGIN_FILE', __FILE__ );
+		define( 'SCP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+		define( 'SCP_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
+		define( 'SCP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+		define( 'SCP_VERSION', '2.3.1' );
+	}
+
+	private function includes() {
+		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
+		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
+		SCP_Queue_Macro::get_instance();
+
+		// Unified Ticket Macro Module
+		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-admin.php';
+		SCPUTM_Admin::get_instance();
+		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-core.php';
+		SCPUTM_Core::get_instance();
+
+		// After Ticket Survey Module
+		include_once SCP_PLUGIN_PATH . 'includes/modules/after-ticket-survey/class-scp-ats.php';
+		if ( class_exists( 'SCP_After_Ticket_Survey' ) ) {
+			SCP_After_Ticket_Survey::get_instance();
+		}
+	}
+
+	private function init_hooks() {
+		add_action( 'plugins_loaded', array( $this, 'on_plugins_loaded' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'init', array( $this, 'apply_date_time_formats' ) );
+	}
+
+	public function on_plugins_loaded() {
+		// Main initialization logic.
 	}
 
 	/**
-	 * Load the plugin's features.
-	 * This is the main entry point for the plugin.
+	 * Helper function for logging debug messages to a file.
 	 */
-	public function load_plugin() {
-		if ( ! class_exists( 'SupportCandy' ) ) {
-			add_action( 'admin_notices', array( $this, 'dependency_missing_notice' ) );
+	private function log_message( $message ) {
+		$log_file = SCP_PLUGIN_PATH . 'debug.log';
+		$timestamp = wp_date( 'Y-m-d H:i:s' );
+		$log_entry = sprintf( "[%s] %s\n", $timestamp, print_r( $message, true ) );
+		file_put_contents( $log_file, $log_entry, FILE_APPEND );
+	}
+
+	/**
+	 * Apply the date/time formatting rules.
+	 */
+	public function apply_date_time_formats() {
+		$this->log_message( 'Running apply_date_time_formats...' );
+		$options = get_option( 'scp_settings', [] );
+		if ( empty( $options['enable_date_time_formatting'] ) ) {
+			$this->log_message( 'Date formatting feature is disabled. Aborting.' );
+			return;
+		}
+		$this->log_message( 'Date formatting feature is enabled.' );
+		$rules = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
+
+		if ( empty( $rules ) ) {
+			$this->log_message( 'No date formatting rules found. Aborting.' );
+			return;
+		}
+		$this->log_message( 'Found ' . count( $rules ) . ' rules.' );
+
+		// Store rules in a more accessible format.
+		$this->formatted_rules = [];
+		foreach ( $rules as $rule ) {
+			if ( ! empty( $rule['column'] ) && 'default' !== $rule['format_type'] ) {
+				$this->formatted_rules[ $rule['column'] ] = $rule;
+			}
+		}
+
+		if ( empty( $this->formatted_rules ) ) {
 			return;
 		}
 
-		// Load text domain for localization.
-		load_plugin_textdomain( 'supportcandy-plus', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+		// Add a single filter for all datetime custom fields.
+		add_filter( 'wpsc_ticket_field_val_datetime', array( $this, 'format_date_time_callback' ), 10, 4 );
 
-		// Load admin settings and features.
-		if ( is_admin() ) {
-			require_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
-			require_once SCP_PLUGIN_PATH . 'assets/admin/js/admin-scripts-loader.php';
-		}
-
-		$this->load_features();
-	}
-
-	/**
-	 * Display a notice if SupportCandy is not active.
-	 */
-	public function dependency_missing_notice() {
-		echo '<div class="error"><p>' . esc_html__( 'SupportCandy Plus requires the SupportCandy plugin to be installed and active.', 'supportcandy-plus' ) . '</p></div>';
-	}
-
-	/**
-	 * Load features based on saved settings.
-	 */
-	private function load_features() {
-		$settings = $this->get_settings();
-
-		if ( ! empty( $settings['enable_right_click_card'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/right-click-card.php';
-		}
-		if ( ! empty( $settings['enable_hide_empty_columns'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/hide-empty-columns.php';
-		}
-		if ( ! empty( $settings['enable_hide_priority_column'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/hide-priority-column.php';
-		}
-		if ( ! empty( $settings['hide_reply_close_for_users'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/hide-reply-close.php';
-		}
-		if ( ! empty( $settings['enable_ticket_type_hiding'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/ticket-type-hiding.php';
-		}
-		if ( ! empty( $settings['enable_conditional_hiding'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/conditional-hiding.php';
-		}
-		if ( ! empty( $settings['enable_after_hours_notice'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/after-hours-notice.php';
-		}
-		if ( ! empty( $settings['enable_queue_macro'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/queue-macro.php';
-		}
-		if ( ! empty( $settings['enable_date_time_formatting'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/date-time-formatting.php';
-		}
-		if ( ! empty( $settings['enable_utm'] ) ) {
-			require_once SCP_PLUGIN_PATH . 'includes/features/unified-ticket-macro.php';
+		// Add filters for all potential standard fields. The callback will check if a rule exists.
+		$standard_fields = [ 'date_created', 'last_reply_on', 'date_closed', 'date_updated' ];
+		foreach ( $standard_fields as $field ) {
+			add_filter( 'wpsc_ticket_field_val_' . $field, array( $this, 'format_date_time_callback' ), 10, 4 );
 		}
 	}
 
 	/**
-	 * Get a setting from the options table.
+	 * Callback function to format the date/time value.
 	 */
-	public function get_settings() {
-		if ( null === $this->settings_cache ) {
-			$this->settings_cache = get_option( 'scp_settings', [] );
-		}
-		return $this->settings_cache;
-	}
+	public function format_date_time_callback( $value, $cf, $ticket, $module ) {
 
-	/**
-	 * Get all SupportCandy custom fields.
-	 */
-	public function get_supportcandy_columns() {
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
-		$columns    = [];
-		$results    = $wpdb->get_results( "SELECT slug, name FROM {$table_name} ORDER BY name ASC" );
-		if ( $results ) {
-			foreach ( $results as $row ) {
-				$columns[ $row->slug ] = $row->name;
+		// CONTEXT CHECK
+		$is_admin_list    = is_admin() && get_current_screen() && get_current_screen()->id === 'toplevel_page_wpsc-tickets';
+		$is_frontend_list = isset( $_POST['is_frontend'] ) && '1' === $_POST['is_frontend'];
+		if ( ! $is_admin_list && ! $is_frontend_list ) {
+			return $value;
+		}
+
+		// GET SLUG
+		$current_filter = current_filter();
+		$field_slug     = null;
+		if ( strpos( $current_filter, 'wpsc_ticket_field_val_datetime' ) !== false ) {
+			if ( is_object( $cf ) && isset( $cf->slug ) ) {
+				$field_slug = $cf->slug;
+			}
+		} else {
+			if ( strpos( $current_filter, 'wpsc_ticket_field_val_' ) === 0 ) {
+				$field_slug = substr( $current_filter, 22 );
 			}
 		}
+
+		if ( ! $field_slug ) {
+			return $value;
+		}
+
+		// FIND RULE
+		if ( ! isset( $this->formatted_rules[ $field_slug ] ) ) {
+			return $value;
+		}
+		$rule = $this->formatted_rules[ $field_slug ];
+
+		// THE OFFICIAL METHOD: Change the display mode on the field object.
+		if ( is_object( $cf ) ) {
+			$cf->date_display_as = 'date';
+		}
+
+		// GET AND VALIDATE DATE OBJECT
+		// Note: The new documentation confirms the property name matches the slug,
+		// e.g., $ticket->last_reply_on. The previous special case was incorrect.
+		$date_object = $ticket->{$field_slug};
+		if ( ! ( $date_object instanceof DateTime ) ) {
+			return $value;
+		}
+
+		// APPLY FORMAT
+		$timestamp         = $date_object->getTimestamp();
+		$new_value         = $value;
+		$short_date_format = 'm/d/Y';
+		$long_date_format  = 'F j, Y';
+		$time_format       = get_option( 'time_format' );
+		$date_format       = ! empty( $rule['use_long_date'] ) ? $long_date_format : $short_date_format;
+
+		if ( ! empty( $rule['show_day_of_week'] ) ) {
+			$day_prefix  = ! empty( $rule['use_long_date'] ) ? 'l, ' : 'D, ';
+			$date_format = $day_prefix . $date_format;
+		}
+
+		switch ( $rule['format_type'] ) {
+			case 'date_only':
+				$new_value = wp_date( $date_format, $timestamp );
+				break;
+			case 'time_only':
+				$new_value = wp_date( $time_format, $timestamp );
+				break;
+			case 'date_and_time':
+				$new_value = wp_date( $date_format . ' ' . $time_format, $timestamp );
+				break;
+			case 'custom':
+				if ( ! empty( $rule['custom_format'] ) ) {
+					$new_value = wp_date( $rule['custom_format'], $timestamp );
+				}
+				break;
+		}
+
+		return $new_value;
+	}
+
+
+	public function get_custom_field_id_by_name( $field_name ) {
+		global $wpdb;
+		if ( empty( $field_name ) ) {
+			return 0;
+		}
+		$table_name = $wpdb->prefix . 'psmsc_custom_fields';
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
+			return 0;
+		}
+		$field_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM `{$table_name}` WHERE name = %s",
+				$field_name
+			)
+		);
+		return $field_id ? (int) $field_id : 0;
+	}
+
+	public function enqueue_scripts() {
+		$options = get_option( 'scp_settings', [] );
+
+		wp_register_script(
+			'supportcandy-plus-frontend',
+			SCP_PLUGIN_URL . 'assets/js/supportcandy-plus-frontend.js',
+			array( 'jquery' ),
+			SCP_VERSION,
+			true
+		);
+
+		$localized_data = [
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'nonce'    => wp_create_nonce( 'wpsc_get_individual_ticket' ),
+			'features' => [
+				'hover_card'         => [
+					'enabled' => ! empty( $options['enable_right_click_card'] ),
+				],
+				'hide_empty_columns' => [
+					'enabled' => ! empty( $options['enable_hide_empty_columns'] ),
+					'hide_priority' => ! empty( $options['enable_hide_priority_column'] ),
+				],
+				'hide_reply_close' => [
+					'enabled' => ! empty( $options['hide_reply_close_for_users'] ),
+				],
+				'ticket_type_hiding' => [
+					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
+					'field_id'      => $this->get_custom_field_id_by_name( ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '' ),
+					'types_to_hide' => ! empty( $options['ticket_types_to_hide'] ) ? array_map( 'trim', explode( "\n", $options['ticket_types_to_hide'] ) ) : [],
+				],
+				'conditional_hiding' => [
+					'enabled' => ! empty( $options['enable_conditional_hiding'] ),
+					'rules'   => isset( $options['conditional_hiding_rules'] ) ? $options['conditional_hiding_rules'] : [],
+					'columns' => $this->get_supportcandy_columns(),
+				],
+				'after_hours_notice' => [
+					'enabled'          => ! empty( $options['enable_after_hours_notice'] ),
+					'start_hour'       => ! empty( $options['after_hours_start'] ) ? (int) $options['after_hours_start'] : 17,
+					'end_hour'         => ! empty( $options['before_hours_end'] ) ? (int) $options['before_hours_end'] : 8,
+					'include_weekends' => ! empty( $options['include_all_weekends'] ),
+					'holidays'         => ! empty( $options['holidays'] ) ? array_map( 'trim', explode( "\n", $options['holidays'] ) ) : [],
+					'message'          => ! empty( $options['after_hours_message'] ) ? wpautop( wp_kses_post( $options['after_hours_message'] ) ) : '',
+				],
+			],
+		];
+
+		wp_localize_script( 'supportcandy-plus-frontend', 'scp_settings', $localized_data );
+		wp_enqueue_script( 'supportcandy-plus-frontend' );
+	}
+
+	public function enqueue_admin_scripts( $hook_suffix ) {
+		$allowed_hooks = [
+			'toplevel_page_supportcandy-plus',
+			'supportcandy-plus_page_scp-conditional-hiding',
+			'supportcandy-plus_page_scp-queue-macro',
+			'supportcandy-plus_page_scp-after-hours',
+			'supportcandy-plus_page_scp-date-time-formatting',
+			'supportcandy-plus_page_scp-how-to-use',
+			'supportcandy-plus_page_scp-ats-manage-questions',
+			'supportcandy-plus_page_scp-ats-view-results',
+			'supportcandy-plus_page_scp-ats-settings',
+			'supportcandy-plus_page_scp-utm',
+		];
+
+		if ( ! in_array( $hook_suffix, $allowed_hooks, true ) ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'supportcandy-plus-admin',
+			SCP_PLUGIN_URL . 'assets/admin/css/supportcandy-plus-admin.css',
+			array(),
+			SCP_VERSION
+		);
+		wp_enqueue_script(
+			'supportcandy-plus-admin',
+			SCP_PLUGIN_URL . 'assets/admin/js/supportcandy-plus-admin.js',
+			array( 'jquery' ),
+			SCP_VERSION,
+			true
+		);
+
+		if ( 'supportcandy-plus_page_scp-date-time-formatting' === $hook_suffix ) {
+			wp_enqueue_script(
+				'scp-date-time-formatting',
+				SCP_PLUGIN_URL . 'assets/admin/js/scp-date-time-formatting.js',
+				array( 'jquery' ),
+				SCP_VERSION,
+				true
+			);
+		}
+
+		if ( 'supportcandy-plus_page_scp-utm' === $hook_suffix ) {
+			wp_enqueue_script(
+				'scp-utm-admin',
+				SCP_PLUGIN_URL . 'assets/admin/js/scp-utm-admin.js',
+				array( 'jquery' ),
+				SCP_VERSION,
+				true
+			);
+		}
+
+		// Localize script for AJAX.
+		wp_localize_script(
+			'supportcandy-plus-admin',
+			'scp_admin_ajax',
+			[
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'scp_test_queue_macro_nonce' ),
+			]
+		);
+	}
+
+	public function get_supportcandy_columns() {
+		global $wpdb;
+		$columns = [];
+
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
+			$custom_fields = $wpdb->get_results( "SELECT slug, name FROM `{$custom_fields_table}`", ARRAY_A );
+			if ( $custom_fields ) {
+				foreach ( $custom_fields as $field ) {
+					$columns[ $field['slug'] ] = $field['name'];
+				}
+			}
+		}
+		asort( $columns ); // Sort the columns alphabetically by name.
 		return $columns;
 	}
 
 	/**
-	 * Get standard and custom columns for date formatting.
+	 * Get all date-based columns for the settings page.
 	 */
 	public function get_date_columns() {
-		$standard_columns = [
-			'date_created'   => __( 'Date Created', 'supportcandy-plus' ),
-			'last_reply_on'  => __( 'Last Reply On', 'supportcandy-plus' ),
-			'date_closed'    => __( 'Date Closed', 'supportcandy-plus' ),
-			'first_response' => __( 'First Response', 'supportcandy-plus' ),
-		];
-
-		// Fetch only custom fields of type 'date'.
 		global $wpdb;
-		$table_name  = $wpdb->prefix . 'psmsc_custom_fields';
-		$custom_cols = [];
-		$results     = $wpdb->get_results( "SELECT slug, name FROM {$table_name} WHERE type = 'date' AND is_active = 1 ORDER BY name ASC" );
-		if ( $results ) {
-			foreach ( $results as $row ) {
-				$custom_cols[ $row->slug ] = $row->name;
-			}
-		}
+		$columns = [];
 
-		return array_merge( $standard_columns, $custom_cols );
-	}
-
-	/**
-	 * Get all standard and custom columns for the UTM feature.
-	 * This is a dedicated function to avoid breaking other features.
-	 */
-	public function get_scp_utm_columns() {
+		// Standard SupportCandy date fields.
 		$standard_fields = [
-			'id'             => __( 'Ticket ID', 'supportcandy-plus' ),
-			'subject'        => __( 'Subject', 'supportcandy-plus' ),
-			'status'         => __( 'Status', 'supportcandy-plus' ),
-			'category'       => __( 'Category', 'supportcandy-plus' ),
-			'priority'       => __( 'Priority', 'supportcandy-plus' ),
-			'customer'       => __( 'Customer Name', 'supportcandy-plus' ),
-			'customer_email' => __( 'Customer Email', 'supportcandy-plus' ),
-			'date_created'   => __( 'Date Created', 'supportcandy-plus' ),
-			'agent_created'  => __( 'Agent Created', 'supportcandy-plus' ),
-			'agent_assigned' => __( 'Agent Assigned', 'supportcandy-plus' ),
-			'last_reply_by'  => __( 'Last Reply By', 'supportcandy-plus' ),
-			'last_reply_on'  => __( 'Last Reply On', 'supportcandy-plus' ),
-			'date_closed'    => __( 'Date Closed', 'supportcandy-plus' ),
-			'created_by_type' => __( 'Created By Type', 'supportcandy-plus' ),
-			'source'         => __( 'Source', 'supportcandy-plus' ),
-			'ip_address'     => __( 'IP Address', 'supportcandy-plus' ),
-			'os'             => __( 'Operating System', 'supportcandy-plus' ),
-			'browser'        => __( 'Browser', 'supportcandy-plus' ),
+			'date_created' => __( 'Date Created', 'supportcandy-plus' ),
+			'last_reply_on'   => __( 'Last Reply', 'supportcandy-plus' ),
+			'date_closed'  => __( 'Date Closed', 'supportcandy-plus' ),
+			'date_updated' => __( 'Date Updated', 'supportcandy-plus' ),
 		];
 
-		$custom_fields = $this->get_supportcandy_columns();
-		$all_columns   = array_merge( $standard_fields, $custom_fields );
-		asort( $all_columns );
-		return $all_columns;
-	}
-
-	/**
-	 * Efficiently get all custom field data, including names, slugs, and options.
-	 * Caches the result to prevent multiple queries within a single request.
-	 *
-	 * @return array An associative array of custom fields, indexed by slug.
-	 *               Each field contains its id, name, slug, and an 'options' array.
-	 */
-	public function get_all_custom_field_data() {
-		if ( null !== $this->custom_field_data_cache ) {
-			return $this->custom_field_data_cache;
-		}
-
-		global $wpdb;
-		$cf_table     = $wpdb->prefix . 'psmsc_custom_fields';
-		$options_table = $wpdb->prefix . 'psmsc_options';
-
-		$fields = [];
-
-		// Step 1: Get all active custom fields.
-		$custom_fields = $wpdb->get_results( "SELECT id, name, slug FROM {$cf_table}" );
-
-		if ( ! $custom_fields ) {
-			$this->custom_field_data_cache = [];
-			return [];
-		}
-
-		$field_ids = wp_list_pluck( $custom_fields, 'id' );
-
-		// Step 2: Get all options for these fields in a single query.
-		$options_sql = "SELECT custom_field, id, name FROM {$options_table} WHERE custom_field IN (" . implode( ',', array_map( 'absint', $field_ids ) ) . ')';
-		$all_options = $wpdb->get_results( $options_sql );
-
-		// Detailed logging for diagnostics.
-		$log_file = SCP_PLUGIN_PATH . 'scp-utm-debug.log';
-		$log_message = "--------------------------------\n";
-		$log_message .= "Timestamp: " . date( 'Y-m-d H:i:s' ) . "\n";
-		$log_message .= "Function: get_all_custom_field_data\n";
-		$log_message .= "Custom Fields Query: " . $wpdb->last_query . "\n";
-		$log_message .= "Custom Fields Found: " . count( $custom_fields ) . "\n";
-		$log_message .= "Options Query: " . $options_sql . "\n";
-		$log_message .= "Options Found: " . count( $all_options ) . "\n";
-		error_log( $log_message, 3, $log_file );
-
-		// Step 3: Map options to their respective fields.
-		$options_map = [];
-		foreach ( $all_options as $option ) {
-			if ( ! isset( $options_map[ $option->custom_field ] ) ) {
-				$options_map[ $option->custom_field ] = [];
+		// Get custom fields of type 'datetime'.
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $custom_fields_table ) ) ) {
+			$custom_fields = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT slug, name FROM `{$custom_fields_table}` WHERE type = %s",
+					'datetime'
+				),
+				ARRAY_A
+			);
+			if ( $custom_fields ) {
+				foreach ( $custom_fields as $field ) {
+					$columns[ $field['slug'] ] = $field['name'];
+				}
 			}
-			$options_map[ $option->custom_field ][ $option->id ] = $option->name;
 		}
 
-		// Step 4: Combine field data with its options.
-		foreach ( $custom_fields as $field ) {
-			$fields[ $field->slug ] = [
-				'id'      => $field->id,
-				'name'    => $field->name,
-				'slug'    => $field->slug,
-				'options' => isset( $options_map[ $field->id ] ) ? $options_map[ $field->id ] : [],
-			];
-		}
+		// Merge and sort.
+		$all_columns = array_merge( $standard_fields, $columns );
+		asort( $all_columns );
 
-		$this->custom_field_data_cache = $fields;
-		return $this->custom_field_data_cache;
+		return $all_columns;
 	}
 }
 
-/**
- * Returns the main instance of SupportCandy_Plus.
- */
 function supportcandy_plus() {
 	return SupportCandy_Plus::get_instance();
 }
 
-// Initialize the plugin.
-supportcandy_plus();
+$GLOBALS['supportcandy_plus'] = supportcandy_plus();

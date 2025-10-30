@@ -1,125 +1,77 @@
-jQuery( document ).ready(
-	function ($) {
-		// Rule builder for Conditional Hiding.
-		$( '#scp-add-date-rule' ).on(
-			'click',
-			function () {
-				let ruleIndex = $('#scp-rules-container .scp-rule').length ? Math.max( ... $.map( $('#scp-rules-container .scp-rule'), el => $( el ).index() ) ) + 1 : 0;
-				let template = $( '#scp-rule-template' ).html().replace( /__INDEX__/g, ruleIndex );
-				$( '#scp-rules-container' ).append( template );
-				$( '#scp-no-rules-message' ).hide();
-			}
-		);
+jQuery(document).ready(function ($) {
+    'use strict';
 
-		$( '#scp-rules-container' ).on(
-			'click',
-			'.scp-remove-rule',
-			function () {
-				$( this ).closest( '.scp-rule' ).remove();
-				if ($('#scp-rules-container .scp-rule').length === 0) {
-					$( '#scp-no-rules-message' ).show();
-				}
-			}
-		);
+    // Handle adding new rules
+    $('#scp-add-rule').on('click', function () {
+        const rulesContainer = $('#scp-rules-container');
+        const template = $('#scp-rule-template').html();
 
-		// Logic for the status dual list.
-		$( '#scp_add_status' ).on(
-			'click',
-			function () {
-				$( '#scp_available_statuses option:selected' ).appendTo( '#scp_selected_statuses' );
-				sortSelect( '#scp_selected_statuses' );
-				$( '#scp_selected_statuses' ).prop( 'selectedIndex', -1 ); // Clear selection.
-			}
-		);
+        // Use a timestamp to ensure a unique index for the new rule
+        const newIndex = new Date().getTime();
 
-		$( '#scp_remove_status' ).on(
-			'click',
-			function () {
-				$( '#scp_selected_statuses option:selected' ).appendTo( '#scp_available_statuses' );
-				sortSelect( '#scp_available_statuses' );
-				$( '#scp_available_statuses' ).prop( 'selectedIndex', -1 ); // Clear selection.
-			}
-		);
+        // Replace the placeholder index with the new unique index
+        const newRuleHtml = template.replace(/__INDEX__/g, newIndex);
 
-		// AJAX call for testing queue macro.
-		$( '#scp_test_queue_macro_button' ).on(
-			'click',
-			function () {
-				$( '#scp_test_results' ).show();
-				$( '#scp_test_results_content' ).html( 'Loading...' );
-				$.post(
-					ajaxurl,
-					{
-						action: 'scp_test_queue_macro',
-						_ajax_nonce: scp_admin_ajax.nonce
-					},
-					function (response) {
-						$( '#scp_test_results_content' ).html( response );
-					}
-				);
-			}
-		);
+        // Hide the 'no rules' message if it exists
+        $('#scp-no-rules-message').hide();
 
-		// UTM dual list logic.
-		$( '#scp_utm_add_column' ).on(
-			'click',
-			function () {
-				$( '#scp_utm_available_columns option:selected' ).appendTo( '#scp_utm_selected_columns' );
-			}
-		);
+        // Append the new rule to the container
+        rulesContainer.append(newRuleHtml);
+    });
 
-		$( '#scp_utm_remove_column' ).on(
-			'click',
-			function () {
-				$( '#scp_utm_selected_columns option:selected' ).appendTo( '#scp_utm_available_columns' );
-				sortSelect( '#scp_utm_available_columns' );
-			}
-		);
+    // Handle removing rules using event delegation
+    $('#scp-rules-container').on('click', '.scp-remove-rule', function () {
+        $(this).closest('.scp-rule').remove();
 
-		$( '#scp_utm_add_all_columns' ).on(
-			'click',
-			function () {
-				$( '#scp_utm_available_columns option' ).appendTo( '#scp_utm_selected_columns' );
-			}
-		);
+        // If no rules are left, show the 'no rules' message
+        if ($('#scp-rules-container').find('.scp-rule').length === 0) {
+            $('#scp-no-rules-message').show();
+        }
+    });
 
-		$( '#scp_utm_remove_all_columns' ).on(
-			'click',
-			function () {
-				$( '#scp_utm_selected_columns option' ).appendTo( '#scp_utm_available_columns' );
-				sortSelect( '#scp_utm_available_columns' );
-			}
-		);
+    // Dual list for Queue Macro statuses
+    $('#scp_add_status').on('click', function () {
+        $('#scp_available_statuses option:selected').each(function () {
+            $(this).remove().appendTo('#scp_selected_statuses');
+        });
+    });
 
-		// Before the form is submitted, select all options in the "selected" list
-		// so they are all included in the POST data.
-		$( 'form' ).on(
-			'submit',
-			function () {
-				$( '#scp_selected_statuses option' ).prop( 'selected', true );
-				$( '#scp_utm_selected_columns option' ).prop( 'selected', true );
-			}
-		);
+    $('#scp_remove_status').on('click', function () {
+        $('#scp_selected_statuses option:selected').each(function () {
+            $(this).remove().appendTo('#scp_available_statuses');
+        });
+    });
 
-		// Helper function to sort a select element's options.
-		function sortSelect(selectId) {
-			let options = $( selectId + ' option' );
-			let arr     = options.map(
-				function (_, o) {
-					return { t: $( o ).text(), v: o.value };
-				}
-			).get();
-			arr.sort(
-				function (o1, o2) {
-					return o1.t > o2.t ? 1 : o1.t < o2.t ? -1 : 0;
-				}
-			);
-			options.each(
-				function (i, o) {
-					o.value = arr[i].v;
-					$( o ).text( arr[i].t );
-				}
-			);
-		}
-	}
-);
+    // Before submitting the form, select all items in the 'selected' list for the queue macro
+    $('form[action="options.php"]').on('submit', function () {
+        $('#scp_selected_statuses option').prop('selected', true);
+    });
+
+    // Test button for Queue Macro
+    $('#scp_test_queue_macro_button').on('click', function () {
+        const resultsContent = $('#scp_test_results_content');
+        const resultsContainer = $('#scp_test_results');
+        resultsContent.html('<p>Loading...</p>');
+        resultsContainer.show();
+
+        $.post(scp_admin_ajax.ajax_url, {
+            action: 'scp_test_queue_macro',
+            nonce: scp_admin_ajax.nonce
+        }, function (response) {
+            if (response.success) {
+                let html = '<ul>';
+                if (Object.keys(response.data).length === 0) {
+                    html = '<p>No tickets found for the specified criteria.</p>';
+                } else {
+                    $.each(response.data, function (key, value) {
+                        html += '<li><strong>' + key + ':</strong> ' + value + '</li>';
+                    });
+                }
+                html += '</ul>';
+                resultsContent.html(html);
+            } else {
+                resultsContent.html('<p>Error: ' + response.data + '</p>');
+            }
+        });
+    });
+});
