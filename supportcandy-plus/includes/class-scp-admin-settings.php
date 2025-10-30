@@ -753,9 +753,25 @@ class SCP_Admin_Settings {
 				// Array of strings for UTM fields
 				case 'scputm_selected_fields':
 					if ( is_array( $value ) ) {
-						$sanitized_output[ $key ] = array_map( 'sanitize_text_field', $value );
+						$sanitized_slugs = array_map( 'sanitize_text_field', $value );
+						$sanitized_output[ $key ] = $sanitized_slugs;
+
+						// Create and save a map of slugs to names. This is safe because this
+						// function runs on a full admin page load, not during an AJAX request.
+						$all_columns = supportcandy_plus()->get_supportcandy_columns();
+						$field_map = [];
+						foreach ( $sanitized_slugs as $slug ) {
+							if ( isset( $all_columns[ $slug ] ) ) {
+								$field_map[ $slug ] = $all_columns[ $slug ];
+							} else {
+								$field_map[ $slug ] = $slug; // Fallback to slug if name not found.
+							}
+						}
+						$sanitized_output['scputm_field_map'] = $field_map;
+
 					} else {
-						$sanitized_output[ $key ] = []; // Default to empty array.
+						$sanitized_output[ $key ] = [];
+						$sanitized_output['scputm_field_map'] = [];
 					}
 					break;
 
