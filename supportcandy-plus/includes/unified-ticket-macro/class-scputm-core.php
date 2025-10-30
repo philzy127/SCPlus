@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SCPUTM_Core {
 
 	private static $instance = null;
-	private $is_delayed_email = false;
+	private $is_intercepting = false;
 
 	public static function get_instance() {
 		error_log('[UTM] SCPUTM_Core::get_instance() - Enter');
@@ -39,7 +39,10 @@ class SCPUTM_Core {
 
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_schedule_delayed_email' ), 10, 1 );
 		add_action( 'scputm_send_delayed_email_hook', array( $this, 'scputm_send_delayed_email_action' ), 10, 1 );
-		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_disable_default_new_ticket_email' ), 999, 1 );
+
+		// New interception logic
+		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_flag_new_ticket_email' ), 10, 1 );
+		add_filter( 'pre_wp_mail', array( $this, 'scputm_intercept_wp_mail' ), 10, 2 );
 
 		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_status', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
@@ -70,28 +73,31 @@ class SCPUTM_Core {
 
 		$this->scputm_update_utm_cache( $ticket_id );
 
-		$this->is_delayed_email = true;
-
 		if ( class_exists('WPSC_Email') ) {
 			$wpsc_email = new WPSC_Email();
 			if ( method_exists( $wpsc_email, 'create_ticket' ) ) {
 				$wpsc_email->create_ticket( $ticket_id );
 			}
 		}
-
-		$this->is_delayed_email = false;
 		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
 	}
 
-	public function scputm_disable_default_new_ticket_email( $data ) {
-		error_log('[UTM] scputm_disable_default_new_ticket_email() - Enter');
-		if ( $this->is_delayed_email ) {
-			error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit (Is Delayed Email)');
-			return $data;
-		}
-		error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit (Disabling)');
-		$data['to_email'] = '';
+	public function scputm_flag_new_ticket_email( $data ) {
+		error_log('[UTM] scputm_flag_new_ticket_email() - Enter');
+		$this->is_intercepting = true;
+		error_log('[UTM] scputm_flag_new_ticket_email() - Exit');
 		return $data;
+	}
+
+	public function scputm_intercept_wp_mail( $null, $atts ) {
+		error_log('[UTM] scputm_intercept_wp_mail() - Enter');
+		if ( $this->is_intercepting ) {
+			$this->is_intercepting = false;
+			error_log('[UTM] scputm_intercept_wp_mail() - Exit (Intercepting)');
+			return true;
+		}
+		error_log('[UTM] scputm_intercept_wp_mail() - Exit (Not Intercepting)');
+		return null;
 	}
 
 	public function register_macro( $macros ) {
