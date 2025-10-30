@@ -5,7 +5,7 @@
  * @package SupportCandy_Plus
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if ( ! defined( 'ABSPath' ) ) {
 	exit; // Exit if accessed directly.
 }
 
@@ -24,20 +24,16 @@ class SCPUTM_Core {
 	}
 
 	/**
-	 * Helper function for logging debug messages.
-	 */
-	private function _log( $message ) {
-		if ( ! defined('SCP_PLUGIN_PATH') ) return;
-		$log_file = SCP_PLUGIN_PATH . 'debug.log';
-		$timestamp = wp_date( 'Y-m-d H:i:s' );
-		$log_entry = sprintf( "[%s] [UTM] %s\n", $timestamp, print_r( $message, true ) );
-		file_put_contents( $log_file, $log_entry, FILE_APPEND );
-	}
-
-	/**
 	 * Initialize the core logic.
 	 */
 	private function __construct() {
+		add_action( 'plugins_loaded', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Initialize hooks.
+	 */
+	public function init() {
 		$options = get_option( 'scp_settings', [] );
 		if ( empty( $options['enable_utm'] ) ) {
 			return;
@@ -46,18 +42,11 @@ class SCPUTM_Core {
 		$this->_log('Initializing UTM feature hooks.');
 
 		// === NEW ARCHITECTURE: DELAY THE EMAIL ===
-
-		// 1. When a new ticket is created, schedule our delayed email job.
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_schedule_delayed_email' ), 10, 1 );
-
-		// 2. Hook into WordPress's scheduler for our custom event.
 		add_action( 'scputm_send_delayed_email_hook', array( $this, 'scputm_send_delayed_email_action' ), 10, 1 );
-
-		// 3. Intercept and disable the default "New Ticket Created" email to prevent it from sending instantly.
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_disable_default_new_ticket_email' ), 999, 1 );
 
 		// === STANDARD CACHE AND MACRO HOOKS ===
-
 		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_status', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_priority', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
@@ -72,7 +61,18 @@ class SCPUTM_Core {
 	}
 
 	/**
-	 * Schedule the background job to build the cache and send the delayed email.
+	 * Helper function for logging debug messages.
+	 */
+	private function _log( $message ) {
+		if ( ! defined('SCP_PLUGIN_PATH') ) return;
+		$log_file = SCP_PLUGIN_PATH . 'debug.log';
+		$timestamp = wp_date( 'Y-m-d H:i:s' );
+		$log_entry = sprintf( "[%s] [UTM] %s\n", $timestamp, print_r( $message, true ) );
+		file_put_contents( $log_file, $log_entry, FILE_APPEND );
+	}
+
+	/**
+	 * Schedule the background job.
 	 */
 	public function scputm_schedule_delayed_email( $ticket_id ) {
 		$this->_log( "Action 'wpsc_create_new_ticket' fired for ticket ID: {$ticket_id}. Scheduling delayed email job." );
@@ -80,7 +80,7 @@ class SCPUTM_Core {
 	}
 
 	/**
-	 * The action that runs via WP-Cron to perform the delayed tasks.
+	 * Runs via WP-Cron to perform the delayed tasks.
 	 */
 	public function scputm_send_delayed_email_action( $args ) {
 		$ticket_id = isset( $args['ticket_id'] ) ? intval( $args['ticket_id'] ) : 0;
@@ -117,7 +117,7 @@ class SCPUTM_Core {
 	}
 
 	/**
-	 * Disables the default "New Ticket Created" email by returning false.
+	 * Disables the default "New Ticket Created" email.
 	 */
 	public function scputm_disable_default_new_ticket_email( $data ) {
 		$this->_log( 'Filter `wpsc_create_ticket_email_data` intercepted. Disabling default email.' );
