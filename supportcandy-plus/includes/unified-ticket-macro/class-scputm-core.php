@@ -32,8 +32,7 @@ class SCPUTM_Core {
 			return;
 		}
 
-		// Cache builder hooks
-		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
+		// Cache builder hooks - REMOVED wpsc_create_new_ticket to prevent recursion.
 		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_status', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_priority', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
@@ -79,7 +78,7 @@ class SCPUTM_Core {
 		}
 
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) || ! $ticket->id ) {
-			return; // Exit if we couldn't get a valid ticket object.
+			return;
 		}
 
 		$options = get_option( 'scp_settings', [] );
@@ -117,7 +116,7 @@ class SCPUTM_Core {
 
 
 	/**
-	 * Macro Replacer Function.
+	 * Macro Replacer Function with Lazy Loading.
 	 *
 	 * @param array      $data   Email data.
 	 * @param WPSC_Thread $thread Thread object.
@@ -135,6 +134,15 @@ class SCPUTM_Core {
 		}
 
 		$misc_data = $ticket->misc;
+
+		// LAZY LOADING: If the cache doesn't exist (e.g., for a new ticket), build it now.
+		if ( ! isset( $misc_data['scputm_utm_html'] ) ) {
+			$this->scputm_update_utm_cache( $ticket );
+			// Re-fetch the ticket object to get the updated misc data.
+			$ticket = new WPSC_Ticket( $ticket->id );
+			$misc_data = $ticket->misc;
+		}
+
 		$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
 
 		$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
