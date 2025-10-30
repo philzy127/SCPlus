@@ -90,7 +90,8 @@ class SCPUTM_Core {
 			return $data;
 		}
 		error_log('[UTM] scputm_disable_default_new_ticket_email() - Exit (Disabling)');
-		return array();
+		$data['to'] = '';
+		return $data;
 	}
 
 	public function register_macro( $macros ) {
