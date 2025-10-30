@@ -120,6 +120,9 @@ class SCPUTM_Core {
 				if ( is_a( $field_value, 'WPSC_Option' ) || is_a( $field_value, 'WPSC_Category' ) || is_a( $field_value, 'WPSC_Priority' ) ) {
 					$field_value = $field_value->name;
 				}
+				if ( is_a( $field_value, 'WPSC_Customer' ) ) {
+					$field_value = isset( $field_value->display_name ) ? $field_value->display_name : $field_value->name;
+				}
 				if ( is_array( $field_value ) ) {
 					$display_values = array();
 					foreach ( $field_value as $value ) {
