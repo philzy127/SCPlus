@@ -26,6 +26,7 @@ final class SupportCandy_Plus {
 	}
 
 	private function __construct() {
+		error_log('[UTM] SupportCandy_Plus __construct loaded.');
 		$this->define_constants();
 		$this->includes();
 		$this->init_hooks();
