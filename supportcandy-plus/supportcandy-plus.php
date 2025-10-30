@@ -48,7 +48,7 @@ final class SupportCandy_Plus {
 		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-admin.php';
 		SCPUTM_Admin::get_instance();
 		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-core.php';
-		add_action( 'plugins_loaded', array( 'SCPUTM_Core', 'get_instance' ), 10 );
+		SCPUTM_Core::get_instance();
 
 		// After Ticket Survey Module
 		include_once SCP_PLUGIN_PATH . 'includes/modules/after-ticket-survey/class-scp-ats.php';
