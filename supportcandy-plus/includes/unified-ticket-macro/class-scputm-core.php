@@ -77,12 +77,16 @@ class SCPUTM_Core {
 		error_log('[UTM] scputm_send_delayed_email_action() - After add_filter');
 
 		if ( class_exists('WPSC_Email') ) {
+			error_log('[UTM] scputm_send_delayed_email_action() - WPSC_Email class exists.');
 			$wpsc_email = new WPSC_Email();
 			if ( method_exists( $wpsc_email, 'create_ticket' ) ) {
-				error_log('[UTM] scputm_send_delayed_email_action() - Before create_ticket call');
+				error_log('[UTM] scputm_send_delayed_email_action() - WPSC_Email->create_ticket() method exists.');
 				$wpsc_email->create_ticket( $ticket_id );
-				error_log('[UTM] scputm_send_delayed_email_action() - After create_ticket call');
+			} else {
+				error_log('[UTM] scputm_send_delayed_email_action() - FATAL: WPSC_Email->create_ticket() method does NOT exist.');
 			}
+		} else {
+			error_log('[UTM] scputm_send_delayed_email_action() - FATAL: WPSC_Email class does NOT exist.');
 		}
 		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
 	}
