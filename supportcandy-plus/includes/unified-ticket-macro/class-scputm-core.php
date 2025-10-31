@@ -37,18 +37,14 @@ class SCPUTM_Core {
 			return;
 		}
 
-		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_schedule_delayed_email' ), 10, 1 );
-		add_action( 'scputm_send_delayed_email_hook', array( $this, 'scputm_send_delayed_email_action' ), 10, 1 );
-
-		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
-		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_flag_new_ticket_email' ), 99, 1 );
-		add_filter( 'pre_wp_mail', array( $this, 'scputm_intercept_wp_mail' ), 10, 2 );
+		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_prime_cache_on_creation' ), 5, 1 );
 
 		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_status', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_change_ticket_priority', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 		add_action( 'wpsc_after_assign_agent', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
 
+		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_agent_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_customer_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_close_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
@@ -58,50 +54,50 @@ class SCPUTM_Core {
 		error_log('[UTM] SCPUTM_Core::__construct() - Exit');
 	}
 
-	public function scputm_schedule_delayed_email( $ticket_id ) {
-		error_log('[UTM] scputm_schedule_delayed_email() - Enter');
-		wp_schedule_single_event( time() + 15, 'scputm_send_delayed_email_hook', array( $ticket_id ) );
-		error_log('[UTM] scputm_schedule_delayed_email() - Exit');
-	}
-
-	public function scputm_send_delayed_email_action( $ticket_id ) {
-		error_log('[UTM] scputm_send_delayed_email_action() - Enter');
-		if ( ! $ticket_id ) {
-			error_log('[UTM] scputm_send_delayed_email_action() - Exit (No Ticket ID)');
-			return;
-		}
-
-		$this->scputm_update_utm_cache( $ticket_id );
-
-		$ticket = new WPSC_Ticket( $ticket_id );
+	public function scputm_prime_cache_on_creation( $ticket_id ) {
+		error_log('[UTM] scputm_prime_cache_on_creation() - Enter');
+		$ticket = new WPSC_Ticket( intval( $ticket_id ) );
 		if ( ! $ticket->id ) {
-			error_log('[UTM] scputm_send_delayed_email_action() - Exit (Could not load ticket)');
+			error_log('[UTM] scputm_prime_cache_on_creation() - Exit (Invalid Ticket)');
 			return;
 		}
 
-		error_log('[UTM] scputm_send_delayed_email_action() - Triggering native SC email notification.');
-		$create_ticket_notification = new WPSC_EN_Create_Ticket();
-		$create_ticket_notification->trigger( $ticket );
+		$html_to_cache = $this->_scputm_build_live_utm_html( $ticket );
 
-		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
+		// Use a transient for instant availability. Expires in 1 minute.
+		set_transient( 'scputm_temp_cache_' . $ticket->id, $html_to_cache, 60 );
+		error_log('[UTM] scputm_prime_cache_on_creation() - Transient set.');
+
+		// Defer the permanent save to avoid recursion.
+		add_action( 'shutdown', array( $this, 'scputm_deferred_save' ), 10, 1 );
+
+		// Pass the ticket object to the shutdown action.
+		$this->deferred_ticket_to_save = $ticket;
+
+		error_log('[UTM] scputm_prime_cache_on_creation() - Exit');
 	}
 
-	public function scputm_flag_new_ticket_email( $data ) {
-		error_log('[UTM] scputm_flag_new_ticket_email() - Enter');
-		$this->is_intercepting = true;
-		error_log('[UTM] scputm_flag_new_ticket_email() - Exit');
-		return $data;
-	}
+	public function scputm_deferred_save() {
+		error_log('[UTM] scputm_deferred_save() - Enter');
+		if ( isset( $this->deferred_ticket_to_save ) && is_a( $this->deferred_ticket_to_save, 'WPSC_Ticket' ) ) {
+			$ticket = $this->deferred_ticket_to_save;
+			$html_to_cache = get_transient( 'scputm_temp_cache_' . $ticket->id );
 
-	public function scputm_intercept_wp_mail( $null, $atts ) {
-		error_log('[UTM] scputm_intercept_wp_mail() - Enter');
-		if ( $this->is_intercepting ) {
-			$this->is_intercepting = false;
-			error_log('[UTM] scputm_intercept_wp_mail() - Exit (Intercepting)');
-			return true;
+			if ( $html_to_cache !== false ) {
+				$misc_data = $ticket->misc;
+				$misc_data['scputm_utm_html'] = $html_to_cache;
+				$ticket->misc = $misc_data;
+
+				// This is now safe to call.
+				$ticket->save();
+				error_log('[UTM] scputm_deferred_save() - Permanent cache saved.');
+
+				// Clean up the transient.
+				delete_transient( 'scputm_temp_cache_' . $ticket->id );
+			}
+			unset( $this->deferred_ticket_to_save );
 		}
-		error_log('[UTM] scputm_intercept_wp_mail() - Exit (Not Intercepting)');
-		return null;
+		error_log('[UTM] scputm_deferred_save() - Exit');
 	}
 
 	public function register_macro( $macros ) {
@@ -195,8 +191,18 @@ class SCPUTM_Core {
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) {
 			return $data;
 		}
-		$misc_data   = $ticket->misc;
-		$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
+
+		// Prioritize the transient for the initial "new ticket" email.
+		$transient_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
+		if ( $transient_html !== false ) {
+			$cached_html = $transient_html;
+			error_log('[UTM] scputm_replace_utm_macro() - Using transient cache.');
+		} else {
+			$misc_data   = $ticket->misc;
+			$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
+			error_log('[UTM] scputm_replace_utm_macro() - Using permanent cache.');
+		}
+
 		error_log('[UTM] scputm_replace_utm_macro() - Cached HTML: ' . $cached_html);
 
 		$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
