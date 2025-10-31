@@ -54,11 +54,10 @@ class SCPUTM_Core {
 		error_log('[UTM] SCPUTM_Core::__construct() - Exit');
 	}
 
-	public function scputm_prime_cache_on_creation( $ticket_id ) {
+	public function scputm_prime_cache_on_creation( $ticket ) {
 		error_log('[UTM] scputm_prime_cache_on_creation() - Enter');
-		$ticket = new WPSC_Ticket( intval( $ticket_id ) );
-		if ( ! $ticket->id ) {
-			error_log('[UTM] scputm_prime_cache_on_creation() - Exit (Invalid Ticket)');
+		if ( ! is_a( $ticket, 'WPSC_Ticket' ) || ! $ticket->id ) {
+			error_log('[UTM] scputm_prime_cache_on_creation() - Exit (Invalid Ticket Object)');
 			return;
 		}
 
