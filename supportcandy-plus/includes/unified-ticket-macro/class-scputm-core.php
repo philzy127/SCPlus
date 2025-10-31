@@ -72,17 +72,20 @@ class SCPUTM_Core {
 
 		$this->scputm_update_utm_cache( $ticket_id );
 
-		error_log('[UTM] scputm_send_delayed_email_action() - Before add_filter');
-		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
-		error_log('[UTM] scputm_send_delayed_email_action() - After add_filter');
+		error_log('[UTM] scputm_send_delayed_email_action() - Creating dummy thread.');
+		$thread = new stdClass();
+		$thread->ticket = new WPSC_Ticket( $ticket_id );
 
+		error_log('[UTM] scputm_send_delayed_email_action() - Getting email template.');
+		$email_data = WPSC_Email_Template::get_email_template_by_slug( 'create_ticket' );
+
+		error_log('[UTM] scputm_send_delayed_email_action() - Manually running macro replacement.');
+		$email_data = $this->scputm_replace_utm_macro( $email_data, $thread );
+
+		error_log('[UTM] scputm_send_delayed_email_action() - Manually sending email.');
 		if ( class_exists('WPSC_Email') ) {
-			$wpsc_email = new WPSC_Email();
-			if ( method_exists( $wpsc_email, 'create_ticket' ) ) {
-				error_log('[UTM] scputm_send_delayed_email_action() - Before create_ticket call');
-				$wpsc_email->create_ticket( $ticket_id );
-				error_log('[UTM] scputm_send_delayed_email_action() - After create_ticket call');
-			}
+			wp_mail( $email_data['to_email'], $email_data['subject'], $email_data['body'], $email_data['headers'] );
+			error_log('[UTM] scputm_send_delayed_email_action() - wp_mail called.');
 		}
 		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
 	}
@@ -187,9 +190,9 @@ class SCPUTM_Core {
 
 	public function scputm_replace_utm_macro( $data, $thread ) {
 		error_log('[UTM] scputm_replace_utm_macro() - Enter');
-		error_log('[UTM] scputm_replace_utm_macro() - Initial body: ' . $data['body']);
+		error_log('[UTM] scputm_replace_utm_macro() - Initial body: ' . print_r($data, true));
 
-		if ( ! is_array($data) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
+		if ( ! is_array($data) || !isset($data['body']) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
 			return $data;
 		}
 		$ticket = $thread->ticket;
