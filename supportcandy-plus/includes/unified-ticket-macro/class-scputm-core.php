@@ -77,16 +77,12 @@ class SCPUTM_Core {
 		error_log('[UTM] scputm_send_delayed_email_action() - After add_filter');
 
 		if ( class_exists('WPSC_Email') ) {
-			error_log('[UTM] scputm_send_delayed_email_action() - WPSC_Email class exists.');
 			$wpsc_email = new WPSC_Email();
 			if ( method_exists( $wpsc_email, 'create_ticket' ) ) {
-				error_log('[UTM] scputm_send_delayed_email_action() - WPSC_Email->create_ticket() method exists.');
+				error_log('[UTM] scputm_send_delayed_email_action() - Before create_ticket call');
 				$wpsc_email->create_ticket( $ticket_id );
-			} else {
-				error_log('[UTM] scputm_send_delayed_email_action() - FATAL: WPSC_Email->create_ticket() method does NOT exist.');
+				error_log('[UTM] scputm_send_delayed_email_action() - After create_ticket call');
 			}
-		} else {
-			error_log('[UTM] scputm_send_delayed_email_action() - FATAL: WPSC_Email class does NOT exist.');
 		}
 		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
 	}
@@ -133,19 +129,26 @@ class SCPUTM_Core {
 			if ( ! empty( $field_value ) ) {
 				$field_name = isset( $field_map[ $field_slug ] ) ? $field_map[ $field_slug ] : $field_slug;
 
+				error_log('[UTM] Processing field: ' . $field_slug . ' of type ' . gettype($field_value));
+
 				if ( is_a( $field_value, 'WPSC_Option' ) || is_a( $field_value, 'WPSC_Category' ) || is_a( $field_value, 'WPSC_Priority' ) || is_a( $field_value, 'WPSC_Status' ) ) {
+					error_log('[UTM] Field is an object with a name property.');
 					$field_value = $field_value->name;
 				}
 				if ( is_a( $field_value, 'WPSC_Customer' ) ) {
+					error_log('[UTM] Field is a WPSC_Customer object.');
 					$field_value = isset( $field_value->display_name ) ? $field_value->display_name : $field_value->name;
 				}
 				if ( $field_value instanceof DateTime ) {
+					error_log('[UTM] Field is a DateTime object.');
 					$field_value = $field_value->format('m/d/Y');
 				}
 				if ( is_array( $field_value ) ) {
+					error_log('[UTM] Field is an array.');
 					$display_values = array();
 					foreach ( $field_value as $value ) {
 						if ( is_a( $value, 'WPSC_Agent' ) ) {
+							error_log('[UTM] Array item is a WPSC_Agent object.');
 							$display_values[] = $value->name;
 						} else {
 							$display_values[] = $value;
