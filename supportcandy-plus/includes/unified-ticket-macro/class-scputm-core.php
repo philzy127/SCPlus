@@ -77,6 +77,7 @@ class SCPUTM_Core {
 		$thread->ticket = new WPSC_Ticket( $ticket_id );
 
 		error_log('[UTM] scputm_send_delayed_email_action() - Getting email template.');
+		error_log('[UTM] Declared Classes: ' . print_r(get_declared_classes(), true));
 		$email_data = WPSC_Email_Template::get_email_template_by_slug( 'create_ticket' );
 
 		error_log('[UTM] scputm_send_delayed_email_action() - Manually running macro replacement.');
