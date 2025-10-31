@@ -107,18 +107,14 @@ class SCP_Admin_Settings {
 			array( $this, 'date_time_formatting_page_content' )
 		);
 
-		// Conditionally add the UTM settings page.
-		$options = get_option( 'scp_settings', [] );
-		if ( ! empty( $options['enable_utm'] ) ) {
-			add_submenu_page(
-				'supportcandy-plus',
-				__( 'Unified Ticket Macro', 'supportcandy-plus' ),
-				__( 'Unified Ticket Macro', 'supportcandy-plus' ),
-				'manage_options',
-				'scp-utm',
-				array( $this, 'utm_settings_page_content' )
-			);
-		}
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
+			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-utm',
+			array( $this, 'utm_settings_page_content' )
+		);
 	}
 
 	/**
@@ -782,6 +778,7 @@ class SCP_Admin_Settings {
 				case 'enable_after_hours_notice':
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
+				case 'enable_utm':
 				case 'enable_utm':
 				case 'enable_utm':
 				case 'enable_ats':
