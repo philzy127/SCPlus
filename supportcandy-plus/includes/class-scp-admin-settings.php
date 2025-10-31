@@ -262,19 +262,6 @@ class SCP_Admin_Settings {
 
 		add_settings_section( 'scp_separator_3', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
-		// Section: Unified Ticket Macro
-		add_settings_section( 'scp_utm_section', __( 'Unified Ticket Macro', 'supportcandy-plus' ), null, 'supportcandy-plus' );
-		add_settings_field(
-			'scp_enable_utm',
-			__( 'Enable Feature', 'supportcandy-plus' ),
-			array( $this, 'render_checkbox_field' ),
-			'supportcandy-plus',
-			'scp_utm_section',
-			[
-				'id'   => 'enable_utm',
-				'desc' => __( 'Enables the {{scp_unified_ticket}} macro for use in email notifications.', 'supportcandy-plus' ),
-			]
-		);
 
 		// Page: Conditional Hiding
 		// Section: Conditional Column Hiding
@@ -778,9 +765,6 @@ class SCP_Admin_Settings {
 				case 'enable_after_hours_notice':
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
-				case 'enable_utm':
-				case 'enable_utm':
-				case 'enable_utm':
 				case 'enable_ats':
 					$sanitized_output[ $key ] = (int) $value;
 					break;

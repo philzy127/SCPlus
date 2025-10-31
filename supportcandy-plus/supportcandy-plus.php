@@ -45,6 +45,7 @@ final class SupportCandy_Plus {
 
 	private function includes() {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
+		new SCP_Admin_Settings();
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
 		SCP_Queue_Macro::get_instance();
 

@@ -31,11 +31,6 @@ class SCPUTM_Core {
 	 */
 	private function __construct() {
 		error_log('[UTM] SCPUTM_Core::__construct() - Enter');
-		$options = get_option( 'scp_settings', [] );
-		if ( empty( $options['enable_utm'] ) ) {
-			error_log('[UTM] SCPUTM_Core::__construct() - Exit (Feature Disabled)');
-			return;
-		}
 
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_prime_cache_on_creation' ), 5, 1 );
 
