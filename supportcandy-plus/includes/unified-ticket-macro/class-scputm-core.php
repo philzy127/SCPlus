@@ -40,7 +40,8 @@ class SCPUTM_Core {
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_schedule_delayed_email' ), 10, 1 );
 		add_action( 'scputm_send_delayed_email_hook', array( $this, 'scputm_send_delayed_email_action' ), 10, 1 );
 
-		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_flag_new_ticket_email' ), 10, 1 );
+		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_flag_new_ticket_email' ), 99, 1 );
 		add_filter( 'pre_wp_mail', array( $this, 'scputm_intercept_wp_mail' ), 10, 2 );
 
 		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
@@ -72,22 +73,16 @@ class SCPUTM_Core {
 
 		$this->scputm_update_utm_cache( $ticket_id );
 
-		error_log('[UTM] scputm_send_delayed_email_action() - Creating dummy thread.');
-		$thread = new stdClass();
-		$thread->ticket = new WPSC_Ticket( $ticket_id );
-
-		error_log('[UTM] scputm_send_delayed_email_action() - Getting email template.');
-		error_log('[UTM] Declared Classes: ' . print_r(get_declared_classes(), true));
-		$email_data = WPSC_Email_Template::get_email_template_by_slug( 'create_ticket' );
-
-		error_log('[UTM] scputm_send_delayed_email_action() - Manually running macro replacement.');
-		$email_data = $this->scputm_replace_utm_macro( $email_data, $thread );
-
-		error_log('[UTM] scputm_send_delayed_email_action() - Manually sending email.');
-		if ( class_exists('WPSC_Email') ) {
-			wp_mail( $email_data['to_email'], $email_data['subject'], $email_data['body'], $email_data['headers'] );
-			error_log('[UTM] scputm_send_delayed_email_action() - wp_mail called.');
+		$ticket = new WPSC_Ticket( $ticket_id );
+		if ( ! $ticket->id ) {
+			error_log('[UTM] scputm_send_delayed_email_action() - Exit (Could not load ticket)');
+			return;
 		}
+
+		error_log('[UTM] scputm_send_delayed_email_action() - Triggering native SC email notification.');
+		$create_ticket_notification = new WPSC_EN_Create_Ticket();
+		$create_ticket_notification->trigger( $ticket );
+
 		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
 	}
 
