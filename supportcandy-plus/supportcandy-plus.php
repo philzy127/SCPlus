@@ -27,6 +27,9 @@ final class SupportCandy_Plus {
 
 	private function __construct() {
 		error_log('[UTM] SupportCandy_Plus __construct loaded.');
+		if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
+			error_log('[UTM] SupportCandy_Plus loaded during a cron request.');
+		}
 		$this->define_constants();
 		$this->includes();
 		$this->init_hooks();

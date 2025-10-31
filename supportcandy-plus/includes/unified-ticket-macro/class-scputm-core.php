@@ -72,13 +72,16 @@ class SCPUTM_Core {
 
 		$this->scputm_update_utm_cache( $ticket_id );
 
-		// Manually add the filter here to ensure it runs for the delayed email.
+		error_log('[UTM] scputm_send_delayed_email_action() - Before add_filter');
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		error_log('[UTM] scputm_send_delayed_email_action() - After add_filter');
 
 		if ( class_exists('WPSC_Email') ) {
 			$wpsc_email = new WPSC_Email();
 			if ( method_exists( $wpsc_email, 'create_ticket' ) ) {
+				error_log('[UTM] scputm_send_delayed_email_action() - Before create_ticket call');
 				$wpsc_email->create_ticket( $ticket_id );
+				error_log('[UTM] scputm_send_delayed_email_action() - After create_ticket call');
 			}
 		}
 		error_log('[UTM] scputm_send_delayed_email_action() - Exit');
@@ -177,19 +180,22 @@ class SCPUTM_Core {
 
 	public function scputm_replace_utm_macro( $data, $thread ) {
 		error_log('[UTM] scputm_replace_utm_macro() - Enter');
+		error_log('[UTM] scputm_replace_utm_macro() - Initial body: ' . $data['body']);
+
 		if ( ! is_array($data) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
-			error_log('[UTM] scputm_replace_utm_macro() - Exit (Macro not found or invalid data)');
 			return $data;
 		}
 		$ticket = $thread->ticket;
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) {
-			error_log('[UTM] scputm_replace_utm_macro() - Exit (Invalid Ticket)');
 			return $data;
 		}
 		$misc_data   = $ticket->misc;
 		$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
+		error_log('[UTM] scputm_replace_utm_macro() - Cached HTML: ' . $cached_html);
+
 		$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
-		error_log('[UTM] scputm_replace_utm_macro() - Exit');
+		error_log('[UTM] scputm_replace_utm_macro() - Final body: ' . $data['body']);
+
 		return $data;
 	}
 }
