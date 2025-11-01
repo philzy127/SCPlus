@@ -142,11 +142,12 @@ class SCPUTM_Admin {
 			return;
 		}
 
-		$script_path = SUPPORTCANDY_PLUS_PATH . 'assets/admin/js/scp-utm-admin.js';
+		$script_path = plugin_dir_path( SCP_PLUGIN_FILE ) . 'assets/admin/js/scp-utm-admin.js';
+		$script_url  = plugin_dir_url( SCP_PLUGIN_FILE ) . 'assets/admin/js/scp-utm-admin.js';
 
 		wp_enqueue_script(
 			'scp-utm-admin',
-			SUPPORTCANDY_PLUS_URL . 'assets/admin/js/scp-utm-admin.js',
+			$script_url,
 			array( 'jquery' ),
 			file_exists( $script_path ) ? filemtime( $script_path ) : '1.0.0',
 			true
