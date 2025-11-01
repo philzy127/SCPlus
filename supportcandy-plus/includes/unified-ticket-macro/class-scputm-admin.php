@@ -29,6 +29,8 @@ class SCPUTM_Admin {
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'wp_ajax_scputm_save_settings', array( $this, 'ajax_save_settings' ) );
 	}
 
 	/**
@@ -72,13 +74,13 @@ class SCPUTM_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-			<form action="options.php" method="post">
-				<?php
-				settings_fields( 'scp_settings' );
-				do_settings_sections( 'scp-utm' );
-				submit_button( __( 'Save Settings', 'supportcandy-plus' ) );
-				?>
-			</form>
+			<?php
+			do_settings_sections( 'scp-utm' );
+			?>
+			<p class="submit">
+				<button type="button" id="scp-utm-save-settings" class="button button-primary"><?php esc_html_e( 'Save Settings', 'supportcandy-plus' ); ?></button>
+				<span class="spinner"></span>
+			</p>
 		</div>
 		<?php
 	}
@@ -103,8 +105,8 @@ class SCPUTM_Admin {
 		}
 
 		?>
-		<div class="scp-utm-dual-list-container">
-			<div class="dual-list-box">
+		<div class="scp-utm-container">
+			<div class="scp-utm-box">
 				<h3><?php esc_html_e( 'Available Fields', 'supportcandy-plus' ); ?></h3>
 				<select multiple id="scp_utm_available_fields" size="10">
 					<?php foreach ( $available_columns as $slug => $name ) : ?>
@@ -112,13 +114,13 @@ class SCPUTM_Admin {
 					<?php endforeach; ?>
 				</select>
 			</div>
-			<div class="dual-list-buttons">
-				<button type="button" class="button" id="scp_utm_add_all">&gt;&gt;</button>
-				<button type="button" class="button" id="scp_utm_add">&gt;</button>
-				<button type="button" class="button" id="scp_utm_remove">&lt;</button>
-				<button type="button" class="button" id="scp_utm_remove_all">&lt;&lt;</button>
+			<div class="scp-utm-buttons">
+				<button type="button" class="button" id="scp_utm_add_all" title="<?php esc_attr_e( 'Add All', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right-alt2"></span></button>
+				<button type="button" class="button" id="scp_utm_add" title="<?php esc_attr_e( 'Add', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right-alt"></span></button>
+				<button type="button" class="button" id="scp_utm_remove" title="<?php esc_attr_e( 'Remove', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-left-alt"></span></button>
+				<button type="button" class="button" id="scp_utm_remove_all" title="<?php esc_attr_e( 'Remove All', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-left-alt2"></span></button>
 			</div>
-			<div class="dual-list-box">
+			<div class="scp-utm-box">
 				<h3><?php esc_html_e( 'Selected Fields', 'supportcandy-plus' ); ?></h3>
 				<select multiple name="scp_settings[scputm_selected_fields][]" id="scp_utm_selected_fields" size="10">
 					<?php foreach ( $ordered_selected as $slug => $name ) : ?>
@@ -129,5 +131,57 @@ class SCPUTM_Admin {
 		</div>
 		<p class="description"><?php esc_html_e( 'Select the fields you want to include in the macro. The order of fields in the "Selected Fields" box will be the order they appear in the email.', 'supportcandy-plus' ); ?></p>
 		<?php
+	}
+
+	/**
+	 * Enqueue admin scripts and styles.
+	 */
+	public function enqueue_admin_scripts( $hook ) {
+		// Only load on our settings page
+		if ( 'supportcandy-plus_page_scp-utm' !== $hook ) {
+			return;
+		}
+
+		$script_path = SUPPORTCANDY_PLUS_PATH . 'assets/admin/js/scp-utm-admin.js';
+
+		wp_enqueue_script(
+			'scp-utm-admin',
+			SUPPORTCANDY_PLUS_URL . 'assets/admin/js/scp-utm-admin.js',
+			array( 'jquery' ),
+			file_exists( $script_path ) ? filemtime( $script_path ) : '1.0.0',
+			true
+		);
+
+		wp_localize_script(
+			'scp-utm-admin',
+			'scp_utm_admin_params',
+			array(
+				'nonce'                 => wp_create_nonce( 'scputm_save_settings_nonce' ),
+				'save_success_message'  => __( 'Settings saved successfully!', 'supportcandy-plus' ),
+				'save_error_message'    => __( 'An error occurred. Please try again.', 'supportcandy-plus' ),
+			)
+		);
+	}
+
+	/**
+	 * AJAX handler for saving settings.
+	 */
+	public function ajax_save_settings() {
+		// Verify nonce
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'scputm_save_settings_nonce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'supportcandy-plus' ) ) );
+		}
+
+		// Sanitize and get the selected fields
+		$selected_fields = isset( $_POST['selected_fields'] ) && is_array( $_POST['selected_fields'] )
+			? array_map( 'sanitize_text_field', wp_unslash( $_POST['selected_fields'] ) )
+			: array();
+
+		// Get all settings, update the UTM fields, and save
+		$settings = get_option( 'scp_settings', array() );
+		$settings['scputm_selected_fields'] = $selected_fields;
+		update_option( 'scp_settings', $settings );
+
+		wp_send_json_success();
 	}
 }
