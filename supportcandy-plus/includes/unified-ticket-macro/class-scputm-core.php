@@ -123,12 +123,16 @@ class SCPUTM_Core {
 				continue;
 			}
 
-			// Special handling for DateTime objects to check for "zero dates".
+			// Robustly check for and skip "zero dates" in both string and object formats.
+			if (
+				( is_string( $field_value ) && $field_value === '0000-00-00 00:00:00' ) ||
+				( $field_value instanceof DateTime && $field_value->format('Y-m-d H:i:s') === '0000-00-00 00:00:00' )
+			) {
+				continue;
+			}
+
+			// Format the date for display if it's a valid DateTime object.
 			if ( $field_value instanceof DateTime ) {
-				if ( $field_value->format('Y-m-d H:i:s') === '0000-00-00 00:00:00' ) {
-					continue; // Skip zero dates.
-				}
-				// Format the date for display if it's valid.
 				$field_value = $field_value->format('m/d/Y');
 			}
 
