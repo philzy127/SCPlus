@@ -36,6 +36,31 @@ jQuery( document ).ready( function( $ ) {
 		moveAllOptions( '#scp_utm_selected_fields', '#scp_utm_available_fields' );
 	} );
 
+	// Sorting handlers
+	$( '#scp_utm_move_up' ).on( 'click', function() {
+		var $selected = $( '#scp_utm_selected_fields option:selected' );
+		if ( $selected.length ) {
+			$selected.first().prev().before( $selected );
+		}
+	} );
+
+	$( '#scp_utm_move_down' ).on( 'click', function() {
+		var $selected = $( '#scp_utm_selected_fields option:selected' );
+		if ( $selected.length ) {
+			$selected.last().next().after( $selected );
+		}
+	} );
+
+	$( '#scp_utm_move_top' ).on( 'click', function() {
+		var $selected = $( '#scp_utm_selected_fields option:selected' );
+		$( '#scp_utm_selected_fields' ).prepend( $selected );
+	} );
+
+	$( '#scp_utm_move_bottom' ).on( 'click', function() {
+		var $selected = $( '#scp_utm_selected_fields option:selected' );
+		$( '#scp_utm_selected_fields' ).append( $selected );
+	} );
+
 	// AJAX Save Handler
 	$( '#scp-utm-save-settings' ).on( 'click', function(e) {
 		e.preventDefault();
