@@ -114,8 +114,18 @@ class SCPUTM_Core {
 			return '<table></table>';
 		}
 
+		global $wpdb;
+		$custom_fields_table  = $wpdb->prefix . 'psmsc_custom_fields';
+		$custom_fields_data = $wpdb->get_results( "SELECT slug, type FROM {$custom_fields_table}", OBJECT_K );
+
 		$html_output = '<table>';
+		$ticket_array = $ticket->to_array();
 		foreach ( $selected_fields as $field_slug ) {
+
+			// Defensive check to prevent warnings from the base plugin for non-existent properties.
+			if ( ! array_key_exists( $field_slug, $ticket_array ) ) {
+				continue;
+			}
 			$field_value = $ticket->{$field_slug};
 
 			// Skip if the field is empty.
@@ -139,28 +149,64 @@ class SCPUTM_Core {
 			if ( ! empty( $field_value ) ) {
 				$field_name = isset( $all_columns[ $field_slug ] ) ? $all_columns[ $field_slug ] : $field_slug;
 
-				error_log('[UTM] Processing field: ' . $field_slug . ' of type ' . gettype($field_value));
+				// Check if this is a custom field and handle based on its type.
+				if ( isset( $custom_fields_data[ $field_slug ] ) ) {
+					$field_type = $custom_fields_data[ $field_slug ]->type;
+					error_log( '[UTM] Processing custom field: ' . $field_slug . ' of type ' . $field_type );
 
-				if ( is_a( $field_value, 'WPSC_Option' ) || is_a( $field_value, 'WPSC_Category' ) || is_a( $field_value, 'WPSC_Priority' ) || is_a( $field_value, 'WPSC_Status' ) ) {
-					error_log('[UTM] Field is an object with a name property.');
-					$field_value = $field_value->name;
-				}
-				if ( is_a( $field_value, 'WPSC_Customer' ) ) {
-					error_log('[UTM] Field is a WPSC_Customer object.');
-					$field_value = isset( $field_value->display_name ) ? $field_value->display_name : $field_value->name;
-				}
-				if ( is_array( $field_value ) ) {
-					error_log('[UTM] Field is an array.');
-					$display_values = array();
-					foreach ( $field_value as $value ) {
-						if ( is_a( $value, 'WPSC_Agent' ) ) {
-							error_log('[UTM] Array item is a WPSC_Agent object.');
-							$display_values[] = $value->name;
-						} else {
-							$display_values[] = $value;
-						}
+					switch ( $field_type ) {
+						case 'multiselect':
+						case 'checkbox':
+							if ( is_array( $field_value ) ) {
+								$display_values = array();
+								foreach ( $field_value as $item ) {
+									if ( is_object( $item ) && isset( $item->name ) ) {
+										$display_values[] = $item->name;
+									} else {
+										$display_values[] = (string) $item;
+									}
+								}
+								$field_value = implode( ', ', $display_values );
+							}
+							break;
+
+						case 'dropdown':
+						case 'radio':
+							if ( is_object( $field_value ) && isset( $field_value->name ) ) {
+								$field_value = $field_value->name;
+							}
+							break;
+
+						case 'date':
+							if ( $field_value instanceof DateTime ) {
+								$field_value = $field_value->format('m/d/Y');
+							}
+							break;
+
+						// Default for text, textarea, etc. - no change needed.
+						default:
+							break;
 					}
-					$field_value = implode( ', ', $display_values );
+				} else {
+					// Handle standard (non-custom) fields.
+					error_log( '[UTM] Processing standard field: ' . $field_slug . ' of type ' . gettype( $field_value ) );
+
+					if ( is_a( $field_value, 'WPSC_Option' ) || is_a( $field_value, 'WPSC_Category' ) || is_a( $field_value, 'WPSC_Priority' ) || is_a( $field_value, 'WPSC_Status' ) ) {
+						$field_value = $field_value->name;
+					} elseif ( is_a( $field_value, 'WPSC_Customer' ) ) {
+						$field_value = isset( $field_value->display_name ) ? $field_value->display_name : $field_value->name;
+					} elseif ( is_array( $field_value ) ) {
+						// Specifically handle arrays of agent objects for standard fields.
+						$display_values = array();
+						foreach ( $field_value as $value ) {
+							if ( is_a( $value, 'WPSC_Agent' ) ) {
+								$display_values[] = $value->name;
+							} else {
+								$display_values[] = (string) $value;
+							}
+						}
+						$field_value = implode( ', ', $display_values );
+					}
 				}
 				// Make the label bold.
 				$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . esc_html( $field_value ) . '</td></tr>';
