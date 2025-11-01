@@ -130,8 +130,8 @@ class SCPUTM_Admin {
 				</select>
 			</div>
 			<div class="scp-utm-buttons">
-				<button type="button" class="button" id="scp_utm_move_top" title="<?php esc_attr_e( 'Move to Top', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-back"></span></button>
-				<button type="button" class="button" id="scp_utm_move_up" title="<?php esc_attr_e( 'Move Up', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-left"></span></button>
+				<button type="button" class="button" id="scp_utm_move_top" title="<?php esc_attr_e( 'Move to Top', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
+				<button type="button" class="button" id="scp_utm_move_up" title="<?php esc_attr_e( 'Move Up', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
 				<button type="button" class="button" id="scp_utm_move_down" title="<?php esc_attr_e( 'Move Down', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
 				<button type="button" class="button" id="scp_utm_move_bottom" title="<?php esc_attr_e( 'Move to Bottom', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
 			</div>
