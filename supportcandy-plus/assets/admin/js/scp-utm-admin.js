@@ -1,54 +1,56 @@
 jQuery( document ).ready( function( $ ) {
+	'use strict';
 
-    // Move selected items from available to selected
-    $('#scp_utm_add').click(function() {
-        $('#scp_utm_available_fields option:selected').each(function() {
-            $(this).appendTo('#scp_utm_selected_fields');
-        });
-    });
-
-    // Move all items from available to selected
-    $('#scp_utm_add_all').click(function() {
-        $('#scp_utm_available_fields option').each(function() {
-            $(this).appendTo('#scp_utm_selected_fields');
-        });
-    });
-
-    // Move selected items from selected to available
-    $('#scp_utm_remove').click(function() {
-        $('#scp_utm_selected_fields option:selected').each(function() {
-            $(this).appendTo('#scp_utm_available_fields');
-        });
-		sortSelect('#scp_utm_available_fields');
-    });
-
-    // Move all items from selected to available
-    $('#scp_utm_remove_all').click(function() {
-        $('#scp_utm_selected_fields option').each(function() {
-            $(this).appendTo('#scp_utm_available_fields');
-        });
-		sortSelect('#scp_utm_available_fields');
-    });
-
-	// Helper function to sort a select dropdown alphabetically.
-	function sortSelect(selector) {
-		var options = $(selector + ' option');
-		var arr = options.map(function(_, o) {
-			return { t: $(o).text(), v: o.value };
-		}).get();
-		arr.sort(function(o1, o2) {
-			return o1.t > o2.t ? 1 : o1.t < o2.t ? -1 : 0;
-		});
-		options.each(function(i, o) {
-			o.value = arr[i].v;
-			$(o).text(arr[i].t);
-		});
+	// Helper to move options between selects
+	function moveOptions( from, to ) {
+		$( from + ' option:selected' ).each( function() {
+			$( to ).append( $( this ).clone() );
+			$( this ).remove();
+		} );
 	}
 
-    // On form submission, select all options in the 'selected' box
-    // so they are all included in the POST data.
-    $('form[action="options.php"]').submit(function() {
-        $('#scp_utm_selected_fields option').prop('selected', true);
-    });
+	function moveAllOptions( from, to ) {
+		$( from + ' option' ).each( function() {
+			$( to ).append( $( this ).clone() );
+			$( this ).remove();
+		} );
+	}
 
-});
+	// Move selected fields from Available to Selected
+	$( '#scp_utm_add' ).on( 'click', function() {
+		moveOptions( '#scp_utm_available_fields', '#scp_utm_selected_fields' );
+		selectAllInSelectedBox();
+	} );
+
+	// Move all fields from Available to Selected
+	$( '#scp_utm_add_all' ).on( 'click', function() {
+		moveAllOptions( '#scp_utm_available_fields', '#scp_utm_selected_fields' );
+		selectAllInSelectedBox();
+	} );
+
+	// Move selected fields from Selected to Available
+	$( '#scp_utm_remove' ).on( 'click', function() {
+		moveOptions( '#scp_utm_selected_fields', '#scp_utm_available_fields' );
+		selectAllInSelectedBox();
+	} );
+
+	// Move all fields from Selected to Available
+	$( '#scp_utm_remove_all' ).on( 'click', function() {
+		moveAllOptions( '#scp_utm_selected_fields', '#scp_utm_available_fields' );
+		selectAllInSelectedBox();
+	} );
+
+	/**
+	 * Ensures all options in the 'selected' box are marked as selected
+	 * before the form submits, so they are included in the POST data.
+	 */
+	function selectAllInSelectedBox() {
+		$( '#scp_utm_selected_fields option' ).prop( 'selected', true );
+	}
+
+	// Before the form submits, select all items in the right-hand box.
+	$( 'form' ).on( 'submit', function() {
+		selectAllInSelectedBox();
+	} );
+
+} );

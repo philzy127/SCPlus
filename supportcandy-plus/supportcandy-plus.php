@@ -26,10 +26,6 @@ final class SupportCandy_Plus {
 	}
 
 	private function __construct() {
-		error_log('[UTM] SupportCandy_Plus __construct loaded.');
-		if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
-			error_log('[UTM] SupportCandy_Plus loaded during a cron request.');
-		}
 		$this->define_constants();
 		$this->includes();
 		$this->init_hooks();
@@ -45,7 +41,6 @@ final class SupportCandy_Plus {
 
 	private function includes() {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
-		new SCP_Admin_Settings();
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
 		SCP_Queue_Macro::get_instance();
 
