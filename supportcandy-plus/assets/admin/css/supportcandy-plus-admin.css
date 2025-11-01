@@ -246,7 +246,7 @@
 /* Increase size of the middle two icons for better visual balance */
 #scp_utm_add .dashicons,
 #scp_utm_remove .dashicons {
-	font-size: 30px;
+	transform: scale(1.5);
 }
 
 .scp-remove-date-rule:hover {
