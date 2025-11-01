@@ -107,14 +107,6 @@ class SCP_Admin_Settings {
 			array( $this, 'date_time_formatting_page_content' )
 		);
 
-		add_submenu_page(
-			'supportcandy-plus',
-			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
-			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
-			'manage_options',
-			'scp-utm',
-			array( $this, 'utm_settings_page_content' )
-		);
 	}
 
 	/**

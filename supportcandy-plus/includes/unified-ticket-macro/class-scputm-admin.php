@@ -27,7 +27,22 @@ class SCPUTM_Admin {
 	 * Initialize the admin settings.
 	 */
 	private function __construct() {
+		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+	}
+
+	/**
+	 * Add the admin menu page.
+	 */
+	public function add_admin_menu() {
+		add_submenu_page(
+			'supportcandy-plus',
+			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
+			__( 'Unified Ticket Macro', 'supportcandy-plus' ),
+			'manage_options',
+			'scp-utm',
+			array( $this, 'render_settings_page' )
+		);
 	}
 
 	/**
