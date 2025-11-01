@@ -105,7 +105,9 @@ class SCPUTM_Core {
 		error_log('[UTM] _scputm_build_live_utm_html() - Enter');
 		$options = get_option( 'scp_settings', [] );
 		$selected_fields = isset( $options['scputm_selected_fields'] ) && is_array( $options['scputm_selected_fields'] ) ? $options['scputm_selected_fields'] : [];
-		$field_map = isset( $options['scputm_field_map'] ) && is_array( $options['scputm_field_map'] ) ? $options['scputm_field_map'] : [];
+
+		// Get all available columns to map slugs to friendly names.
+		$all_columns = supportcandy_plus()->get_supportcandy_columns();
 
 		if ( empty( $selected_fields ) ) {
 			error_log('[UTM] _scputm_build_live_utm_html() - Exit (No Fields)');
@@ -115,8 +117,23 @@ class SCPUTM_Core {
 		$html_output = '<table>';
 		foreach ( $selected_fields as $field_slug ) {
 			$field_value = $ticket->{$field_slug};
+
+			// Skip if the field is empty.
+			if ( empty( $field_value ) ) {
+				continue;
+			}
+
+			// Special handling for DateTime objects to check for "zero dates".
+			if ( $field_value instanceof DateTime ) {
+				if ( $field_value->format('Y-m-d H:i:s') === '0000-00-00 00:00:00' ) {
+					continue; // Skip zero dates.
+				}
+				// Format the date for display if it's valid.
+				$field_value = $field_value->format('m/d/Y');
+			}
+
 			if ( ! empty( $field_value ) ) {
-				$field_name = isset( $field_map[ $field_slug ] ) ? $field_map[ $field_slug ] : $field_slug;
+				$field_name = isset( $all_columns[ $field_slug ] ) ? $all_columns[ $field_slug ] : $field_slug;
 
 				error_log('[UTM] Processing field: ' . $field_slug . ' of type ' . gettype($field_value));
 
@@ -127,10 +144,6 @@ class SCPUTM_Core {
 				if ( is_a( $field_value, 'WPSC_Customer' ) ) {
 					error_log('[UTM] Field is a WPSC_Customer object.');
 					$field_value = isset( $field_value->display_name ) ? $field_value->display_name : $field_value->name;
-				}
-				if ( $field_value instanceof DateTime ) {
-					error_log('[UTM] Field is a DateTime object.');
-					$field_value = $field_value->format('m/d/Y');
 				}
 				if ( is_array( $field_value ) ) {
 					error_log('[UTM] Field is an array.');
@@ -145,7 +158,8 @@ class SCPUTM_Core {
 					}
 					$field_value = implode( ', ', $display_values );
 				}
-				$html_output .= '<tr><td>' . esc_html( $field_name ) . ':</td><td>' . esc_html( $field_value ) . '</td></tr>';
+				// Make the label bold.
+				$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . esc_html( $field_value ) . '</td></tr>';
 			}
 		}
 		$html_output .= '</table>';
