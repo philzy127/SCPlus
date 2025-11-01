@@ -150,10 +150,10 @@ class SCPUTM_Core {
 				if ( is_array( $field_value ) ) {
 					$temp_values = [];
 					foreach ( $field_value as $item ) {
-						if ( is_object( $item ) && isset( $item->name ) ) {
-							$temp_values[] = $item->name;
-						} elseif ( is_object( $item ) && isset( $item->display_name ) ) {
+						if ( is_object( $item ) && ! empty( $item->display_name ) ) {
 							$temp_values[] = $item->display_name;
+						} elseif ( is_object( $item ) && ! empty( $item->name ) ) {
+							$temp_values[] = $item->name;
 						} else {
 							$temp_values[] = (string) $item;
 						}
@@ -162,10 +162,10 @@ class SCPUTM_Core {
 				} elseif ( is_object( $field_value ) ) {
 					if ( $field_value instanceof DateTime ) {
 						$display_value = $field_value->format('m/d/Y');
-					} elseif ( isset( $field_value->name ) ) {
-						$display_value = $field_value->name;
-					} elseif ( isset( $field_value->display_name ) ) {
+					} elseif ( ! empty( $field_value->display_name ) ) {
 						$display_value = $field_value->display_name;
+					} elseif ( ! empty( $field_value->name ) ) {
+						$display_value = $field_value->name;
 					} else {
 						$display_value = ''; // Avoid converting unknown objects to string.
 					}
