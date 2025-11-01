@@ -115,10 +115,10 @@ class SCPUTM_Admin {
 				</select>
 			</div>
 			<div class="scp-utm-buttons">
-				<button type="button" class="button" id="scp_utm_add_all" title="<?php esc_attr_e( 'Add All', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-forward"></span></button>
+				<button type="button" class="button" id="scp_utm_add_all" title="<?php esc_attr_e( 'Add All', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
 				<button type="button" class="button" id="scp_utm_add" title="<?php esc_attr_e( 'Add', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
 				<button type="button" class="button" id="scp_utm_remove" title="<?php esc_attr_e( 'Remove', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-left"></span></button>
-				<button type="button" class="button" id="scp_utm_remove_all" title="<?php esc_attr_e( 'Remove All', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-back"></span></button>
+				<button type="button" class="button" id="scp_utm_remove_all" title="<?php esc_attr_e( 'Remove All', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-back"></span></button>
 			</div>
 			<div class="scp-utm-box">
 				<h3><?php esc_html_e( 'Selected Fields', 'supportcandy-plus' ); ?></h3>
