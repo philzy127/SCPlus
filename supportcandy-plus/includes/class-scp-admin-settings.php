@@ -106,7 +106,6 @@ class SCP_Admin_Settings {
 			'scp-date-time-formatting',
 			array( $this, 'date_time_formatting_page_content' )
 		);
-
 	}
 
 	/**
@@ -167,14 +166,6 @@ class SCP_Admin_Settings {
 	 */
 	public function date_time_formatting_page_content() {
 		$this->render_settings_page_wrapper( 'scp-date-time-formatting' );
-	}
-
-	/**
-	 * Render the Unified Ticket Macro settings page content.
-	 */
-	public function utm_settings_page_content() {
-		// The actual fields will be managed by the SCPUTM_Admin class.
-		SCPUTM_Admin::get_instance()->render_settings_page();
 	}
 
 	/**
@@ -251,9 +242,6 @@ class SCP_Admin_Settings {
 		);
 
 		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'class' => 'regular-text', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
-
-		add_settings_section( 'scp_separator_3', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
-
 
 		// Page: Conditional Hiding
 		// Section: Conditional Column Hiding
@@ -759,31 +747,6 @@ class SCP_Admin_Settings {
 				case 'enable_queue_macro':
 				case 'enable_ats':
 					$sanitized_output[ $key ] = (int) $value;
-					break;
-
-				// Array of strings for UTM fields
-				case 'scputm_selected_fields':
-					if ( is_array( $value ) ) {
-						$sanitized_slugs = array_map( 'sanitize_text_field', $value );
-						$sanitized_output[ $key ] = $sanitized_slugs;
-
-						// Create and save a map of slugs to names. This is safe because this
-						// function runs on a full admin page load, not during an AJAX request.
-						$all_columns = supportcandy_plus()->get_supportcandy_columns();
-						$field_map = [];
-						foreach ( $sanitized_slugs as $slug ) {
-							if ( isset( $all_columns[ $slug ] ) ) {
-								$field_map[ $slug ] = $all_columns[ $slug ];
-							} else {
-								$field_map[ $slug ] = $slug; // Fallback to slug if name not found.
-							}
-						}
-						$sanitized_output['scputm_field_map'] = $field_map;
-
-					} else {
-						$sanitized_output[ $key ] = [];
-						$sanitized_output['scputm_field_map'] = [];
-					}
 					break;
 
 				// Integer fields
