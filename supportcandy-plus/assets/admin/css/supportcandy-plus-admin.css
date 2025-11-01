@@ -244,6 +244,12 @@
 	line-height: 1;
 }
 
+/* Increase size of the middle two icons for better visual balance */
+#scp_utm_add .dashicons,
+#scp_utm_remove .dashicons {
+	font-size: 30px;
+}
+
 .scp-remove-date-rule:hover {
     background-color: #a00 !important;
     color: #fff !important;
