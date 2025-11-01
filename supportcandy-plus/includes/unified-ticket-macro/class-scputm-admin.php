@@ -31,6 +31,7 @@ class SCPUTM_Admin {
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_ajax_scputm_save_settings', array( $this, 'ajax_save_settings' ) );
+		add_action( 'admin_head', array( $this, 'print_custom_styles' ) );
 	}
 
 	/**
@@ -129,10 +130,10 @@ class SCPUTM_Admin {
 				</select>
 			</div>
 			<div class="scp-utm-buttons">
-				<button type="button" class="button" id="scp_utm_move_top" title="<?php esc_attr_e( 'Move to Top', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-up-alt"></span></button>
-				<button type="button" class="button" id="scp_utm_move_up" title="<?php esc_attr_e( 'Move Up', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-up"></span></button>
-				<button type="button" class="button" id="scp_utm_move_down" title="<?php esc_attr_e( 'Move Down', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-down"></span></button>
-				<button type="button" class="button" id="scp_utm_move_bottom" title="<?php esc_attr_e( 'Move to Bottom', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-down-alt"></span></button>
+				<button type="button" class="button" id="scp_utm_move_top" title="<?php esc_attr_e( 'Move to Top', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-back"></span></button>
+				<button type="button" class="button" id="scp_utm_move_up" title="<?php esc_attr_e( 'Move Up', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-left"></span></button>
+				<button type="button" class="button" id="scp_utm_move_down" title="<?php esc_attr_e( 'Move Down', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
+				<button type="button" class="button" id="scp_utm_move_bottom" title="<?php esc_attr_e( 'Move to Bottom', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
 			</div>
 		</div>
 		<p class="description"><?php esc_html_e( 'Select the fields you want to include in the macro. The order of fields in the "Selected Fields" box will be the order they appear in the email.', 'supportcandy-plus' ); ?></p>
@@ -190,5 +191,27 @@ class SCPUTM_Admin {
 		update_option( 'scp_settings', $settings );
 
 		wp_send_json_success();
+	}
+
+	/**
+	 * Print custom styles for the settings page.
+	 */
+	public function print_custom_styles() {
+		$screen = get_current_screen();
+		if ( ! $screen || 'supportcandy-plus_page_scp-utm' !== $screen->id ) {
+			return;
+		}
+		?>
+		<style type="text/css">
+			#scp_utm_move_top .dashicons,
+			#scp_utm_move_up .dashicons {
+				transform: rotate(-90deg);
+			}
+			#scp_utm_move_down .dashicons,
+			#scp_utm_move_bottom .dashicons {
+				transform: rotate(90deg);
+			}
+		</style>
+		<?php
 	}
 }

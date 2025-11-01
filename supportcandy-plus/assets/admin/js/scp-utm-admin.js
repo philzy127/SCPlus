@@ -69,8 +69,10 @@ jQuery( document ).ready( function( $ ) {
 		var $spinner = $button.siblings( '.spinner' );
 
 		// Select all options to be included in the data
-		$( '#scp_utm_selected_fields option' ).prop( 'selected', true );
-		var selectedFields = $( '#scp_utm_selected_fields' ).val();
+		var selectedFields = [];
+		$( '#scp_utm_selected_fields option' ).each(function() {
+			selectedFields.push($(this).val());
+		});
 
 		$button.prop('disabled', true);
 		$spinner.addClass('is-active');
