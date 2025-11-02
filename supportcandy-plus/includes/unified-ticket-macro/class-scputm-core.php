@@ -114,67 +114,161 @@ class SCPUTM_Core {
 			return '<table></table>';
 		}
 
-		$html_output = '<table>';
+		global $wpdb;
+		$custom_fields_table    = $wpdb->prefix . 'psmsc_custom_fields';
+		$custom_fields_from_db  = $wpdb->get_results( "SELECT slug, type FROM {$custom_fields_table}", ARRAY_A );
+		$custom_field_types     = wp_list_pluck( $custom_fields_from_db, 'type', 'slug' );
+
+		// Create a definitive map of all known standard field types.
+		$standard_field_types = array(
+			'id'                       => 'df_id',
+			'subject'                  => 'df_subject',
+			'description'              => 'df_description',
+			'ip_address'               => 'df_ip_address',
+			'browser'                  => 'df_browser',
+			'os'                       => 'df_os',
+			'source'                   => 'df_source',
+			'last_reply_source'        => 'df_last_reply_source',
+			'user_type'                => 'df_user_type',
+			'customer_name'            => 'df_customer_name',
+			'customer_email'           => 'df_customer_email',
+			'date_created'             => 'df_date_created',
+			'date_updated'             => 'df_date_updated',
+			'date_closed'              => 'df_date_closed',
+			'last_reply_on'            => 'df_last_reply_on',
+			'status'                   => 'df_status',
+			'priority'                 => 'df_priority',
+			'category'                 => 'df_category',
+			'customer'                 => 'df_customer',
+			'agent_created'            => 'df_agent_created',
+			'last_reply_by'            => 'df_last_reply_by',
+			'assigned_agent'           => 'df_assigned_agent',
+			'prev_assignee'            => 'df_prev_assignee',
+			'tags'                     => 'df_tags',
+			'add_recipients'           => 'df_additional_recipients',
+		);
+
+		// Merge the standard and custom field maps. Custom fields will override standard ones in case of a slug conflict.
+		$field_types_map = array_merge( $standard_field_types, $custom_field_types );
+
+		$html_output  = '<table>';
 		$ticket_array = $ticket->to_array();
+
 		foreach ( $selected_fields as $field_slug ) {
 
-			// Defensive check to prevent warnings from the base plugin for non-existent properties.
+			// Defensive check to prevent warnings for non-existent properties.
 			if ( ! array_key_exists( $field_slug, $ticket_array ) ) {
 				continue;
 			}
+
 			$field_value = $ticket->{$field_slug};
 
-			// Skip if the field is empty.
+			// Skip empty fields.
 			if ( empty( $field_value ) ) {
 				continue;
 			}
 
-			// Robustly check for and skip "zero dates" in both string and object formats.
+			// Skip "zero dates" in both string and object formats.
 			if (
-				( is_string( $field_value ) && $field_value === '0000-00-00 00:00:00' ) ||
-				( $field_value instanceof DateTime && $field_value->format('Y-m-d H:i:s') === '0000-00-00 00:00:00' )
+				( is_string( $field_value ) && '0000-00-00 00:00:00' === $field_value ) ||
+				( $field_value instanceof DateTime && '0000-00-00 00:00:00' === $field_value->format('Y-m-d H:i:s') )
 			) {
 				continue;
 			}
 
-			// Format the date for display if it's a valid DateTime object.
-			if ( $field_value instanceof DateTime ) {
-				$field_value = $field_value->format('m/d/Y');
+			$field_name    = isset( $all_columns[ $field_slug ] ) ? $all_columns[ $field_slug ] : $field_slug;
+			$display_value = '';
+			$field_type    = isset( $field_types_map[ $field_slug ] ) ? $field_types_map[ $field_slug ] : 'unknown';
+
+			switch ( $field_type ) {
+
+				// Primitives
+				case 'cf_textfield':
+				case 'cf_textarea':
+				case 'cf_email':
+				case 'cf_url':
+				case 'cf_number':
+				case 'cf_time':
+				case 'df_id':
+				case 'df_subject':
+				case 'df_ip_address':
+				case 'df_browser':
+				case 'df_os':
+				case 'df_source':
+				case 'df_last_reply_source':
+				case 'df_user_type':
+				case 'df_customer_name':
+				case 'df_customer_email':
+					$display_value = (string) $field_value;
+					break;
+
+				// HTML Content
+				case 'cf_html':
+				case 'df_description':
+					$display_value = $field_value; // Do not escape HTML content.
+					break;
+
+				// Date/Time Objects
+				case 'cf_date':
+					$display_value = $field_value->format( get_option( 'date_format' ) );
+					break;
+				case 'cf_datetime':
+				case 'df_date_created':
+				case 'df_date_updated':
+				case 'df_date_closed':
+				case 'df_last_reply_on':
+					$display_value = $field_value->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+					break;
+
+				// Single Object References
+				case 'cf_single_select':
+				case 'cf_radio_button':
+				case 'cf_file-attachment-single':
+				case 'df_status':
+				case 'df_priority':
+				case 'df_category':
+				case 'df_customer':
+				case 'df_agent_created':
+				case 'df_last_reply_by':
+					if ( is_object( $field_value ) && ! empty( $field_value->name ) ) {
+						$display_value = $field_value->name;
+					}
+					break;
+
+				// Array of Object References
+				case 'cf_multi_select':
+				case 'cf_checkbox':
+				case 'cf_file-attachment-multiple':
+				case 'df_assigned_agent':
+				case 'df_prev_assignee':
+				case 'df_tags':
+				case 'df_additional_recipients':
+					if ( is_array( $field_value ) ) {
+						$names = array();
+						foreach ( $field_value as $item ) {
+							if ( is_object( $item ) && ! empty( $item->name ) ) {
+								$names[] = $item->name;
+							}
+						}
+						$display_value = implode( ', ', $names );
+					}
+					break;
+
+				// Safety Net Default
+				default:
+					error_log( "[UTM] Warning: Unsupported field type '" . esc_html( $field_type ) . "' encountered for field '" . esc_html( $field_slug ) . "'. This field was not included in the macro." );
+					$display_value = ''; // Skip the field in the email.
+					break;
 			}
 
-			if ( ! empty( $field_value ) ) {
-				$field_name = isset( $all_columns[ $field_slug ] ) ? $all_columns[ $field_slug ] : $field_slug;
-
-				// Unified, data-shape-aware handling logic.
-				$display_value = '';
-				if ( is_array( $field_value ) ) {
-					$temp_values = [];
-					foreach ( $field_value as $item ) {
-						if ( is_object( $item ) && ! empty( $item->display_name ) ) {
-							$temp_values[] = $item->display_name;
-						} elseif ( is_object( $item ) && ! empty( $item->name ) ) {
-							$temp_values[] = $item->name;
-						} else {
-							$temp_values[] = (string) $item;
-						}
-					}
-					$display_value = implode( ', ', $temp_values );
-				} elseif ( is_object( $field_value ) ) {
-					if ( $field_value instanceof DateTime ) {
-						$display_value = $field_value->format('m/d/Y');
-					} elseif ( ! empty( $field_value->display_name ) ) {
-						$display_value = $field_value->display_name;
-					} elseif ( ! empty( $field_value->name ) ) {
-						$display_value = $field_value->name;
-					} else {
-						$display_value = ''; // Avoid converting unknown objects to string.
-					}
+			// Add to output only if there's a value to display.
+			if ( ! empty( $display_value ) ) {
+				// Don't escape known HTML fields.
+				if ( 'cf_html' === $field_type || 'df_description' === $field_type ) {
+					$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . $display_value . '</td></tr>';
 				} else {
-					$display_value = (string) $field_value;
+					$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . esc_html( $display_value ) . '</td></tr>';
 				}
-
-				// Make the label bold.
-				$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . esc_html( $display_value ) . '</td></tr>';
 			}
 		}
 		$html_output .= '</table>';
