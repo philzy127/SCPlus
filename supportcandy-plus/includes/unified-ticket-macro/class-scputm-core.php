@@ -211,7 +211,7 @@ class SCPUTM_Core {
 				case 'df_assigned_agent':
 				case 'df_prev_assignee':
 				case 'df_tags':
-				case 'df_additional_recipients':
+				case 'df_add_recipients':
 					if ( is_array( $field_value ) ) {
 						$names = array();
 						foreach ( $field_value as $item ) {
