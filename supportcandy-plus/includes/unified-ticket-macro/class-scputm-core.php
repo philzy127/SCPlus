@@ -114,21 +114,17 @@ class SCPUTM_Core {
 			return '<table></table>';
 		}
 
-		// The database is the single source of truth for all field types.
-		global $wpdb;
-		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
-		$field_types_from_db = $wpdb->get_results( "SELECT slug, type FROM {$custom_fields_table}", ARRAY_A );
-		$field_types_map     = wp_list_pluck( $field_types_from_db, 'type', 'slug' );
+		// Use the official API to get a complete list of all field types.
+		$all_fields      = WPSC_Custom_Field::$custom_fields;
+		$field_types_map = array();
+		foreach ( $all_fields as $slug => $field_object ) {
+			$field_type_class           = $field_object->type;
+			$field_types_map[ $slug ] = $field_type_class::$slug;
+		}
 
 		$html_output  = '<table>';
-		$ticket_array = $ticket->to_array();
 
 		foreach ( $selected_fields as $field_slug ) {
-
-			// Defensive check to prevent warnings for non-existent properties.
-			if ( ! array_key_exists( $field_slug, $ticket_array ) ) {
-				continue;
-			}
 
 			$field_value = $ticket->{$field_slug};
 
@@ -199,9 +195,7 @@ class SCPUTM_Core {
 				case 'df_customer':
 				case 'df_agent_created':
 				case 'df_last_reply_by':
-					if ( is_object( $field_value ) && ! empty( $field_value->name ) ) {
-						$display_value = $field_value->name;
-					}
+					$display_value = $field_value->name;
 					break;
 
 				// Array of Object References
@@ -215,9 +209,7 @@ class SCPUTM_Core {
 					if ( is_array( $field_value ) ) {
 						$names = array();
 						foreach ( $field_value as $item ) {
-							if ( is_object( $item ) && ! empty( $item->name ) ) {
-								$names[] = $item->name;
-							}
+							$names[] = $item->name;
 						}
 						$display_value = implode( ', ', $names );
 					}
