@@ -123,16 +123,18 @@ class SCPUTM_Admin {
 			</div>
 			<div class="scp-utm-box">
 				<h3><?php esc_html_e( 'Selected Fields', 'supportcandy-plus' ); ?></h3>
-				<select multiple name="scp_settings[scputm_selected_fields][]" id="scp_utm_selected_fields" size="10">
-					<?php foreach ( $ordered_selected as $slug => $name ) : ?>
-						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
-					<?php endforeach; ?>
-				</select>
-				<div class="scp-utm-buttons">
-					<button type="button" class="button" id="scp_utm_move_top" title="<?php esc_attr_e( 'Move to Top', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
-					<button type="button" class="button" id="scp_utm_move_up" title="<?php esc_attr_e( 'Move Up', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
-					<button type="button" class="button" id="scp_utm_move_down" title="<?php esc_attr_e( 'Move Down', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
-					<button type="button" class="button" id="scp_utm_move_bottom" title="<?php esc_attr_e( 'Move to Bottom', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
+				<div class="scp-utm-selected-wrapper">
+					<select multiple name="scp_settings[scputm_selected_fields][]" id="scp_utm_selected_fields" size="10">
+						<?php foreach ( $ordered_selected as $slug => $name ) : ?>
+							<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<div class="scp-utm-buttons">
+						<button type="button" class="button" id="scp_utm_move_top" title="<?php esc_attr_e( 'Move to Top', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
+						<button type="button" class="button" id="scp_utm_move_up" title="<?php esc_attr_e( 'Move Up', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
+						<button type="button" class="button" id="scp_utm_move_down" title="<?php esc_attr_e( 'Move Down', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-arrow-right"></span></button>
+						<button type="button" class="button" id="scp_utm_move_bottom" title="<?php esc_attr_e( 'Move to Bottom', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-controls-forward"></span></button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -203,6 +205,15 @@ class SCPUTM_Admin {
 		}
 		?>
 		<style type="text/css">
+			.scp-utm-selected-wrapper {
+				display: flex;
+				align-items: flex-start;
+			}
+			.scp-utm-selected-wrapper .scp-utm-buttons {
+				margin-left: 5px;
+				display: flex;
+				flex-direction: column;
+			}
 			#scp_utm_move_top .dashicons,
 			#scp_utm_move_up .dashicons {
 				transform: rotate(-90deg);
