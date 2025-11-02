@@ -114,42 +114,11 @@ class SCPUTM_Core {
 			return '<table></table>';
 		}
 
+		// The database is the single source of truth for all field types.
 		global $wpdb;
-		$custom_fields_table    = $wpdb->prefix . 'psmsc_custom_fields';
-		$custom_fields_from_db  = $wpdb->get_results( "SELECT slug, type FROM {$custom_fields_table}", ARRAY_A );
-		$custom_field_types     = wp_list_pluck( $custom_fields_from_db, 'type', 'slug' );
-
-		// Create a definitive map of all known standard field types.
-		$standard_field_types = array(
-			'id'                       => 'df_id',
-			'subject'                  => 'df_subject',
-			'description'              => 'df_description',
-			'ip_address'               => 'df_ip_address',
-			'browser'                  => 'df_browser',
-			'os'                       => 'df_os',
-			'source'                   => 'df_source',
-			'last_reply_source'        => 'df_last_reply_source',
-			'user_type'                => 'df_user_type',
-			'customer_name'            => 'df_customer_name',
-			'customer_email'           => 'df_customer_email',
-			'date_created'             => 'df_date_created',
-			'date_updated'             => 'df_date_updated',
-			'date_closed'              => 'df_date_closed',
-			'last_reply_on'            => 'df_last_reply_on',
-			'status'                   => 'df_status',
-			'priority'                 => 'df_priority',
-			'category'                 => 'df_category',
-			'customer'                 => 'df_customer',
-			'agent_created'            => 'df_agent_created',
-			'last_reply_by'            => 'df_last_reply_by',
-			'assigned_agent'           => 'df_assigned_agent',
-			'prev_assignee'            => 'df_prev_assignee',
-			'tags'                     => 'df_tags',
-			'add_recipients'           => 'df_additional_recipients',
-		);
-
-		// Merge the standard and custom field maps. Custom fields will override standard ones in case of a slug conflict.
-		$field_types_map = array_merge( $standard_field_types, $custom_field_types );
+		$custom_fields_table = $wpdb->prefix . 'psmsc_custom_fields';
+		$field_types_from_db = $wpdb->get_results( "SELECT slug, type FROM {$custom_fields_table}", ARRAY_A );
+		$field_types_map     = wp_list_pluck( $field_types_from_db, 'type', 'slug' );
 
 		$html_output  = '<table>';
 		$ticket_array = $ticket->to_array();
