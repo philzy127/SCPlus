@@ -217,15 +217,15 @@ class SCPUTM_Admin {
 
 			#scp_utm_add .dashicons,
 			#scp_utm_remove .dashicons {
-				transform: scale(1.2);
+				transform: scale(1.3);
 			}
 
 			#scp_utm_move_up .dashicons {
-				transform: rotate(-90deg) scale(1.2);
+				transform: rotate(-90deg) scale(1.3);
 			}
 
 			#scp_utm_move_down .dashicons {
-				transform: rotate(90deg) scale(1.2);
+				transform: rotate(90deg) scale(1.3);
 			}
 		</style>
 		<?php
