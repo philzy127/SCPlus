@@ -214,13 +214,18 @@ class SCPUTM_Admin {
 				display: flex;
 				flex-direction: column;
 			}
-			#scp_utm_move_top .dashicons,
-			#scp_utm_move_up .dashicons {
-				transform: rotate(-90deg) scale(0.8);
+
+			#scp_utm_add .dashicons,
+			#scp_utm_remove .dashicons {
+				transform: scale(1.2);
 			}
-			#scp_utm_move_down .dashicons,
-			#scp_utm_move_bottom .dashicons {
-				transform: rotate(90deg) scale(0.8);
+
+			#scp_utm_move_up .dashicons {
+				transform: rotate(-90deg) scale(1.2);
+			}
+
+			#scp_utm_move_down .dashicons {
+				transform: rotate(90deg) scale(1.2);
 			}
 		</style>
 		<?php
