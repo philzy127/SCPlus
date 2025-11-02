@@ -216,11 +216,11 @@ class SCPUTM_Admin {
 			}
 			#scp_utm_move_top .dashicons,
 			#scp_utm_move_up .dashicons {
-				transform: rotate(-90deg);
+				transform: rotate(-90deg) scale(0.8);
 			}
 			#scp_utm_move_down .dashicons,
 			#scp_utm_move_bottom .dashicons {
-				transform: rotate(90deg);
+				transform: rotate(90deg) scale(0.8);
 			}
 		</style>
 		<?php
