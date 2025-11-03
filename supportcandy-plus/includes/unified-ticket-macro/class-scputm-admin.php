@@ -67,6 +67,14 @@ class SCPUTM_Admin {
 			'scputm_section'
 		);
 
+		add_settings_field(
+			'scputm_use_sc_order',
+			__( 'Field Order', 'supportcandy-plus' ),
+			array( $this, 'render_use_sc_order_checkbox' ),
+			'scp-utm',
+			'scputm_section'
+		);
+
 		// Section for the renaming rules
 		add_settings_section(
 			'scputm_rules_section',
@@ -157,6 +165,23 @@ class SCPUTM_Admin {
 			</div>
 		</div>
 		<p class="description"><?php esc_html_e( 'Select the fields you want to include in the macro. The order of fields in the "Selected Fields" box will be the order they appear in the email.', 'supportcandy-plus' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Render the checkbox for using SupportCandy field order.
+	 */
+	public function render_use_sc_order_checkbox() {
+		$options      = get_option( 'scp_settings', [] );
+		$use_sc_order = isset( $options['use_supportcandy_order'] ) ? (bool) $options['use_supportcandy_order'] : false;
+		?>
+		<label>
+			<input type="checkbox" name="scp_settings[use_supportcandy_order]" id="scp_use_supportcandy_order" value="1" <?php checked( $use_sc_order ); ?> />
+			<?php esc_html_e( 'Use SupportCandy Field Order', 'supportcandy-plus' ); ?>
+		</label>
+		<p class="description">
+			<?php esc_html_e( 'If checked, the fields will be ordered according to the global settings in SupportCandy -> Ticket Form Fields. The manual sorting controls will be disabled.', 'supportcandy-plus' ); ?>
+		</p>
 		<?php
 	}
 
@@ -264,10 +289,14 @@ class SCPUTM_Admin {
 			}
 		}
 
+		// Sanitize and get the order setting
+		$use_sc_order = isset( $_POST['use_sc_order'] ) && 'true' === $_POST['use_sc_order'];
+
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
 		$settings['scputm_selected_fields'] = $selected_fields;
 		$settings['scputm_rename_rules']    = $rename_rules;
+		$settings['use_supportcandy_order'] = $use_sc_order;
 		update_option( 'scp_settings', $settings );
 
 		wp_send_json_success();

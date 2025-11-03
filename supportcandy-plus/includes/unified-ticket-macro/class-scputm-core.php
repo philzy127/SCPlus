@@ -118,6 +118,17 @@ class SCPUTM_Core {
 		// Get all available columns to map slugs to friendly names.
 		$all_columns = supportcandy_plus()->get_supportcandy_columns();
 
+		$use_sc_order = ! empty( $options['use_supportcandy_order'] );
+		if ( $use_sc_order ) {
+			// Get the official SupportCandy field order.
+			$supportcandy_tff_fields = get_option( 'wpsc-tff', [] );
+			$sc_ordered_slugs        = array_keys( $supportcandy_tff_fields );
+
+			// Filter the UTM selection to only include fields present in the SC order.
+			// The result is an array of slugs that are in both lists, using SC's order.
+			$selected_fields = array_intersect( $sc_ordered_slugs, $selected_fields );
+		}
+
 		if ( empty( $selected_fields ) ) {
 			error_log('[UTM] _scputm_build_live_utm_html() - Exit (No Fields)');
 			return '<table></table>';

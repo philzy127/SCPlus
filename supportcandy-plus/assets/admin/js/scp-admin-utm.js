@@ -1,5 +1,22 @@
 jQuery(document).ready(function($) {
 
+    var $useSCOrderCheckbox = $('#scp_use_supportcandy_order');
+    var $sortingButtons = $('#scp_utm_move_top, #scp_utm_move_up, #scp_utm_move_down, #scp_utm_move_bottom');
+
+    // Function to toggle the sorting buttons
+    function toggleSortingButtons() {
+        var isChecked = $useSCOrderCheckbox.is(':checked');
+        $sortingButtons.prop('disabled', isChecked);
+    }
+
+    // Initial state on page load
+    toggleSortingButtons();
+
+    // Toggle on checkbox change
+    $useSCOrderCheckbox.on('change', function() {
+        toggleSortingButtons();
+    });
+
     // Helper function to show toast messages
     function showToast(message, isError) {
         var $container = $('#scp-utm-toast-container');
@@ -121,7 +138,8 @@ jQuery(document).ready(function($) {
             'action': 'scputm_save_settings',
             'nonce': scp_utm_admin_params.nonce,
             'selected_fields': selectedFields,
-            'rename_rules': renameRules
+            'rename_rules': renameRules,
+            'use_sc_order': $useSCOrderCheckbox.is(':checked')
         };
 
         $('.spinner').addClass('is-active');
