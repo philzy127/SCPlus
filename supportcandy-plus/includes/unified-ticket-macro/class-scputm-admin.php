@@ -66,6 +66,23 @@ class SCPUTM_Admin {
 			'scp-utm',
 			'scputm_section'
 		);
+
+		// Section for the renaming rules
+		add_settings_section(
+			'scputm_rules_section',
+			__( 'Rename Field Titles', 'supportcandy-plus' ),
+			'__return_false', // No description needed
+			'scp-utm'
+		);
+
+		// Field for the renaming rules
+		add_settings_field(
+			'scputm_rename_rules',
+			__( 'Renaming Rules', 'supportcandy-plus' ),
+			array( $this, 'render_rules_builder' ),
+			'scp-utm',
+			'scputm_rules_section'
+		);
 	}
 
 	/**
@@ -143,6 +160,54 @@ class SCPUTM_Admin {
 	}
 
 	/**
+	 * Render the rules builder UI.
+	 */
+	public function render_rules_builder() {
+		$options      = get_option( 'scp_settings', [] );
+		$all_columns  = supportcandy_plus()->get_supportcandy_columns();
+		$rename_rules = isset( $options['scputm_rename_rules'] ) && is_array( $options['scputm_rename_rules'] ) ? $options['scputm_rename_rules'] : [];
+		?>
+		<div id="scp-utm-rules-container">
+			<?php
+			if ( ! empty( $rename_rules ) ) :
+				foreach ( $rename_rules as $rule ) :
+					?>
+					<div class="scp-utm-rule-row">
+						<span><?php esc_html_e( 'Display', 'supportcandy-plus' ); ?></span>
+						<select class="scp-utm-rule-field">
+							<?php foreach ( $all_columns as $slug => $name ) : ?>
+								<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $slug, $rule['field'] ); ?>><?php echo esc_html( $name ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<span><?php esc_html_e( 'as', 'supportcandy-plus' ); ?></span>
+						<input type="text" class="scp-utm-rule-name" value="<?php echo esc_attr( $rule['name'] ); ?>" />
+						<button type="button" class="button scp-utm-remove-rule" title="<?php esc_attr_e( 'Remove Rule', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-trash"></span></button>
+					</div>
+					<?php
+				endforeach;
+			endif;
+			?>
+		</div>
+		<button type="button" id="scp-utm-add-rule" class="button"><?php esc_html_e( 'Add Rule', 'supportcandy-plus' ); ?></button>
+		<p class="description"><?php esc_html_e( 'Here you can rename the titles of fields for the email output. For example, you could change "ID" to "Ticket Number".', 'supportcandy-plus' ); ?></p>
+
+		<script type="text/template" id="scp-utm-rule-template">
+			<div class="scp-utm-rule-row">
+				<span><?php esc_html_e( 'Display', 'supportcandy-plus' ); ?></span>
+				<select class="scp-utm-rule-field">
+					<?php foreach ( $all_columns as $slug => $name ) : ?>
+						<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<span><?php esc_html_e( 'as', 'supportcandy-plus' ); ?></span>
+				<input type="text" class="scp-utm-rule-name" value="" />
+				<button type="button" class="button scp-utm-remove-rule" title="<?php esc_attr_e( 'Remove Rule', 'supportcandy-plus' ); ?>"><span class="dashicons dashicons-trash"></span></button>
+			</div>
+		</script>
+		<?php
+	}
+
+	/**
 	 * Enqueue admin scripts and styles.
 	 */
 	public function enqueue_admin_scripts( $hook ) {
@@ -187,9 +252,23 @@ class SCPUTM_Admin {
 			? array_map( 'sanitize_text_field', wp_unslash( $_POST['selected_fields'] ) )
 			: array();
 
+		// Sanitize and get the rename rules
+		$rename_rules = array();
+		if ( isset( $_POST['rename_rules'] ) && is_array( $_POST['rename_rules'] ) ) {
+			foreach ( wp_unslash( $_POST['rename_rules'] ) as $rule ) {
+				if ( ! empty( $rule['field'] ) && ! empty( $rule['name'] ) ) {
+					$rename_rules[] = array(
+						'field' => sanitize_text_field( $rule['field'] ),
+						'name'  => sanitize_text_field( $rule['name'] ),
+					);
+				}
+			}
+		}
+
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
 		$settings['scputm_selected_fields'] = $selected_fields;
+		$settings['scputm_rename_rules']    = $rename_rules;
 		update_option( 'scp_settings', $settings );
 
 		wp_send_json_success();
@@ -226,6 +305,23 @@ class SCPUTM_Admin {
 
 			#scp_utm_move_down .dashicons {
 				transform: rotate(90deg) scale(1.3);
+			}
+
+			.scp-utm-rule-row {
+				display: flex;
+				align-items: center;
+				margin-bottom: 10px;
+			}
+
+			.scp-utm-rule-row span,
+			.scp-utm-rule-row select,
+			.scp-utm-rule-row input {
+				margin-right: 10px;
+			}
+
+			.scp-utm-remove-rule .dashicons {
+				font-size: 18px;
+				line-height: 1.2;
 			}
 		</style>
 		<?php

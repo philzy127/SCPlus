@@ -105,6 +105,15 @@ class SCPUTM_Core {
 		error_log('[UTM] _scputm_build_live_utm_html() - Enter');
 		$options = get_option( 'scp_settings', [] );
 		$selected_fields = isset( $options['scputm_selected_fields'] ) && is_array( $options['scputm_selected_fields'] ) ? $options['scputm_selected_fields'] : [];
+		$rename_rules_raw = isset( $options['scputm_rename_rules'] ) && is_array( $options['scputm_rename_rules'] ) ? $options['scputm_rename_rules'] : [];
+
+		// Create a simple map for the rename rules for easy lookup.
+		$rename_rules_map = [];
+		foreach ( $rename_rules_raw as $rule ) {
+			if ( isset( $rule['field'] ) && ! empty( $rule['name'] ) ) {
+				$rename_rules_map[ $rule['field'] ] = $rule['name'];
+			}
+		}
 
 		// Get all available columns to map slugs to friendly names.
 		$all_columns = supportcandy_plus()->get_supportcandy_columns();
@@ -141,7 +150,8 @@ class SCPUTM_Core {
 				continue;
 			}
 
-			$field_name    = isset( $all_columns[ $field_slug ] ) ? $all_columns[ $field_slug ] : $field_slug;
+			// Check if a rename rule exists for this field.
+			$field_name    = isset( $rename_rules_map[ $field_slug ] ) ? $rename_rules_map[ $field_slug ] : ( isset( $all_columns[ $field_slug ] ) ? $all_columns[ $field_slug ] : $field_slug );
 			$display_value = '';
 			$field_type    = isset( $field_types_map[ $field_slug ] ) ? $field_types_map[ $field_slug ] : 'unknown';
 

@@ -68,10 +68,35 @@ jQuery(document).ready(function($) {
             selectedFields.push($(this).val());
         });
 
+        // Collect rename rules
+        var renameRules = [];
+        var validationError = false;
+        $('#scp-utm-rules-container .scp-utm-rule-row').each(function() {
+            var $row = $(this);
+            var field = $row.find('.scp-utm-rule-field').val();
+            var name = $row.find('.scp-utm-rule-name').val().trim();
+
+            if (name === '') {
+                alert('Rule name cannot be blank. Please provide a name or remove the rule.');
+                validationError = true;
+                return false; // Exit the .each() loop
+            }
+
+            renameRules.push({
+                'field': field,
+                'name': name
+            });
+        });
+
+        if (validationError) {
+            return; // Stop the save process
+        }
+
         var data = {
             'action': 'scputm_save_settings',
             'nonce': scp_utm_admin_params.nonce,
-            'selected_fields': selectedFields
+            'selected_fields': selectedFields,
+            'rename_rules': renameRules
         };
 
         $('.spinner').addClass('is-active');
@@ -86,5 +111,16 @@ jQuery(document).ready(function($) {
                 alert(scp_utm_admin_params.save_error_message);
             }
         });
+    });
+
+    // Add Rule
+    $('#scp-utm-add-rule').on('click', function() {
+        var template = $('#scp-utm-rule-template').html();
+        $('#scp-utm-rules-container').append(template);
+    });
+
+    // Remove Rule (using event delegation)
+    $('#scp-utm-rules-container').on('click', '.scp-utm-remove-rule', function() {
+        $(this).closest('.scp-utm-rule-row').remove();
     });
 });
