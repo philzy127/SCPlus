@@ -233,8 +233,6 @@ class SCPUTM_Admin {
 			'scp_utm_admin_params',
 			array(
 				'nonce'                 => wp_create_nonce( 'scputm_save_settings_nonce' ),
-				'save_success_message'  => __( 'Settings saved successfully!', 'supportcandy-plus' ),
-				'save_error_message'    => __( 'An error occurred. Please try again.', 'supportcandy-plus' ),
 			)
 		);
 	}
@@ -320,13 +318,10 @@ class SCPUTM_Admin {
 				margin-right: 10px;
 			}
 
-			.scp-utm-remove-rule {
+			.scp-utm-remove-rule.button {
 				display: inline-flex;
 				align-items: center;
 				justify-content: center;
-				padding: 0;
-				width: 28px;
-				height: 28px;
 			}
 			.scp-utm-remove-rule .dashicons {
 				font-size: 18px;

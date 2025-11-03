@@ -128,11 +128,6 @@ jQuery(document).ready(function($) {
 
         $.post(ajaxurl, data, function(response) {
             $('.spinner').removeClass('is-active');
-            if (response.success) {
-                showToast(scp_utm_admin_params.save_success_message);
-            } else {
-                showToast(scp_utm_admin_params.save_error_message, true);
-            }
         });
     });
 
