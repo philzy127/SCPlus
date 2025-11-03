@@ -270,7 +270,6 @@ class SCPUTM_Admin {
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'scputm_save_settings_nonce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'supportcandy-plus' ) ) );
 		}
-		error_log( '[UTM RULE DEBUG] Incoming POST data: ' . print_r( $_POST, true ) );
 
 		// Sanitize and get the selected fields
 		$selected_fields = isset( $_POST['selected_fields'] ) && is_array( $_POST['selected_fields'] )
@@ -295,13 +294,15 @@ class SCPUTM_Admin {
 
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
-		error_log( '[UTM RULE DEBUG] Settings loaded from DB: ' . print_r( $settings, true ) );
 
 		$settings['utm_columns'] = $selected_fields;
-		$settings['scputm_rename_rules']    = $rename_rules;
+		// Only update the rename rules if they were actually submitted.
+		// This prevents a stale JS cache from accidentally wiping them out.
+		if ( isset( $_POST['rename_rules'] ) ) {
+			$settings['scputm_rename_rules'] = $rename_rules;
+		}
 		$settings['use_supportcandy_order'] = $use_sc_order;
 
-		error_log( '[UTM RULE DEBUG] Settings before saving: ' . print_r( $settings, true ) );
 		update_option( 'scp_settings', $settings );
 
 		wp_send_json_success(

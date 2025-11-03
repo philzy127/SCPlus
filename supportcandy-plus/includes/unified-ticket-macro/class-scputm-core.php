@@ -124,9 +124,14 @@ class SCPUTM_Core {
 			$supportcandy_tff_fields = get_option( 'wpsc-tff', [] );
 			$sc_ordered_slugs        = array_keys( $supportcandy_tff_fields );
 
-			// Filter the UTM selection to only include fields present in the SC order.
-			// The result is an array of slugs that are in both lists, using SC's order.
-			$selected_fields = array_intersect( $sc_ordered_slugs, $selected_fields );
+			// 1. Find the fields that are in both lists, and keep the SC order.
+			$ordered_part = array_intersect( $sc_ordered_slugs, $selected_fields );
+
+			// 2. Find the fields that are in the UTM list but NOT in the SC list.
+			$unmatched_part = array_diff( $selected_fields, $sc_ordered_slugs );
+
+			// 3. Combine them. This preserves the SC order and appends the rest.
+			$selected_fields = array_merge( $ordered_part, $unmatched_part );
 		}
 
 		if ( empty( $selected_fields ) ) {
