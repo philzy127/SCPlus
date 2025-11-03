@@ -146,6 +146,11 @@ jQuery(document).ready(function($) {
 
         $.post(ajaxurl, data, function(response) {
             $('.spinner').removeClass('is-active');
+            if (response.success) {
+                showToast(response.data.message, false);
+            } else {
+                showToast(response.data.message, true);
+            }
         });
     });
 

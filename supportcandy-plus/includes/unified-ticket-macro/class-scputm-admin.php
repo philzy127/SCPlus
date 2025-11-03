@@ -299,7 +299,11 @@ class SCPUTM_Admin {
 		$settings['use_supportcandy_order'] = $use_sc_order;
 		update_option( 'scp_settings', $settings );
 
-		wp_send_json_success();
+		wp_send_json_success(
+			array(
+				'message' => __( 'Settings saved successfully!', 'supportcandy-plus' ),
+			)
+		);
 	}
 
 	/**
