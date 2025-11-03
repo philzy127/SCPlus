@@ -294,7 +294,6 @@ class SCPUTM_Admin {
 
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
-
 		$settings['utm_columns'] = $selected_fields;
 		// Only update the rename rules if they were actually submitted.
 		// This prevents a stale JS cache from accidentally wiping them out.
@@ -302,7 +301,6 @@ class SCPUTM_Admin {
 			$settings['scputm_rename_rules'] = $rename_rules;
 		}
 		$settings['use_supportcandy_order'] = $use_sc_order;
-
 		update_option( 'scp_settings', $settings );
 
 		wp_send_json_success(
