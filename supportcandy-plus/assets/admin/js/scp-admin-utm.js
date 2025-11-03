@@ -1,5 +1,30 @@
 jQuery(document).ready(function($) {
 
+    // Helper function to show toast messages
+    function showToast(message, isError) {
+        var $container = $('#scp-utm-toast-container');
+        var $toast = $('<div class="scp-utm-toast"></div>').text(message);
+
+        if (isError) {
+            $toast.addClass('error');
+        }
+
+        $container.append($toast);
+
+        // Show the toast
+        setTimeout(function() {
+            $toast.addClass('show');
+        }, 100);
+
+        // Hide and remove the toast after 3 seconds
+        setTimeout(function() {
+            $toast.removeClass('show');
+            setTimeout(function() {
+                $toast.remove();
+            }, 300);
+        }, 3000);
+    }
+
     // Move Up
     $('#scp_utm_move_up').on('click', function() {
         var $selected = $('#scp_utm_selected_fields option:selected');
@@ -77,7 +102,7 @@ jQuery(document).ready(function($) {
             var name = $row.find('.scp-utm-rule-name').val().trim();
 
             if (name === '') {
-                alert('Rule name cannot be blank. Please provide a name or remove the rule.');
+                showToast('Rule name cannot be blank. Please provide a name or remove the rule.', true);
                 validationError = true;
                 return false; // Exit the .each() loop
             }
@@ -104,11 +129,9 @@ jQuery(document).ready(function($) {
         $.post(ajaxurl, data, function(response) {
             $('.spinner').removeClass('is-active');
             if (response.success) {
-                // Display a success message (e.g., using a toast notification)
-                alert(scp_utm_admin_params.save_success_message);
+                showToast(scp_utm_admin_params.save_success_message);
             } else {
-                // Display an error message
-                alert(scp_utm_admin_params.save_error_message);
+                showToast(scp_utm_admin_params.save_error_message, true);
             }
         });
     });

@@ -91,6 +91,7 @@ class SCPUTM_Admin {
 	public function render_settings_page() {
 		?>
 		<div class="wrap">
+			<div id="scp-utm-toast-container"></div>
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<?php
 			do_settings_sections( 'scp-utm' );
@@ -319,9 +320,43 @@ class SCPUTM_Admin {
 				margin-right: 10px;
 			}
 
+			.scp-utm-remove-rule {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				padding: 0;
+				width: 28px;
+				height: 28px;
+			}
 			.scp-utm-remove-rule .dashicons {
 				font-size: 18px;
-				line-height: 1.2;
+				margin: 0;
+			}
+
+			#scp-utm-toast-container {
+				position: fixed;
+				top: 40px;
+				right: 20px;
+				z-index: 9999;
+				width: 300px;
+			}
+
+			.scp-utm-toast {
+				background-color: #333;
+				color: #fff;
+				padding: 15px;
+				margin-bottom: 10px;
+				border-radius: 4px;
+				opacity: 0;
+				transition: opacity 0.3s ease-in-out;
+			}
+
+			.scp-utm-toast.show {
+				opacity: 1;
+			}
+
+			.scp-utm-toast.error {
+				background-color: #d9534f;
 			}
 		</style>
 		<?php
