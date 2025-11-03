@@ -101,9 +101,30 @@ class SCPUTM_Admin {
 		<div class="wrap">
 			<div id="scp-utm-toast-container"></div>
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-			<?php
-			do_settings_sections( 'scp-utm' );
-			?>
+
+			<table class="form-table" role="presentation">
+				<tbody>
+					<tr>
+						<th scope="row"><?php _e( 'Fields to Display', 'supportcandy-plus' ); ?></th>
+						<td><?php $this->render_fields_selector(); ?></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php _e( 'Field Order', 'supportcandy-plus' ); ?></th>
+						<td><?php $this->render_use_sc_order_checkbox(); ?></td>
+					</tr>
+				</tbody>
+			</table>
+
+			<h2><?php _e( 'Rename Field Titles', 'supportcandy-plus' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tbody>
+					<tr>
+						<th scope="row"><?php _e( 'Renaming Rules', 'supportcandy-plus' ); ?></th>
+						<td><?php $this->render_rules_builder(); ?></td>
+					</tr>
+				</tbody>
+			</table>
+
 			<p class="submit">
 				<button type="button" id="scp-utm-save-settings" class="button button-primary"><?php esc_html_e( 'Save Settings', 'supportcandy-plus' ); ?></button>
 				<span class="spinner"></span>
