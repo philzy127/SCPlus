@@ -104,7 +104,7 @@ class SCPUTM_Core {
 	private function _scputm_build_live_utm_html( $ticket ) {
 		error_log('[UTM] _scputm_build_live_utm_html() - Enter');
 		$options = get_option( 'scp_settings', [] );
-		$selected_fields = isset( $options['scputm_selected_fields'] ) && is_array( $options['scputm_selected_fields'] ) ? $options['scputm_selected_fields'] : [];
+		$selected_fields = isset( $options['utm_columns'] ) && is_array( $options['utm_columns'] ) ? $options['utm_columns'] : [];
 		$rename_rules_raw = isset( $options['scputm_rename_rules'] ) && is_array( $options['scputm_rename_rules'] ) ? $options['scputm_rename_rules'] : [];
 
 		// Create a simple map for the rename rules for easy lookup.

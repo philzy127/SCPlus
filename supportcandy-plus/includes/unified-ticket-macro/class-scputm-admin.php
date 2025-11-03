@@ -118,7 +118,7 @@ class SCPUTM_Admin {
 	public function render_fields_selector() {
 		$options         = get_option( 'scp_settings', [] );
 		$all_columns     = supportcandy_plus()->get_supportcandy_columns();
-		$selected_slugs  = isset( $options['scputm_selected_fields'] ) && is_array( $options['scputm_selected_fields'] ) ? $options['scputm_selected_fields'] : [];
+		$selected_slugs  = isset( $options['utm_columns'] ) && is_array( $options['utm_columns'] ) ? $options['utm_columns'] : [];
 
 		$available_columns = array_diff_key( $all_columns, array_flip( $selected_slugs ) );
 		$selected_columns  = array_intersect_key( $all_columns, array_flip( $selected_slugs ) );
@@ -294,7 +294,7 @@ class SCPUTM_Admin {
 
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
-		$settings['scputm_selected_fields'] = $selected_fields;
+		$settings['utm_columns'] = $selected_fields;
 		$settings['scputm_rename_rules']    = $rename_rules;
 		$settings['use_supportcandy_order'] = $use_sc_order;
 		update_option( 'scp_settings', $settings );
