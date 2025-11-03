@@ -152,6 +152,7 @@ jQuery(document).ready(function($) {
                 showToast(response.data.message, true);
             }
         });
+        return false;
     });
 
     // Add Rule
