@@ -55,6 +55,13 @@ final class SupportCandy_Plus {
 		if ( class_exists( 'SCP_After_Ticket_Survey' ) ) {
 			SCP_After_Ticket_Survey::get_instance();
 		}
+
+		// Recipient Field.
+		$options = get_option( 'scp_settings' );
+		if ( ! empty( $options['enable_recipient_field'] ) ) {
+			include_once SCP_PLUGIN_PATH . 'includes/custom-fields/class-wpsc-df-scp-recipient-field.php';
+			WPSC_DF_SCP_Recipient_Field::init();
+		}
 	}
 
 	private function init_hooks() {

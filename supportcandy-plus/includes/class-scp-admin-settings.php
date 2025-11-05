@@ -210,6 +210,7 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_enable_hide_empty_columns', __( 'Hide Empty Columns', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_empty_columns', 'desc' => 'Automatically hide any column in the ticket list that is completely empty.' ] );
 		add_settings_field( 'scp_enable_hide_priority_column', __( 'Hide Priority Column', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_hide_priority_column', 'desc' => 'Hides the "Priority" column if all visible tickets have a priority of "Low".' ] );
 		add_settings_field( 'scp_hide_reply_close_for_users', __( 'Hide "Reply & Close" for Users', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'hide_reply_close_for_users', 'desc' => 'Hides the "Reply & Close" button for non-agent users on the ticket reply form.' ] );
+		add_settings_field( 'scp_enable_recipient_field', __( 'Enable Recipient Field', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_general_cleanup_section', [ 'id' => 'enable_recipient_field', 'desc' => 'Enables a new custom field type for adding additional recipients.' ] );
 
 		add_settings_section( 'scp_separator_2', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
 
@@ -746,6 +747,7 @@ class SCP_Admin_Settings {
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
 				case 'enable_ats':
+				case 'enable_recipient_field':
 					$sanitized_output[ $key ] = (int) $value;
 					break;
 
