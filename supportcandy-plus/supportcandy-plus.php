@@ -44,6 +44,12 @@ final class SupportCandy_Plus {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
 		SCP_Queue_Macro::get_instance();
 
+		// Unified Ticket Macro Module
+		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-admin.php';
+		SCPUTM_Admin::get_instance();
+		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-core.php';
+		SCPUTM_Core::get_instance();
+
 		// After Ticket Survey Module
 		include_once SCP_PLUGIN_PATH . 'includes/modules/after-ticket-survey/class-scp-ats.php';
 		if ( class_exists( 'SCP_After_Ticket_Survey' ) ) {
@@ -274,6 +280,7 @@ final class SupportCandy_Plus {
 			'supportcandy-plus_page_scp-ats-manage-questions',
 			'supportcandy-plus_page_scp-ats-view-results',
 			'supportcandy-plus_page_scp-ats-settings',
+			'supportcandy-plus_page_scp-utm',
 		];
 
 		if ( ! in_array( $hook_suffix, $allowed_hooks, true ) ) {
@@ -298,6 +305,16 @@ final class SupportCandy_Plus {
 			wp_enqueue_script(
 				'scp-date-time-formatting',
 				SCP_PLUGIN_URL . 'assets/admin/js/scp-date-time-formatting.js',
+				array( 'jquery' ),
+				SCP_VERSION,
+				true
+			);
+		}
+
+		if ( 'supportcandy-plus_page_scp-utm' === $hook_suffix ) {
+			wp_enqueue_script(
+				'scp-utm-admin',
+				SCP_PLUGIN_URL . 'assets/admin/js/scp-utm-admin.js',
 				array( 'jquery' ),
 				SCP_VERSION,
 				true

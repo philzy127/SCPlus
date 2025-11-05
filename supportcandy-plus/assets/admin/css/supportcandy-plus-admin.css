@@ -185,6 +185,70 @@
     margin-top: 10px;
 }
 
+/* Styles for Unified Ticket Macro Admin Page */
+.scp-utm-container {
+	display: flex;
+	gap: 15px;
+	align-items: flex-start;
+	max-width: 700px; /* Tidy container */
+}
+
+.scp-utm-box {
+	flex: 1;
+}
+
+.scp-utm-box h3 {
+	margin-top: 0;
+	margin-bottom: 5px;
+}
+
+.scp-utm-box select {
+	width: 100%;
+	height: 250px !important;
+}
+
+.scp-utm-buttons {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	justify-content: center;
+	align-self: center;
+}
+
+.scp-utm-buttons .button {
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: 1px solid #ccc;
+	background: #f7f7f7;
+	cursor: pointer;
+	transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+.scp-utm-buttons .button:hover {
+	background-color: #f0f0f0;
+	border-color: #999;
+}
+
+.scp-utm-buttons .button:active {
+	background-color: #e0e0e0;
+	border-color: #777;
+	box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.scp-utm-buttons .button .dashicons {
+	font-size: 20px;
+}
+
+/* Increase size of the middle two icons for better visual balance */
+#scp_utm_add .dashicons,
+#scp_utm_remove .dashicons {
+	transform: scale(1.5);
+}
+
 .scp-remove-date-rule:hover {
     background-color: #a00 !important;
     color: #fff !important;
