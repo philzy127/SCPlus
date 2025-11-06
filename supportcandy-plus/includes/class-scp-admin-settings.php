@@ -281,6 +281,7 @@ class SCP_Admin_Settings {
 		add_settings_field( 'scp_include_all_weekends', __( 'Include All Weekends', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'include_all_weekends', 'desc' => 'Enable this to show the notice all day on Saturdays and Sundays.' ] );
 		add_settings_field( 'scp_holidays', __( 'Holidays', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'holidays', 'class' => 'regular-text', 'desc' => 'List holidays, one per line, in MM-DD-YYYY format (e.g., 12-25-2024). The notice will show all day on these dates.' ] );
 		add_settings_field( 'scp_after_hours_message', __( 'After Hours Message', 'supportcandy-plus' ), array( $this, 'render_wp_editor_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_message', 'desc' => 'The message to display to users. Basic HTML is allowed.' ] );
+		add_settings_field( 'scp_after_hours_in_email', __( 'Add to Emails', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'scp-after-hours', 'scp_after_hours_section', [ 'id' => 'after_hours_in_email', 'desc' => 'Add the after-hours notice to email notifications.' ] );
 
 		// Page: Queue Macro
 		add_settings_section(
@@ -743,6 +744,7 @@ class SCP_Admin_Settings {
 				case 'enable_ticket_type_hiding':
 				case 'enable_conditional_hiding':
 				case 'enable_after_hours_notice':
+				case 'after_hours_in_email':
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
 				case 'enable_ats':

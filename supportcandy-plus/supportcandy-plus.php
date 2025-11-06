@@ -55,6 +55,12 @@ final class SupportCandy_Plus {
 		if ( class_exists( 'SCP_After_Ticket_Survey' ) ) {
 			SCP_After_Ticket_Survey::get_instance();
 		}
+
+		// After Hours Notice Module
+		include_once SCP_PLUGIN_PATH . 'includes/modules/after-hours-notice/class-scp-ahn-core.php';
+		if ( class_exists( 'SCP_AHN_Core' ) ) {
+			SCP_AHN_Core::get_instance();
+		}
 	}
 
 	private function init_hooks() {
