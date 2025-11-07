@@ -324,20 +324,23 @@ class SCPUTM_Core {
 				$has_logs    = false;
 				$reply_types = array( 'customer-reply', 'agent-reply' );
 
-				// We skip the first thread (index 0) as it's the original description.
-				for ( $i = 1; $i < count( $ticket->threads ); $i++ ) {
-					$t = $ticket->threads[ $i ];
-					if ( in_array( $t->thread_type, $reply_types, true ) ) {
-						$has_replies = true;
-					}
-					if ( 'note' === $t->thread_type ) {
-						$has_notes = true;
-					}
-					if ( 'log' === $t->thread_type ) {
-						$has_logs = true;
-					}
-					if ( $has_replies && $has_notes && $has_logs ) {
-						break;
+				// Defensive check: Only proceed if threads is a countable array.
+				if ( is_array( $ticket->threads ) && count( $ticket->threads ) > 0 ) {
+					// We skip the first thread (index 0) as it's the original description.
+					for ( $i = 1; $i < count( $ticket->threads ); $i++ ) {
+						$t = $ticket->threads[ $i ];
+						if ( in_array( $t->thread_type, $reply_types, true ) ) {
+							$has_replies = true;
+						}
+						if ( 'note' === $t->thread_type ) {
+							$has_notes = true;
+						}
+						if ( 'log' === $t->thread_type ) {
+							$has_logs = true;
+						}
+						if ( $has_replies && $has_notes && $has_logs ) {
+							break;
+						}
 					}
 				}
 
