@@ -23,40 +23,6 @@ class SCP_AHN_Core {
 	}
 
 	/**
-	 * Check if it is currently after hours.
-	 *
-	 * @return boolean
-	 */
-	private function is_after_hours() {
-		$start_hour       = ! empty( $this->options['after_hours_start'] ) ? (int) $this->options['after_hours_start'] : 17;
-		$end_hour         = ! empty( $this->options['before_hours_end'] ) ? (int) $this->options['before_hours_end'] : 8;
-		$include_weekends = ! empty( $this->options['include_all_weekends'] );
-		$holidays         = ! empty( $this->options['holidays'] ) ? array_map( 'trim', explode( "\n", $this->options['holidays'] ) ) : [];
-
-		$current_timestamp = current_time( 'timestamp' );
-		$current_hour      = (int) date( 'H', $current_timestamp );
-		$day_of_week       = (int) date( 'w', $current_timestamp ); // 0 (for Sunday) through 6 (for Saturday)
-		$current_date      = date( 'm-d-Y', $current_timestamp );
-
-		// Check for holidays.
-		if ( in_array( $current_date, $holidays, true ) ) {
-			return true;
-		}
-
-		// Check for weekends.
-		if ( $include_weekends && ( $day_of_week === 0 || $day_of_week === 6 ) ) {
-			return true;
-		}
-
-		// Check for time.
-		if ( $current_hour >= $start_hour || $current_hour < $end_hour ) {
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
 	 * Add the after hours notice to the email body.
 	 *
 	 * @param array $email_data The email data.
@@ -68,8 +34,8 @@ class SCP_AHN_Core {
 			return $email_data;
 		}
 
-		// Check if it's after hours.
-		if ( ! $this->is_after_hours() ) {
+		// Check if it's after hours using the centralized function.
+		if ( ! supportcandy_plus()->is_after_hours() ) {
 			return $email_data;
 		}
 
@@ -80,7 +46,8 @@ class SCP_AHN_Core {
 
 		// Prepend the message to the email body.
 		if ( isset( $email_data['body'] ) ) {
-			$email_data['body'] = $message . '<hr>' . $email_data['body'];
+			$styled_message = '<div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; margin: 15px 0; border-radius: 4px; font-size: 16px;">' . $message . '</div>';
+			$email_data['body'] = $styled_message . $email_data['body'];
 		}
 
 		return $email_data;

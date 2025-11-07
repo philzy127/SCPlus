@@ -261,12 +261,9 @@ final class SupportCandy_Plus {
 					'columns' => $this->get_supportcandy_columns(),
 				],
 				'after_hours_notice' => [
-					'enabled'          => ! empty( $options['enable_after_hours_notice'] ),
-					'start_hour'       => ! empty( $options['after_hours_start'] ) ? (int) $options['after_hours_start'] : 17,
-					'end_hour'         => ! empty( $options['before_hours_end'] ) ? (int) $options['before_hours_end'] : 8,
-					'include_weekends' => ! empty( $options['include_all_weekends'] ),
-					'holidays'         => ! empty( $options['holidays'] ) ? array_map( 'trim', explode( "\n", $options['holidays'] ) ) : [],
-					'message'          => ! empty( $options['after_hours_message'] ) ? wpautop( wp_kses_post( $options['after_hours_message'] ) ) : '',
+					'enabled'      => ! empty( $options['enable_after_hours_notice'] ),
+					'isAfterHours' => $this->is_after_hours(),
+					'message'      => ! empty( $options['after_hours_message'] ) ? wpautop( wp_kses_post( $options['after_hours_message'] ) ) : '',
 				],
 			],
 		];
@@ -393,6 +390,45 @@ final class SupportCandy_Plus {
 		asort( $all_columns );
 
 		return $all_columns;
+	}
+
+	/**
+	 * Check if it is currently after hours based on plugin settings.
+	 *
+	 * @return boolean
+	 */
+	public function is_after_hours() {
+		$options = get_option( 'scp_settings', [] );
+		if ( empty( $options['enable_after_hours_notice'] ) ) {
+			return false;
+		}
+
+		$start_hour       = ! empty( $options['after_hours_start'] ) ? (int) $options['after_hours_start'] : 17;
+		$end_hour         = ! empty( $options['before_hours_end'] ) ? (int) $options['before_hours_end'] : 8;
+		$include_weekends = ! empty( $options['include_all_weekends'] );
+		$holidays         = ! empty( $options['holidays'] ) ? array_map( 'trim', explode( "\n", $options['holidays'] ) ) : [];
+
+		$current_timestamp = current_time( 'timestamp' );
+		$current_hour      = (int) date( 'H', $current_timestamp );
+		$day_of_week       = (int) date( 'w', $current_timestamp ); // 0 (for Sunday) through 6 (for Saturday)
+		$current_date      = date( 'm-d-Y', $current_timestamp );
+
+		// Check for holidays.
+		if ( in_array( $current_date, $holidays, true ) ) {
+			return true;
+		}
+
+		// Check for weekends.
+		if ( $include_weekends && ( $day_of_week === 0 || $day_of_week === 6 ) ) {
+			return true;
+		}
+
+		// Check for time.
+		if ( $current_hour >= $start_hour || $current_hour < $end_hour ) {
+			return true;
+		}
+
+		return false;
 	}
 }
 

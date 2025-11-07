@@ -328,34 +328,11 @@
 	 */
 	function feature_after_hours_notice() {
 		const config = features.after_hours_notice;
-		if (!config?.enabled || !config.message) {
+		if (!config?.enabled || !config.message || !config.isAfterHours) {
 			return;
 		}
 
-		const now = new Date();
-		const currentHour = now.getHours();
-		const currentDay = now.getDay(); // Sunday = 0, Saturday = 6
-		const isWeekend = currentDay === 0 || currentDay === 6;
-
-		// Format current date as MM-DD-YYYY for comparison
-		const year = now.getFullYear();
-		const month = String(now.getMonth() + 1).padStart(2, '0');
-		const day = String(now.getDate()).padStart(2, '0');
-		const currentDate = `${month}-${day}-${year}`;
-		const isHoliday = config.holidays && config.holidays.includes(currentDate);
-
-		let isAfterHours = false;
-
-		// Check for holiday, weekend, or time-based conditions.
-		if (isHoliday) {
-			isAfterHours = true;
-		} else if (config.include_weekends && isWeekend) {
-			isAfterHours = true;
-		} else {
-			isAfterHours = currentHour >= config.start_hour || currentHour < config.end_hour;
-		}
-
-		if (isAfterHours) {
+		if (config.isAfterHours) {
 			const ticketForm = document.querySelector('.wpsc-create-ticket');
 
 			// Check if the form exists and if we haven't already added the message.
