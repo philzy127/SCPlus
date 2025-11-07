@@ -57,9 +57,12 @@ final class SupportCandy_Plus {
 		}
 
 		// After Hours Notice Module
-		include_once SCP_PLUGIN_PATH . 'includes/modules/after-hours-notice/class-scp-ahn-core.php';
-		if ( class_exists( 'SCP_AHN_Core' ) ) {
-			SCP_AHN_Core::get_instance();
+		$scp_settings = get_option( 'scp_settings', [] );
+		if ( ! empty( $scp_settings['enable_after_hours_notice'] ) ) {
+			include_once SCP_PLUGIN_PATH . 'includes/modules/after-hours-notice/class-scp-ahn-core.php';
+			if ( class_exists( 'SCP_AHN_Core' ) ) {
+				SCP_AHN_Core::get_instance();
+			}
 		}
 	}
 
