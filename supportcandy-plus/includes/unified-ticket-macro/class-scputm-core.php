@@ -347,6 +347,9 @@ class SCPUTM_Core {
 				// Rule 1: Hide reply-only macros if there are no replies.
 				if ( ! $has_replies ) {
 					$macros_to_hide = array_merge( $macros_to_hide, array( '{{ticket_history}}', '{{last_reply}}' ) );
+					// Also, remove the entire "replied:" line from the template.
+					$pattern = '/<p><strong>\s*{{last_reply_user_name}}\s*<\/strong>\s*<em>replied:<\/em>\s*{{last_reply}}\s*<\/p>/';
+					$data['body'] = preg_replace($pattern, '', $data['body']);
 				}
 
 				// Rule 2: Hide note-only macros if there are no notes.
