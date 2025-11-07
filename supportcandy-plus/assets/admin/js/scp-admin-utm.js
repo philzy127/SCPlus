@@ -139,7 +139,8 @@ jQuery(document).ready(function($) {
             'nonce': scp_utm_admin_params.nonce,
             'selected_fields': selectedFields,
             'rename_rules': renameRules,
-            'use_sc_order': $useSCOrderCheckbox.is(':checked')
+            'use_sc_order': $useSCOrderCheckbox.is(':checked'),
+            'hide_empty_history': $('#scp_utm_hide_empty_history').is(':checked')
         };
 
         $('.spinner').addClass('is-active');

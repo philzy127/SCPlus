@@ -243,7 +243,8 @@ class SCPUTM_Core {
 
 				// Safety Net Default
 				default:
-					error_log( "[UTM] Warning: Unsupported field type '" . esc_html( $field_type ) . "' encountered for field '" . esc_html( $field_slug ) . "'. This field was not included in the macro." );
+					// Log a warning for developers.
+					error_log( "[UTM] Warning: Unsupported field type '" . esc_html( $field_type ) . "' for field '" . esc_html( $field_slug ) . "'. Field skipped." );
 					$display_value = ''; // Skip the field in the email.
 					break;
 			}
@@ -286,32 +287,90 @@ class SCPUTM_Core {
 
 	public function scputm_replace_utm_macro( $data, $thread ) {
 		error_log('[UTM] scputm_replace_utm_macro() - Enter');
-		error_log('[UTM] scputm_replace_utm_macro() - Initial body: ' . print_r($data, true));
 
-		if ( ! is_array($data) || !isset($data['body']) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
-			return $data;
-		}
-		$ticket = $thread->ticket;
-		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) {
+		if ( ! is_array( $data ) || ! isset( $data['body'] ) ) {
 			return $data;
 		}
 
-		// Prioritize the transient for the initial "new ticket" email.
-		$transient_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
-		if ( $transient_html !== false ) {
-			$cached_html = $transient_html;
-			error_log('[UTM] scputm_replace_utm_macro() - Using transient cache.');
-		} else {
-			$misc_data   = $ticket->misc;
-			$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
-			error_log('[UTM] scputm_replace_utm_macro() - Using permanent cache.');
+		// Handle the {{scp_unified_ticket}} macro first, as it's self-contained.
+		if ( strpos( $data['body'], '{{scp_unified_ticket}}' ) !== false ) {
+			$ticket = $thread->ticket;
+			if ( is_a( $ticket, 'WPSC_Ticket' ) ) {
+				$transient_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
+				if ( false !== $transient_html ) {
+					$cached_html = $transient_html;
+					error_log('[UTM] scputm_replace_utm_macro() - Using transient cache for unified macro.');
+				} else {
+					$misc_data   = $ticket->misc;
+					$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
+					error_log('[UTM] scputm_replace_utm_macro() - Using permanent cache for unified macro.');
+				}
+				$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
+			}
 		}
 
-		error_log('[UTM] scputm_replace_utm_macro() - Cached HTML: ' . $cached_html);
+		// Now, handle the conditional hiding of other macros.
+		$options    = get_option( 'scp_settings', array() );
+		$hide_empty = ! empty( $options['utm_hide_empty_history'] );
 
-		$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
+		if ( $hide_empty ) {
+			$ticket = $thread->ticket;
+			if ( is_a( $ticket, 'WPSC_Ticket' ) ) {
+				$macros_to_hide = array();
+
+				// Granular check: iterate threads once to find replies, notes, and logs.
+				$has_replies = false;
+				$has_notes   = false;
+				$has_logs    = false;
+				$reply_types = array( 'customer-reply', 'agent-reply' );
+
+				// We skip the first thread (index 0) as it's the original description.
+				for ( $i = 1; $i < count( $ticket->threads ); $i++ ) {
+					$t = $ticket->threads[ $i ];
+					if ( in_array( $t->thread_type, $reply_types, true ) ) {
+						$has_replies = true;
+					}
+					if ( 'note' === $t->thread_type ) {
+						$has_notes = true;
+					}
+					if ( 'log' === $t->thread_type ) {
+						$has_logs = true;
+					}
+					if ( $has_replies && $has_notes && $has_logs ) {
+						break;
+					}
+				}
+
+				// Rule 1: Hide reply-only macros if there are no replies.
+				if ( ! $has_replies ) {
+					$macros_to_hide = array_merge( $macros_to_hide, array( '{{ticket_history}}', '{{last_reply}}' ) );
+				}
+
+				// Rule 2: Hide note-only macros if there are no notes.
+				if ( ! $has_notes ) {
+					$macros_to_hide[] = '{{ticket_notes_history}}';
+				}
+
+				// Rule 3: Hide combined macros based on their specific content.
+				if ( ! $has_replies && ! $has_logs ) {
+					$macros_to_hide[] = '{{ticket_history_all_with_logs}}';
+				}
+				if ( ! $has_replies && ! $has_notes ) {
+					$macros_to_hide[] = '{{ticket_history_all_with_notes}}';
+				}
+				if ( ! $has_replies && ! $has_notes && ! $has_logs ) {
+					$macros_to_hide[] = '{{ticket_history_all_with_notes_and_logs}}';
+				}
+
+				// Remove the placeholder macros from the body if they are empty.
+				if ( ! empty( $macros_to_hide ) ) {
+					error_log('[UTM] scputm_replace_utm_macro() - Hiding empty macros: ' . implode( ', ', array_unique( $macros_to_hide ) ) );
+					$data['body'] = str_replace( array_unique( $macros_to_hide ), '', $data['body'] );
+				}
+			}
+		}
+
 		error_log('[UTM] scputm_replace_utm_macro() - Final body: ' . $data['body']);
-
 		return $data;
 	}
 }

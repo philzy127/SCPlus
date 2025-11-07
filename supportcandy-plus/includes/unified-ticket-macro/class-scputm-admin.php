@@ -112,6 +112,10 @@ class SCPUTM_Admin {
 						<th scope="row"><?php _e( 'Field Order', 'supportcandy-plus' ); ?></th>
 						<td><?php $this->render_use_sc_order_checkbox(); ?></td>
 					</tr>
+					<tr>
+						<th scope="row"><?php _e( 'Macro Content', 'supportcandy-plus' ); ?></th>
+						<td><?php $this->render_hide_empty_history_checkbox(); ?></td>
+					</tr>
 				</tbody>
 			</table>
 
@@ -202,6 +206,23 @@ class SCPUTM_Admin {
 		</label>
 		<p class="description">
 			<?php esc_html_e( 'If checked, the fields will be ordered according to the global settings in SupportCandy -> Ticket Form Fields. The manual sorting controls will be disabled.', 'supportcandy-plus' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * Render the checkbox for hiding empty history macros.
+	 */
+	public function render_hide_empty_history_checkbox() {
+		$options    = get_option( 'scp_settings', [] );
+		$hide_empty = isset( $options['utm_hide_empty_history'] ) ? (bool) $options['utm_hide_empty_history'] : false;
+		?>
+		<label>
+			<input type="checkbox" id="scp_utm_hide_empty_history" value="1" <?php checked( $hide_empty ); ?> />
+			<?php esc_html_e( 'Hide ticket history macros when they have no content', 'supportcandy-plus' ); ?>
+		</label>
+		<p class="description">
+			<?php esc_html_e( 'If checked, macros like {{ticket_history}} will be hidden from the email if they do not contain any actual history entries.', 'supportcandy-plus' ); ?>
 		</p>
 		<?php
 	}
@@ -313,6 +334,9 @@ class SCPUTM_Admin {
 		// Sanitize and get the order setting
 		$use_sc_order = isset( $_POST['use_sc_order'] ) && 'true' === $_POST['use_sc_order'];
 
+		// Sanitize and get the hide empty history setting
+		$hide_empty = isset( $_POST['hide_empty_history'] ) && 'true' === $_POST['hide_empty_history'];
+
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
 		$settings['utm_columns'] = $selected_fields;
@@ -322,6 +346,7 @@ class SCPUTM_Admin {
 			$settings['scputm_rename_rules'] = $rename_rules;
 		}
 		$settings['use_supportcandy_order'] = $use_sc_order;
+		$settings['utm_hide_empty_history'] = $hide_empty;
 		update_option( 'scp_settings', $settings );
 
 		wp_send_json_success(
