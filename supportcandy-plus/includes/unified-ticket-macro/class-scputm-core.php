@@ -16,6 +16,7 @@ class SCPUTM_Core {
 
 	private static $instance = null;
 	private $is_intercepting = false;
+	private $field_types_map = [];
 
 	public static function get_instance() {
 		error_log('[UTM] SCPUTM_Core::get_instance() - Enter');
@@ -38,6 +39,7 @@ class SCPUTM_Core {
 			return;
 		}
 
+		add_action( 'init', array( $this, 'prime_field_types_cache' ), 10 );
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_prime_cache_on_creation' ), 5, 1 );
 
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
@@ -64,6 +66,31 @@ class SCPUTM_Core {
 		error_log('[UTM] scputm_prime_cache_on_creation() - Transient set.');
 
 		error_log('[UTM] scputm_prime_cache_on_creation() - Exit');
+	}
+
+	/**
+	 * Cache the field type definitions on init.
+	 */
+	public function prime_field_types_cache() {
+		error_log('[UTM] prime_field_types_cache() - Enter');
+		if ( ! empty( $this->field_types_map ) ) {
+			error_log('[UTM] prime_field_types_cache() - Exit (Already Primed)');
+			return;
+		}
+
+		// This static property is only reliably available on 'init' action.
+		$all_fields = WPSC_Custom_Field::$custom_fields;
+		if ( empty( $all_fields ) ) {
+			error_log('[UTM] prime_field_types_cache() - Exit (WPSC_Custom_Field::$custom_fields is empty)');
+			return;
+		}
+
+		$this->field_types_map = array();
+		foreach ( $all_fields as $slug => $field_object ) {
+			$field_type_class           = $field_object->type;
+			$this->field_types_map[ $slug ] = $field_type_class::$slug;
+		}
+		error_log('[UTM] prime_field_types_cache() - Exit (Successfully Primed)');
 	}
 
 	public function register_macro( $macros ) {
@@ -111,12 +138,11 @@ class SCPUTM_Core {
 			return '<table></table>';
 		}
 
-		// Use the official API to get a complete list of all field types.
-		$all_fields      = WPSC_Custom_Field::$custom_fields;
-		$field_types_map = array();
-		foreach ( $all_fields as $slug => $field_object ) {
-			$field_type_class           = $field_object->type;
-			$field_types_map[ $slug ] = $field_type_class::$slug;
+		// Use our reliably cached field types map.
+		$field_types_map = $this->field_types_map;
+		if ( empty( $field_types_map ) ) {
+			error_log('[UTM] _scputm_build_live_utm_html() - Exit (Field types map is empty)');
+			return '<table></table>';
 		}
 
 		$html_output  = '<table>';
