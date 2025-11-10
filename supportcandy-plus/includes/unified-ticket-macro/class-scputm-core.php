@@ -123,8 +123,9 @@ class SCPUTM_Core {
 		error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
 		$field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
-			$field_type_class           = $field_object->type;
-			$field_types_map[ $slug ] = $field_type_class::$slug;
+			if ( is_object( $field_object ) && ! empty( $field_object->type ) ) {
+				$field_types_map[ $slug ] = $field_object->type;
+			}
 		}
 
 		$html_output  = '<table>';
