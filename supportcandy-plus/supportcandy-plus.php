@@ -44,14 +44,11 @@ final class SupportCandy_Plus {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
 		SCP_Queue_Macro::get_instance();
 
-		// Conditionally load the Unified Ticket Macro module.
-		$options = get_option( 'scp_settings', [] );
-		if ( ! empty( $options['enable_utm'] ) ) {
-			include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-admin.php';
-			SCPUTM_Admin::get_instance();
-			include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-core.php';
-			SCPUTM_Core::get_instance();
-		}
+		// Unified Ticket Macro Module
+		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-admin.php';
+		SCPUTM_Admin::get_instance();
+		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-core.php';
+		SCPUTM_Core::get_instance();
 
 		// After Ticket Survey Module
 		include_once SCP_PLUGIN_PATH . 'includes/modules/after-ticket-survey/class-scp-ats.php';

@@ -32,6 +32,12 @@ class SCPUTM_Core {
 	private function __construct() {
 		error_log('[UTM] SCPUTM_Core::__construct() - Enter');
 
+		$options = get_option( 'scp_settings', [] );
+		if ( empty( $options['enable_utm'] ) ) {
+			error_log('[UTM] SCPUTM_Core::__construct() - Exit (Feature Disabled)');
+			return;
+		}
+
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_prime_cache_on_creation' ), 5, 1 );
 
 		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
@@ -46,7 +52,7 @@ class SCPUTM_Core {
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
 		add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
-		error_log('[UTM] SCPUTM_Core::__construct() - Exit');
+		error_log('[UTM] SCPUTM_Core::__construct() - Exit (Feature Enabled)');
 	}
 
 	public function scputm_prime_cache_on_creation( $ticket ) {

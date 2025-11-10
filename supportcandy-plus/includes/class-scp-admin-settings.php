@@ -243,12 +243,6 @@ class SCP_Admin_Settings {
 
 		add_settings_field( 'scp_ticket_types_to_hide', __( 'Ticket Types to Hide', 'supportcandy-plus' ), array( $this, 'render_textarea_field' ), 'supportcandy-plus', 'scp_ticket_type_section', [ 'id' => 'ticket_types_to_hide', 'class' => 'regular-text', 'desc' => 'One ticket type per line. e.g., Network Access Request' ] );
 
-		add_settings_section( 'scp_separator_3', '', array( $this, 'render_hr_separator' ), 'supportcandy-plus' );
-
-		// Section: Unified Ticket Macro
-		add_settings_section( 'scp_utm_section', __( 'Unified Ticket Macro', 'supportcandy-plus' ), null, 'supportcandy-plus' );
-		add_settings_field( 'scp_enable_utm', __( 'Enable Feature', 'supportcandy-plus' ), array( $this, 'render_checkbox_field' ), 'supportcandy-plus', 'scp_utm_section', [ 'id' => 'enable_utm', 'desc' => 'Enables the Unified Ticket Macro feature, which provides the {{scp_unified_ticket}} macro for emails.' ] );
-
 		// Page: Conditional Hiding
 		// Section: Conditional Column Hiding
 		add_settings_section(
