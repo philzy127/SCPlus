@@ -123,8 +123,12 @@ class SCPUTM_Core {
 		error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
 		$field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
-			if ( is_object( $field_object ) && ! empty( $field_object->type ) ) {
-				$field_types_map[ $slug ] = $field_object->type;
+			// The ->type property is accessible via the __get magic method.
+			// The check `!empty()` fails because `__isset` returns false for magic properties.
+			// We must access it directly and then check for a value.
+			$type = $field_object->type;
+			if ( $type ) {
+				$field_types_map[ $slug ] = $type;
 			}
 		}
 
