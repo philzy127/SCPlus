@@ -16,7 +16,6 @@ class SCPUTM_Core {
 
 	private static $instance = null;
 	private $is_intercepting = false;
-	private $field_types_map = [];
 
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -37,7 +36,6 @@ class SCPUTM_Core {
 			return;
 		}
 
-		add_action( 'init', array( $this, 'prime_field_types_cache' ), 10 );
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_prime_cache_on_creation' ), 5, 1 );
 
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
@@ -66,32 +64,6 @@ class SCPUTM_Core {
 		error_log('[UTM] scputm_prime_cache_on_creation() - Exit');
 	}
 
-	/**
-	 * Cache the field type definitions on init.
-	 */
-	public function prime_field_types_cache() {
-		error_log('[UTM] JULES_LOG: prime_field_types_cache() - ENTER on hook: ' . current_action());
-		if ( ! empty( $this->field_types_map ) ) {
-			error_log('[UTM] JULES_LOG: prime_field_types_cache() - EXIT (Already Primed)');
-			return;
-		}
-
-		// This static property is only reliably available on 'init' action.
-		$all_fields = WPSC_Custom_Field::$custom_fields;
-		if ( empty( $all_fields ) ) {
-			error_log('[UTM] JULES_LOG: prime_field_types_cache() - EXIT (WPSC_Custom_Field::$custom_fields is EMPTY)');
-			return;
-		}
-		error_log('[UTM] JULES_LOG: WPSC_Custom_Field::$custom_fields RAW: ' . print_r($all_fields, true));
-
-		$this->field_types_map = array();
-		foreach ( $all_fields as $slug => $field_object ) {
-			$field_type_class           = $field_object->type;
-			$this->field_types_map[ $slug ] = $field_type_class::$slug;
-		}
-		error_log('[UTM] JULES_LOG: prime_field_types_cache() - EXIT (Successfully Primed). Map contents: ' . print_r($this->field_types_map, true));
-	}
-
 	public function register_macro( $macros ) {
 		error_log('[UTM] register_macro() - Enter');
 		$macros[] = array( 'tag' => '{{scp_unified_ticket}}', 'title' => esc_attr__( 'Unified Ticket Macro', 'supportcandy-plus' ) );
@@ -100,6 +72,11 @@ class SCPUTM_Core {
 	}
 
 	private function _scputm_build_live_utm_html( $ticket ) {
+		// Ensure the custom field schema is loaded, especially for AJAX/background contexts.
+		if ( empty( WPSC_Custom_Field::$custom_fields ) ) {
+			WPSC_Custom_Field::apply_schema();
+		}
+
 		error_log('[UTM] _scputm_build_live_utm_html() - Enter');
 		$options = get_option( 'scp_settings', [] );
 		$selected_fields = isset( $options['utm_columns'] ) && is_array( $options['utm_columns'] ) ? $options['utm_columns'] : [];
@@ -137,13 +114,18 @@ class SCPUTM_Core {
 			return '<table></table>';
 		}
 
-		// Use our reliably cached field types map.
-		$field_types_map = $this->field_types_map;
-		if ( empty( $field_types_map ) ) {
-			error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - EXIT (Field types map is EMPTY)');
+		// Use the official API to get a complete list of all field types.
+		$all_fields      = WPSC_Custom_Field::$custom_fields;
+		if ( empty( $all_fields ) ) {
+			error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - EXIT (WPSC_Custom_Field::$custom_fields is EMPTY)');
 			return '<table></table>';
 		}
-		error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - Map Contents: ' . print_r($field_types_map, true));
+		error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
+		$field_types_map = array();
+		foreach ( $all_fields as $slug => $field_object ) {
+			$field_type_class           = $field_object->type;
+			$field_types_map[ $slug ] = $field_type_class::$slug;
+		}
 
 		$html_output  = '<table>';
 
@@ -273,7 +255,6 @@ class SCPUTM_Core {
 			return $data;
 		}
 		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id);
-		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - Cached Map Contents: ' . print_r($this->field_types_map, true));
 
 		// Prioritize the transient for the initial "new ticket" email.
 		$transient_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
