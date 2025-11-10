@@ -72,25 +72,26 @@ class SCPUTM_Core {
 	 * Cache the field type definitions on init.
 	 */
 	public function prime_field_types_cache() {
-		error_log('[UTM] prime_field_types_cache() - Enter');
+		error_log('[UTM] JULES_LOG: prime_field_types_cache() - ENTER on hook: ' . current_action());
 		if ( ! empty( $this->field_types_map ) ) {
-			error_log('[UTM] prime_field_types_cache() - Exit (Already Primed)');
+			error_log('[UTM] JULES_LOG: prime_field_types_cache() - EXIT (Already Primed)');
 			return;
 		}
 
 		// This static property is only reliably available on 'init' action.
 		$all_fields = WPSC_Custom_Field::$custom_fields;
 		if ( empty( $all_fields ) ) {
-			error_log('[UTM] prime_field_types_cache() - Exit (WPSC_Custom_Field::$custom_fields is empty)');
+			error_log('[UTM] JULES_LOG: prime_field_types_cache() - EXIT (WPSC_Custom_Field::$custom_fields is EMPTY)');
 			return;
 		}
+		error_log('[UTM] JULES_LOG: WPSC_Custom_Field::$custom_fields RAW: ' . print_r($all_fields, true));
 
 		$this->field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
 			$field_type_class           = $field_object->type;
 			$this->field_types_map[ $slug ] = $field_type_class::$slug;
 		}
-		error_log('[UTM] prime_field_types_cache() - Exit (Successfully Primed)');
+		error_log('[UTM] JULES_LOG: prime_field_types_cache() - EXIT (Successfully Primed). Map contents: ' . print_r($this->field_types_map, true));
 	}
 
 	public function register_macro( $macros ) {
@@ -141,9 +142,10 @@ class SCPUTM_Core {
 		// Use our reliably cached field types map.
 		$field_types_map = $this->field_types_map;
 		if ( empty( $field_types_map ) ) {
-			error_log('[UTM] _scputm_build_live_utm_html() - Exit (Field types map is empty)');
+			error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - EXIT (Field types map is EMPTY)');
 			return '<table></table>';
 		}
+		error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - Map Contents: ' . print_r($field_types_map, true));
 
 		$html_output  = '<table>';
 
@@ -262,16 +264,18 @@ class SCPUTM_Core {
 	}
 
 	public function scputm_replace_utm_macro( $data, $thread ) {
-		error_log('[UTM] scputm_replace_utm_macro() - Enter');
-		error_log('[UTM] scputm_replace_utm_macro() - Initial body: ' . print_r($data, true));
+		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - ENTER on hook: ' . current_filter());
 
 		if ( ! is_array($data) || !isset($data['body']) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
 			return $data;
 		}
 		$ticket = $thread->ticket;
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) {
+			error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - EXIT (Invalid Ticket Object)');
 			return $data;
 		}
+		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id);
+		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - Cached Map Contents: ' . print_r($this->field_types_map, true));
 
 		// Prioritize the transient for the initial "new ticket" email.
 		$transient_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
