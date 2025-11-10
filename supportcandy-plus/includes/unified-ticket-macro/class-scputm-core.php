@@ -40,11 +40,6 @@ class SCPUTM_Core {
 
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_prime_cache_on_creation' ), 5, 1 );
 
-		add_action( 'wpsc_after_reply_ticket', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
-		add_action( 'wpsc_after_change_ticket_status', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
-		add_action( 'wpsc_after_change_ticket_priority', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
-		add_action( 'wpsc_after_assign_agent', array( $this, 'scputm_update_utm_cache' ), 10, 1 );
-
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_agent_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_customer_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
@@ -68,36 +63,7 @@ class SCPUTM_Core {
 		set_transient( 'scputm_temp_cache_' . $ticket->id, $html_to_cache, 60 );
 		error_log('[UTM] scputm_prime_cache_on_creation() - Transient set.');
 
-		// Defer the permanent save to avoid recursion.
-		add_action( 'shutdown', array( $this, 'scputm_deferred_save' ), 10, 1 );
-
-		// Pass the ticket object to the shutdown action.
-		$this->deferred_ticket_to_save = $ticket;
-
 		error_log('[UTM] scputm_prime_cache_on_creation() - Exit');
-	}
-
-	public function scputm_deferred_save() {
-		error_log('[UTM] scputm_deferred_save() - Enter');
-		if ( isset( $this->deferred_ticket_to_save ) && is_a( $this->deferred_ticket_to_save, 'WPSC_Ticket' ) ) {
-			$ticket = $this->deferred_ticket_to_save;
-			$html_to_cache = get_transient( 'scputm_temp_cache_' . $ticket->id );
-
-			if ( $html_to_cache !== false ) {
-				$misc_data = $ticket->misc;
-				$misc_data['scputm_utm_html'] = $html_to_cache;
-				$ticket->misc = $misc_data;
-
-				// This is now safe to call.
-				$ticket->save();
-				error_log('[UTM] scputm_deferred_save() - Permanent cache saved.');
-
-				// Clean up the transient.
-				delete_transient( 'scputm_temp_cache_' . $ticket->id );
-			}
-			unset( $this->deferred_ticket_to_save );
-		}
-		error_log('[UTM] scputm_deferred_save() - Exit');
 	}
 
 	public function register_macro( $macros ) {
@@ -269,27 +235,6 @@ class SCPUTM_Core {
 		return $html_output;
 	}
 
-	public function scputm_update_utm_cache( $ticket_or_thread_or_id ) {
-		error_log('[UTM] scputm_update_utm_cache() - Enter');
-		$ticket = null;
-		if ( is_a( $ticket_or_thread_or_id, 'WPSC_Ticket' ) ) $ticket = $ticket_or_thread_or_id;
-		elseif ( is_a( $ticket_or_thread_or_id, 'WPSC_Thread' ) ) $ticket = $ticket_or_thread_or_id->ticket;
-		elseif ( is_numeric( $ticket_or_thread_or_id ) ) $ticket = new WPSC_Ticket( intval( $ticket_or_thread_or_id ) );
-
-		if ( ! is_a( $ticket, 'WPSC_Ticket' ) || ! $ticket->id ) {
-			error_log('[UTM] scputm_update_utm_cache() - Exit (Invalid Ticket)');
-			return;
-		}
-
-		$html_to_cache = $this->_scputm_build_live_utm_html( $ticket );
-
-		$misc_data = $ticket->misc;
-		$misc_data['scputm_utm_html'] = $html_to_cache;
-		$ticket->misc = $misc_data;
-		$ticket->save();
-		error_log('[UTM] scputm_update_utm_cache() - Exit');
-	}
-
 	public function scputm_replace_utm_macro( $data, $thread ) {
 		error_log('[UTM] scputm_replace_utm_macro() - Enter');
 		error_log('[UTM] scputm_replace_utm_macro() - Initial body: ' . print_r($data, true));
@@ -305,17 +250,17 @@ class SCPUTM_Core {
 		// Prioritize the transient for the initial "new ticket" email.
 		$transient_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
 		if ( $transient_html !== false ) {
-			$cached_html = $transient_html;
-			error_log('[UTM] scputm_replace_utm_macro() - Using transient cache.');
+			$final_html = $transient_html;
+			error_log('[UTM] scputm_replace_utm_macro() - Using transient cache for new ticket.');
 		} else {
-			$misc_data   = $ticket->misc;
-			$cached_html = isset( $misc_data['scputm_utm_html'] ) ? $misc_data['scputm_utm_html'] : '';
-			error_log('[UTM] scputm_replace_utm_macro() - Using permanent cache.');
+			// For all existing tickets, build the HTML live.
+			$final_html = $this->_scputm_build_live_utm_html( $ticket );
+			error_log('[UTM] scputm_replace_utm_macro() - Generating live HTML for existing ticket.');
 		}
 
-		error_log('[UTM] scputm_replace_utm_macro() - Cached HTML: ' . $cached_html);
+		error_log('[UTM] scputm_replace_utm_macro() - Final HTML: ' . $final_html);
 
-		$data['body'] = str_replace( '{{scp_unified_ticket}}', $cached_html, $data['body'] );
+		$data['body'] = str_replace( '{{scp_unified_ticket}}', $final_html, $data['body'] );
 		error_log('[UTM] scputm_replace_utm_macro() - Final body: ' . $data['body']);
 
 		return $data;
