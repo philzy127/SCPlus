@@ -112,6 +112,7 @@ class SCPUTM_Core {
 
 		// Use the official API to get a complete list of all field types.
 		$all_fields      = WPSC_Custom_Field::$custom_fields;
+		error_log('[UTM_Core] _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
 		$field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
 			$field_type_class = $field_object->type;
@@ -119,6 +120,7 @@ class SCPUTM_Core {
 				$field_types_map[ $slug ] = $field_type_class::$slug;
 			}
 		}
+		error_log('[UTM_Core] _scputm_build_live_utm_html() - Field Types Map: ' . print_r($field_types_map, true));
 
 		$html_output  = '<table>';
 
