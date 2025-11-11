@@ -18,9 +18,11 @@ class SCPUTM_Core {
 	private $is_intercepting = false;
 
 	public static function get_instance() {
-		if ( null === self::$instance ) {
+		error_log('[UTM] SCPUTM_Core::get_instance() - Enter');
+		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
 		}
+		error_log('[UTM] SCPUTM_Core::get_instance() - Exit');
 		return self::$instance;
 	}
 
@@ -32,7 +34,7 @@ class SCPUTM_Core {
 
 		$options = get_option( 'scp_settings', [] );
 		if ( empty( $options['enable_utm'] ) ) {
-			error_log('[UTM] SCPUTM_Core::__construct() - Exit (Feature Disabled)');
+			error_log('[UTM] SCPUTM_Core::__construct() - UTM is disabled. Bailing out.');
 			return;
 		}
 
@@ -45,7 +47,7 @@ class SCPUTM_Core {
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
 		add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
-		error_log('[UTM] SCPUTM_Core::__construct() - Exit (Feature Enabled)');
+		error_log('[UTM] SCPUTM_Core::__construct() - Exit');
 	}
 
 	public function scputm_prime_cache_on_creation( $ticket ) {
@@ -116,11 +118,6 @@ class SCPUTM_Core {
 
 		// Use the official API to get a complete list of all field types.
 		$all_fields      = WPSC_Custom_Field::$custom_fields;
-		if ( empty( $all_fields ) ) {
-			error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - EXIT (WPSC_Custom_Field::$custom_fields is EMPTY)');
-			return '<table></table>';
-		}
-		error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
 		$field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
 			// The ->type property is a magic property that returns the field type class object.

@@ -745,7 +745,6 @@ class SCP_Admin_Settings {
 				case 'enable_after_hours_notice':
 				case 'include_all_weekends':
 				case 'enable_queue_macro':
-				case 'enable_utm':
 				case 'enable_ats':
 					$sanitized_output[ $key ] = (int) $value;
 					break;

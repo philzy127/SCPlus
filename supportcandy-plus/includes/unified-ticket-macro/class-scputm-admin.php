@@ -105,16 +105,6 @@ class SCPUTM_Admin {
 			<table class="form-table" role="presentation">
 				<tbody>
 					<tr>
-						<th scope="row"><?php _e( 'Enable Feature', 'supportcandy-plus' ); ?></th>
-						<td><?php $this->render_enable_utm_field(); ?></td>
-					</tr>
-				</tbody>
-			</table>
-			<hr/>
-
-			<table class="form-table" role="presentation">
-				<tbody>
-					<tr>
 						<th scope="row"><?php _e( 'Fields to Display', 'supportcandy-plus' ); ?></th>
 						<td><?php $this->render_fields_selector(); ?></td>
 					</tr>
@@ -212,23 +202,6 @@ class SCPUTM_Admin {
 		</label>
 		<p class="description">
 			<?php esc_html_e( 'If checked, the fields will be ordered according to the global settings in SupportCandy -> Ticket Form Fields. The manual sorting controls will be disabled.', 'supportcandy-plus' ); ?>
-		</p>
-		<?php
-	}
-
-	/**
-	 * Render the enable/disable checkbox.
-	 */
-	public function render_enable_utm_field() {
-		$options    = get_option( 'scp_settings', [] );
-		$enable_utm = isset( $options['enable_utm'] ) ? (bool) $options['enable_utm'] : false;
-		?>
-		<label>
-			<input type="checkbox" name="scp_settings[enable_utm]" id="scp_enable_utm" value="1" <?php checked( $enable_utm ); ?> />
-			<?php esc_html_e( 'Enable Unified Ticket Macro', 'supportcandy-plus' ); ?>
-		</label>
-		<p class="description">
-			<?php esc_html_e( 'When enabled, you can use the {{scp_unified_ticket}} macro in your email notifications.', 'supportcandy-plus' ); ?>
 		</p>
 		<?php
 	}
@@ -340,9 +313,6 @@ class SCPUTM_Admin {
 		// Sanitize and get the order setting
 		$use_sc_order = isset( $_POST['use_sc_order'] ) && 'true' === $_POST['use_sc_order'];
 
-		// Sanitize and get the enable setting
-		$enable_utm = isset( $_POST['enable_utm'] ) && 'true' === $_POST['enable_utm'];
-
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
 		$settings['utm_columns'] = $selected_fields;
@@ -352,7 +322,6 @@ class SCPUTM_Admin {
 			$settings['scputm_rename_rules'] = $rename_rules;
 		}
 		$settings['use_supportcandy_order'] = $use_sc_order;
-		$settings['enable_utm'] = $enable_utm;
 		update_option( 'scp_settings', $settings );
 
 		wp_send_json_success(
