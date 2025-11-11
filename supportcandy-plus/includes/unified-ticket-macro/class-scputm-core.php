@@ -40,7 +40,7 @@ class SCPUTM_Core {
 
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_agent_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
-		add_filter( 'wpsc_customer_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_cust_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_close_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
@@ -123,12 +123,11 @@ class SCPUTM_Core {
 		error_log('[UTM] JULES_LOG: _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
 		$field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
-			// The ->type property is accessible via the __get magic method.
-			// The check `!empty()` fails because `__isset` returns false for magic properties.
-			// We must access it directly and then check for a value.
-			$type = $field_object->type;
-			if ( $type ) {
-				$field_types_map[ $slug ] = $type;
+			// The ->type property is a magic property that returns the field type class object.
+			$field_type_class = $field_object->type;
+			if ( $field_type_class ) {
+				// The actual slug (e.g., 'cf_single_select') is a static property on that class.
+				$field_types_map[ $slug ] = $field_type_class::$slug;
 			}
 		}
 
@@ -261,15 +260,20 @@ class SCPUTM_Core {
 		}
 		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id);
 
-		// Prioritize the transient for the initial "new ticket" email.
-		$transient_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
-		if ( $transient_html !== false ) {
-			$final_html = $transient_html;
-			error_log('[UTM] scputm_replace_utm_macro() - Using transient cache for new ticket.');
+		// For the initial "new ticket" email, we MUST use the transient to avoid a race condition.
+		if ( 'wpsc_create_ticket_email_data' === current_filter() ) {
+			$final_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
+			if ( false === $final_html ) {
+				// Fallback in case the transient expired or failed.
+				$final_html = $this->_scputm_build_live_utm_html( $ticket );
+				error_log('[UTM] scputm_replace_utm_macro() - WARNING: Transient cache missed for new ticket. Regenerating live.');
+			} else {
+				error_log('[UTM] scputm_replace_utm_macro() - Using transient cache for new ticket.');
+			}
 		} else {
-			// For all existing tickets, build the HTML live.
+			// For all other events (replies, closures), always build live to ensure data is current.
 			$final_html = $this->_scputm_build_live_utm_html( $ticket );
-			error_log('[UTM] scputm_replace_utm_macro() - Generating live HTML for existing ticket.');
+			error_log('[UTM] scputm_replace_utm_macro() - Generating live HTML for existing ticket event: ' . current_filter());
 		}
 
 		error_log('[UTM] scputm_replace_utm_macro() - Final HTML: ' . $final_html);
