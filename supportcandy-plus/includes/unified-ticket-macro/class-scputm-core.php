@@ -15,14 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SCPUTM_Core {
 
 	private static $instance = null;
-	private $is_intercepting = false;
 
 	public static function get_instance() {
-		error_log('[UTM] SCPUTM_Core::get_instance() - Enter');
+		error_log('[UTM_Core] get_instance() called. Current action: ' . current_action());
 		if ( is_null( self::$instance ) ) {
+			error_log('[UTM_Core] Creating new SCPUTM_Core instance.');
 			self::$instance = new self();
 		}
-		error_log('[UTM] SCPUTM_Core::get_instance() - Exit');
 		return self::$instance;
 	}
 
@@ -30,13 +29,14 @@ class SCPUTM_Core {
 	 * Initialize the core logic.
 	 */
 	private function __construct() {
-		error_log('[UTM] SCPUTM_Core::__construct() - Enter');
+		error_log('[UTM_Core] __construct() - Enter. Current action: ' . current_action());
 
 		$options = get_option( 'scp_settings', [] );
 		if ( empty( $options['enable_utm'] ) ) {
-			error_log('[UTM] SCPUTM_Core::__construct() - UTM is disabled. Bailing out.');
+			error_log('[UTM_Core] __construct() - UTM is disabled. Bailing out.');
 			return;
 		}
+		error_log('[UTM_Core] __construct() - UTM is enabled. Adding hooks...');
 
 		add_action( 'wpsc_create_new_ticket', array( $this, 'scputm_prime_cache_on_creation' ), 5, 1 );
 
@@ -47,13 +47,10 @@ class SCPUTM_Core {
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
 		add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
-		error_log('[UTM] SCPUTM_Core::__construct() - Exit');
 	}
 
 	public function scputm_prime_cache_on_creation( $ticket ) {
-		error_log('[UTM] scputm_prime_cache_on_creation() - Enter');
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) || ! $ticket->id ) {
-			error_log('[UTM] scputm_prime_cache_on_creation() - Exit (Invalid Ticket Object)');
 			return;
 		}
 
@@ -61,25 +58,23 @@ class SCPUTM_Core {
 
 		// Use a transient for instant availability. Expires in 1 minute.
 		set_transient( 'scputm_temp_cache_' . $ticket->id, $html_to_cache, 60 );
-		error_log('[UTM] scputm_prime_cache_on_creation() - Transient set.');
-
-		error_log('[UTM] scputm_prime_cache_on_creation() - Exit');
 	}
 
 	public function register_macro( $macros ) {
-		error_log('[UTM] register_macro() - Enter');
 		$macros[] = array( 'tag' => '{{scp_unified_ticket}}', 'title' => esc_attr__( 'Unified Ticket Macro', 'supportcandy-plus' ) );
-		error_log('[UTM] register_macro() - Exit');
 		return $macros;
 	}
 
 	private function _scputm_build_live_utm_html( $ticket ) {
 		// Ensure the custom field schema is loaded, especially for AJAX/background contexts.
 		if ( empty( WPSC_Custom_Field::$custom_fields ) ) {
+			error_log('[UTM_Core] _scputm_build_live_utm_html() - WPSC_Custom_Field::$custom_fields is empty. Calling apply_schema().');
 			WPSC_Custom_Field::apply_schema();
+		} else {
+			error_log('[UTM_Core] _scputm_build_live_utm_html() - WPSC_Custom_Field::$custom_fields is already populated.');
 		}
 
-		error_log('[UTM] _scputm_build_live_utm_html() - Enter');
+		error_log('[UTM_Core] _scputm_build_live_utm_html() - Enter');
 		$options = get_option( 'scp_settings', [] );
 		$selected_fields = isset( $options['utm_columns'] ) && is_array( $options['utm_columns'] ) ? $options['utm_columns'] : [];
 		$rename_rules_raw = isset( $options['scputm_rename_rules'] ) && is_array( $options['scputm_rename_rules'] ) ? $options['scputm_rename_rules'] : [];
@@ -112,21 +107,25 @@ class SCPUTM_Core {
 		}
 
 		if ( empty( $selected_fields ) ) {
-			error_log('[UTM] _scputm_build_live_utm_html() - Exit (No Fields)');
 			return '<table></table>';
 		}
 
 		// Use the official API to get a complete list of all field types.
 		$all_fields      = WPSC_Custom_Field::$custom_fields;
+		error_log('[UTM_Core] _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
 		$field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
-			// The ->type property is a magic property that returns the field type class object.
+			// As confirmed by the expert, the ->type property is a magic property that returns the type *class*,
+			// and the slug is a static property on that class.
 			$field_type_class = $field_object->type;
-			if ( $field_type_class ) {
-				// The actual slug (e.g., 'cf_single_select') is a static property on that class.
+			if ( is_object( $field_type_class ) && property_exists( $field_type_class, 'slug' ) ) {
 				$field_types_map[ $slug ] = $field_type_class::$slug;
+			} elseif ( is_string( $field_type_class ) ) {
+				// Fallback for older versions or different contexts.
+				$field_types_map[ $slug ] = $field_type_class;
 			}
 		}
+		error_log('[UTM_Core] _scputm_build_live_utm_html() - Field Types Map: ' . print_r($field_types_map, true));
 
 		$html_output  = '<table>';
 
@@ -134,12 +133,10 @@ class SCPUTM_Core {
 
 			$field_value = $ticket->{$field_slug};
 
-			// Skip empty fields.
 			if ( empty( $field_value ) ) {
 				continue;
 			}
 
-			// Skip "zero dates" in both string and object formats.
 			if (
 				( is_string( $field_value ) && '0000-00-00 00:00:00' === $field_value ) ||
 				( $field_value instanceof DateTime && '0000-00-00 00:00:00' === $field_value->format('Y-m-d H:i:s') )
@@ -147,14 +144,14 @@ class SCPUTM_Core {
 				continue;
 			}
 
-			// Check if a rename rule exists for this field.
 			$field_name    = isset( $rename_rules_map[ $field_slug ] ) ? $rename_rules_map[ $field_slug ] : ( isset( $all_columns[ $field_slug ] ) ? $all_columns[ $field_slug ] : $field_slug );
 			$display_value = '';
 			$field_type    = isset( $field_types_map[ $field_slug ] ) ? $field_types_map[ $field_slug ] : 'unknown';
 
+			error_log('[UTM_Core] _scputm_build_live_utm_html() - Processing Field: ' . $field_slug . ' | Type: ' . $field_type . ' | Value: ' . print_r($field_value, true));
+
 			switch ( $field_type ) {
 
-				// Primitives
 				case 'cf_textfield':
 				case 'cf_textarea':
 				case 'cf_email':
@@ -174,13 +171,11 @@ class SCPUTM_Core {
 					$display_value = (string) $field_value;
 					break;
 
-				// HTML Content
 				case 'cf_html':
 				case 'df_description':
-					$display_value = $field_value; // Do not escape HTML content.
+					$display_value = $field_value;
 					break;
 
-				// Date/Time Objects
 				case 'cf_date':
 					$display_value = $field_value->format( get_option( 'date_format' ) );
 					break;
@@ -192,7 +187,6 @@ class SCPUTM_Core {
 					$display_value = $field_value->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
 					break;
 
-				// Single Object References
 				case 'cf_single_select':
 				case 'cf_radio_button':
 				case 'cf_file-attachment-single':
@@ -205,7 +199,6 @@ class SCPUTM_Core {
 					$display_value = $field_value->name;
 					break;
 
-				// Array of Object References
 				case 'cf_multi_select':
 				case 'cf_checkbox':
 				case 'cf_file-attachment-multiple':
@@ -222,16 +215,12 @@ class SCPUTM_Core {
 					}
 					break;
 
-				// Safety Net Default
 				default:
-					error_log( "[UTM] Warning: Unsupported field type '" . esc_html( $field_type ) . "' encountered for field '" . esc_html( $field_slug ) . "'. This field was not included in the macro." );
-					$display_value = ''; // Skip the field in the email.
+					$display_value = '';
 					break;
 			}
 
-			// Add to output only if there's a value to display.
 			if ( ! empty( $display_value ) ) {
-				// Don't escape known HTML fields.
 				if ( 'cf_html' === $field_type || 'df_description' === $field_type ) {
 					$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . $display_value . '</td></tr>';
 				} else {
@@ -240,43 +229,39 @@ class SCPUTM_Core {
 			}
 		}
 		$html_output .= '</table>';
-		error_log('[UTM] _scputm_build_live_utm_html() - Exit');
 		return $html_output;
 	}
 
 	public function scputm_replace_utm_macro( $data, $thread ) {
-		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - ENTER on hook: ' . current_filter());
+		error_log('[UTM_Core] scputm_replace_utm_macro() - ENTERED. Current hook: ' . current_filter());
 
 		if ( ! is_array($data) || !isset($data['body']) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
 			return $data;
 		}
 		$ticket = $thread->ticket;
 		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) {
-			error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - EXIT (Invalid Ticket Object)');
+			error_log('[UTM_Core] scputm_replace_utm_macro() - EXIT (Invalid Ticket Object)');
 			return $data;
 		}
-		error_log('[UTM] JULES_LOG: scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id);
+		error_log('[UTM_Core] scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id);
 
-		// For the initial "new ticket" email, we MUST use the transient to avoid a race condition.
+
 		if ( 'wpsc_create_ticket_email_data' === current_filter() ) {
 			$final_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
 			if ( false === $final_html ) {
-				// Fallback in case the transient expired or failed.
 				$final_html = $this->_scputm_build_live_utm_html( $ticket );
-				error_log('[UTM] scputm_replace_utm_macro() - WARNING: Transient cache missed for new ticket. Regenerating live.');
+				error_log('[UTM_Core] scputm_replace_utm_macro() - WARNING: Transient cache missed for new ticket. Regenerating live.');
 			} else {
-				error_log('[UTM] scputm_replace_utm_macro() - Using transient cache for new ticket.');
+				error_log('[UTM_Core] scputm_replace_utm_macro() - Using transient cache for new ticket.');
 			}
 		} else {
-			// For all other events (replies, closures), always build live to ensure data is current.
 			$final_html = $this->_scputm_build_live_utm_html( $ticket );
-			error_log('[UTM] scputm_replace_utm_macro() - Generating live HTML for existing ticket event: ' . current_filter());
+			error_log('[UTM_Core] scputm_replace_utm_macro() - Generating live HTML for existing ticket event: ' . current_filter());
 		}
 
-		error_log('[UTM] scputm_replace_utm_macro() - Final HTML: ' . $final_html);
-
+		error_log('[UTM_Core] scputm_replace_utm_macro() - Final HTML: ' . $final_html);
 		$data['body'] = str_replace( '{{scp_unified_ticket}}', $final_html, $data['body'] );
-		error_log('[UTM] scputm_replace_utm_macro() - Final body: ' . $data['body']);
+		error_log('[UTM_Core] scputm_replace_utm_macro() - Final body: ' . $data['body']);
 
 		return $data;
 	}

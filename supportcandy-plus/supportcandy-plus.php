@@ -58,7 +58,7 @@ final class SupportCandy_Plus {
 	}
 
 	private function init_hooks() {
-		add_action( 'plugins_loaded', array( $this, 'on_plugins_loaded' ) );
+		add_action( 'init', array( $this, 'on_plugins_loaded' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'init', array( $this, 'apply_date_time_formats' ) );
