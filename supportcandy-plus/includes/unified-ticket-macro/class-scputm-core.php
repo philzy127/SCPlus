@@ -112,20 +112,13 @@ class SCPUTM_Core {
 
 		// Use the official API to get a complete list of all field types.
 		$all_fields      = WPSC_Custom_Field::$custom_fields;
-		error_log('[UTM_Core] _scputm_build_live_utm_html() - All Fields Contents: ' . print_r($all_fields, true));
 		$field_types_map = array();
 		foreach ( $all_fields as $slug => $field_object ) {
-			// As confirmed by the expert, the ->type property is a magic property that returns the type *class*,
-			// and the slug is a static property on that class.
 			$field_type_class = $field_object->type;
-			if ( is_object( $field_type_class ) && property_exists( $field_type_class, 'slug' ) ) {
+			if ( $field_type_class ) {
 				$field_types_map[ $slug ] = $field_type_class::$slug;
-			} elseif ( is_string( $field_type_class ) ) {
-				// Fallback for older versions or different contexts.
-				$field_types_map[ $slug ] = $field_type_class;
 			}
 		}
-		error_log('[UTM_Core] _scputm_build_live_utm_html() - Field Types Map: ' . print_r($field_types_map, true));
 
 		$html_output  = '<table>';
 
