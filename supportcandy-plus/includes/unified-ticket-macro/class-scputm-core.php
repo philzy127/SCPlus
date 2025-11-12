@@ -44,6 +44,8 @@ class SCPUTM_Core {
 		add_filter( 'wpsc_agent_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_cust_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_close_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+
 
 		// Ticket modification hooks
 		add_filter( 'wpsc_add_private_note_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
@@ -55,9 +57,6 @@ class SCPUTM_Core {
 		add_filter( 'wpsc_change_ticket_subject_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_delete_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
-		// Non-ticket hooks
-		add_filter( 'wpsc_guest_login_otp_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 3 );
-		add_filter( 'wpsc_user_reg_otp_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 3 );
 
 		// Background process hook
 		add_filter( 'wpsc_en_send_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
@@ -213,7 +212,9 @@ class SCPUTM_Core {
 				case 'df_customer':
 				case 'df_agent_created':
 				case 'df_last_reply_by':
-					$display_value = $field_value->name;
+					if ( is_object( $field_value ) && property_exists( $field_value, 'name' ) ) {
+						$display_value = $field_value->name;
+					}
 					break;
 
 				case 'cf_multi_select':
@@ -226,22 +227,27 @@ class SCPUTM_Core {
 					if ( is_array( $field_value ) ) {
 						$names = array();
 						foreach ( $field_value as $item ) {
-							$names[] = $item->name;
+							if ( is_object( $item ) && property_exists( $item, 'name' ) ) {
+								$names[] = $item->name;
+							}
 						}
 						$display_value = implode( ', ', $names );
 					}
 					break;
 
 				default:
+					// Log unknown types for future debugging, but don't crash.
+					error_log('[UTM_Core] _scputm_build_live_utm_html() - WARNING: Unknown field type "' . $field_type . '" for slug "' . $field_slug . '".');
 					$display_value = '';
 					break;
 			}
 
 			if ( ! empty( $display_value ) ) {
 				if ( 'cf_html' === $field_type || 'df_description' === $field_type ) {
-					$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . $display_value . '</td></tr>';
+					// Don't escape HTML fields.
+					$html_output .= '<tr><td style="padding-right: 10px;"><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . $display_value . '</td></tr>';
 				} else {
-					$html_output .= '<tr><td><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . esc_html( $display_value ) . '</td></tr>';
+					$html_output .= '<tr><td style="padding-right: 10px;"><strong>' . esc_html( $field_name ) . ':</strong></td><td>' . esc_html( $display_value ) . '</td></tr>';
 				}
 			}
 		}
@@ -249,17 +255,15 @@ class SCPUTM_Core {
 		return $html_output;
 	}
 
+
 	public function scputm_replace_utm_macro( ...$args ) {
-		$original_data = $args[0]; // Keep a copy of the original data for the catch block.
+		$original_data = $args[0];
 
 		try {
 			error_log( '[UTM_Core] scputm_replace_utm_macro() - ENTERED. Current hook: ' . current_filter() );
-			error_log( '[UTM_Core] scputm_replace_utm_macro() - All args: ' . print_r( $args, true ) );
 
-			// The first argument is always the data to be filtered.
 			$data = $args[0];
 
-			// Determine if the macro exists in the body. The body can be in an array key or an object property.
 			$body_content = '';
 			if ( is_array( $data ) && isset( $data['body'] ) ) {
 				$body_content = $data['body'];
@@ -268,10 +272,10 @@ class SCPUTM_Core {
 			}
 
 			if ( strpos( $body_content, '{{scp_unified_ticket}}' ) === false ) {
+				error_log( '[UTM_Core] scputm_replace_utm_macro() - EXIT: Macro not found for hook: ' . current_filter() );
 				return $data;
 			}
 
-			// Find the ticket object from the arguments passed by the hook.
 			$ticket = null;
 			foreach ( $args as $arg ) {
 				if ( is_a( $arg, 'WPSC_Ticket' ) ) {
@@ -279,27 +283,22 @@ class SCPUTM_Core {
 					break;
 				}
 				if ( is_a( $arg, 'WPSC_Thread' ) ) {
-					$ticket = $arg->ticket;
+					$ticket = new WPSC_Ticket($arg->ticket);
 					break;
 				}
-				if ( 'wpsc_en_send_data' === current_filter() && is_a( $arg, 'WPSC_Background_Email' ) && ! empty( $arg->ticket_id ) ) {
-					$ticket = new WPSC_Ticket( $arg->ticket_id );
-					break;
-				}
-			// Fallback for reply and other hooks where the ticket ID is in the subject.
-			if ( is_a( $arg, 'WPSC_Email_Notifications' ) && ! empty( $arg->subject ) ) {
-				preg_match( '/\[Ticket #(\d+)\]/', $arg->subject, $matches );
-				if ( isset( $matches[1] ) ) {
-					$ticket = new WPSC_Ticket( (int) $matches[1] );
-					break;
-				}
-			}
 			}
 
-			// If no ticket object is found, it's a non-ticket email (e.g., OTP). Replace macro with empty string.
+			if ( ! $ticket && is_object($data) && !empty($data->subject)) {
+				preg_match( '/\[Ticket #(\d+)\]/', $data->subject, $matches );
+				if ( isset( $matches[1] ) ) {
+					$ticket = new WPSC_Ticket( (int) $matches[1] );
+				}
+			}
+
+
 			if ( ! is_a( $ticket, 'WPSC_Ticket' ) || ! $ticket->id ) {
 				error_log( '[UTM_Core] scputm_replace_utm_macro() - EXIT (No valid WPSC_Ticket object found for hook: ' . current_filter() . ')' );
-				$final_html = '';
+				$final_html = ''; // Replace with empty string if no ticket.
 			} else {
 				error_log( '[UTM_Core] scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id );
 				if ( 'wpsc_create_ticket_email_data' === current_filter() ) {
@@ -318,7 +317,6 @@ class SCPUTM_Core {
 
 			error_log( '[UTM_Core] scputm_replace_utm_macro() - Final HTML: ' . $final_html );
 
-			// Replace the macro in the original data structure.
 			if ( is_array( $data ) && isset( $data['body'] ) ) {
 				$data['body'] = str_replace( '{{scp_unified_ticket}}', $final_html, $data['body'] );
 			} elseif ( is_object( $data ) && isset( $data->body ) ) {
@@ -332,7 +330,7 @@ class SCPUTM_Core {
 		} catch ( Throwable $e ) {
 			error_log( '[UTM_Core] FATAL ERROR in scputm_replace_utm_macro(): ' . $e->getMessage() . ' on line ' . $e->getLine() . ' of ' . $e->getFile() );
 			error_log( '[UTM_Core] Stack Trace: ' . $e->getTraceAsString() );
-			return $original_data; // Return original, unmodified data to prevent email failure.
+			return $original_data;
 		}
 	}
 }
