@@ -319,7 +319,7 @@ final class SupportCandy_Plus {
 		if ( 'supportcandy-plus_page_scp-utm' === $hook_suffix ) {
 			wp_enqueue_script(
 				'scp-utm-admin',
-				SCP_PLUGIN_URL . 'assets/admin/js/scp-utm-admin.js',
+				SCP_PLUGIN_URL . 'assets/admin/js/scp-admin-utm.js',
 				array( 'jquery' ),
 				SCP_VERSION,
 				true
