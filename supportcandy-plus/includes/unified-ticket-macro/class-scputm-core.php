@@ -286,6 +286,14 @@ class SCPUTM_Core {
 					$ticket = new WPSC_Ticket( $arg->ticket_id );
 					break;
 				}
+			// Fallback for reply and other hooks where the ticket ID is in the subject.
+			if ( is_a( $arg, 'WPSC_Email_Notifications' ) && ! empty( $arg->subject ) ) {
+				preg_match( '/\[Ticket #(\d+)\]/', $arg->subject, $matches );
+				if ( isset( $matches[1] ) ) {
+					$ticket = new WPSC_Ticket( (int) $matches[1] );
+					break;
+				}
+			}
 			}
 
 			// If no ticket object is found, it's a non-ticket email (e.g., OTP). Replace macro with empty string.

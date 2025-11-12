@@ -60,6 +60,14 @@ class SCPUTM_Admin {
 		);
 
 		add_settings_field(
+			'scputm_enable_utm',
+			__( 'Enable Unified Ticket Macro', 'supportcandy-plus' ),
+			array( $this, 'render_enable_utm_checkbox' ),
+			'scp-utm',
+			'scputm_section'
+		);
+
+		add_settings_field(
 			'scputm_selected_fields',
 			__( 'Fields to Display', 'supportcandy-plus' ),
 			array( $this, 'render_fields_selector' ),
@@ -104,6 +112,10 @@ class SCPUTM_Admin {
 
 			<table class="form-table" role="presentation">
 				<tbody>
+					<tr>
+						<th scope="row"><?php _e( 'Enable Unified Ticket Macro', 'supportcandy-plus' ); ?></th>
+						<td><?php $this->render_enable_utm_checkbox(); ?></td>
+					</tr>
 					<tr>
 						<th scope="row"><?php _e( 'Fields to Display', 'supportcandy-plus' ); ?></th>
 						<td><?php $this->render_fields_selector(); ?></td>
@@ -186,6 +198,23 @@ class SCPUTM_Admin {
 			</div>
 		</div>
 		<p class="description"><?php esc_html_e( 'Select the fields you want to include in the macro. The order of fields in the "Selected Fields" box will be the order they appear in the email.', 'supportcandy-plus' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Render the checkbox for enabling the UTM feature.
+	 */
+	public function render_enable_utm_checkbox() {
+		$options    = get_option( 'scp_settings', [] );
+		$enable_utm = isset( $options['enable_utm'] ) ? (bool) $options['enable_utm'] : false;
+		?>
+		<label>
+			<input type="checkbox" name="scp_settings[enable_utm]" id="scp_enable_utm" value="1" <?php checked( $enable_utm ); ?> />
+			<?php esc_html_e( 'Enable this feature', 'supportcandy-plus' ); ?>
+		</label>
+		<p class="description">
+			<?php esc_html_e( 'When enabled, the {{scp_unified_ticket}} macro will be available in email notifications.', 'supportcandy-plus' ); ?>
+		</p>
 		<?php
 	}
 
@@ -312,9 +341,11 @@ class SCPUTM_Admin {
 
 		// Sanitize and get the order setting
 		$use_sc_order = isset( $_POST['use_sc_order'] ) && 'true' === $_POST['use_sc_order'];
+		$enable_utm   = isset( $_POST['enable_utm'] ) && 'true' === $_POST['enable_utm'];
 
 		// Get all settings, update the UTM fields, and save
 		$settings = get_option( 'scp_settings', array() );
+		$settings['enable_utm']  = $enable_utm;
 		$settings['utm_columns'] = $selected_fields;
 		// Only update the rename rules if they were actually submitted.
 		// This prevents a stale JS cache from accidentally wiping them out.
