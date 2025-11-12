@@ -43,8 +43,24 @@ class SCPUTM_Core {
 		add_filter( 'wpsc_create_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_agent_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_cust_reply_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
-		add_filter( 'wpsc_close_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 		add_filter( 'wpsc_assign_agent_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+
+		// Ticket modification hooks
+		add_filter( 'wpsc_add_private_note_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_change_ticket_status_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_change_agentonly_fields_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_change_ticket_category_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_change_ticket_fields_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_change_ticket_priority_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_change_ticket_subject_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+		add_filter( 'wpsc_delete_ticket_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
+
+		// Non-ticket hooks
+		add_filter( 'wpsc_guest_login_otp_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 3 );
+		add_filter( 'wpsc_user_reg_otp_email_data', array( $this, 'scputm_replace_utm_macro' ), 10, 3 );
+
+		// Background process hook
+		add_filter( 'wpsc_en_send_data', array( $this, 'scputm_replace_utm_macro' ), 10, 2 );
 
 		add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
 	}
@@ -72,6 +88,12 @@ class SCPUTM_Core {
 			WPSC_Custom_Field::apply_schema();
 		} else {
 			error_log('[UTM_Core] _scputm_build_live_utm_html() - WPSC_Custom_Field::$custom_fields is already populated.');
+		}
+
+		// Defensively reload the customer object if it's not fully populated.
+		if ( ! is_a( $ticket->customer, 'WPSC_Customer' ) || ! $ticket->customer->id ) {
+			error_log('[UTM_Core] _scputm_build_live_utm_html() - Incomplete customer object detected. Reloading customer for Ticket ID: ' . $ticket->id);
+			$ticket->customer = new WPSC_Customer( $ticket->customer_id );
 		}
 
 		error_log('[UTM_Core] _scputm_build_live_utm_html() - Enter');
@@ -227,36 +249,71 @@ class SCPUTM_Core {
 		return $html_output;
 	}
 
-	public function scputm_replace_utm_macro( $data, $thread ) {
+	public function scputm_replace_utm_macro( ...$args ) {
 		error_log('[UTM_Core] scputm_replace_utm_macro() - ENTERED. Current hook: ' . current_filter());
 
-		if ( ! is_array($data) || !isset($data['body']) || strpos( $data['body'], '{{scp_unified_ticket}}' ) === false ) {
+		// The first argument is always the data to be filtered.
+		$data = $args[0];
+
+		// Determine if the macro exists in the body. The body can be in an array key or an object property.
+		$body_content = '';
+		if ( is_array( $data ) && isset( $data['body'] ) ) {
+			$body_content = $data['body'];
+		} elseif ( is_object( $data ) && isset( $data->body ) ) {
+			$body_content = $data->body;
+		}
+
+		if ( strpos( $body_content, '{{scp_unified_ticket}}' ) === false ) {
 			return $data;
 		}
-		$ticket = $thread->ticket;
-		if ( ! is_a( $ticket, 'WPSC_Ticket' ) ) {
-			error_log('[UTM_Core] scputm_replace_utm_macro() - EXIT (Invalid Ticket Object)');
-			return $data;
-		}
-		error_log('[UTM_Core] scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id);
 
-
-		if ( 'wpsc_create_ticket_email_data' === current_filter() ) {
-			$final_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
-			if ( false === $final_html ) {
-				$final_html = $this->_scputm_build_live_utm_html( $ticket );
-				error_log('[UTM_Core] scputm_replace_utm_macro() - WARNING: Transient cache missed for new ticket. Regenerating live.');
-			} else {
-				error_log('[UTM_Core] scputm_replace_utm_macro() - Using transient cache for new ticket.');
+		// Find the ticket object from the arguments passed by the hook.
+		$ticket = null;
+		foreach ( $args as $arg ) {
+			if ( is_a( $arg, 'WPSC_Ticket' ) ) {
+				$ticket = $arg;
+				break;
 			}
+			if ( is_a( $arg, 'WPSC_Thread' ) ) {
+				$ticket = $arg->ticket;
+				break;
+			}
+			if ( 'wpsc_en_send_data' === current_filter() && is_a( $arg, 'WPSC_Background_Email' ) && ! empty( $arg->ticket_id ) ) {
+				$ticket = new WPSC_Ticket( $arg->ticket_id );
+				break;
+			}
+		}
+
+		// If no ticket object is found, it's a non-ticket email (e.g., OTP). Replace macro with empty string.
+		if ( ! is_a( $ticket, 'WPSC_Ticket' ) || ! $ticket->id ) {
+			error_log('[UTM_Core] scputm_replace_utm_macro() - EXIT (No valid WPSC_Ticket object found for hook: ' . current_filter() . ')');
+			$final_html = '';
 		} else {
-			$final_html = $this->_scputm_build_live_utm_html( $ticket );
-			error_log('[UTM_Core] scputm_replace_utm_macro() - Generating live HTML for existing ticket event: ' . current_filter());
+			error_log('[UTM_Core] scputm_replace_utm_macro() - Processing Ticket ID: ' . $ticket->id);
+			if ( 'wpsc_create_ticket_email_data' === current_filter() ) {
+				$final_html = get_transient( 'scputm_temp_cache_' . $ticket->id );
+				if ( false === $final_html ) {
+					$final_html = $this->_scputm_build_live_utm_html( $ticket );
+					error_log('[UTM_Core] scputm_replace_utm_macro() - WARNING: Transient cache missed for new ticket. Regenerating live.');
+				} else {
+					error_log('[UTM_Core] scputm_replace_utm_macro() - Using transient cache for new ticket.');
+				}
+			} else {
+				$final_html = $this->_scputm_build_live_utm_html( $ticket );
+				error_log('[UTM_Core] scputm_replace_utm_macro() - Generating live HTML for existing ticket event: ' . current_filter());
+			}
 		}
 
 		error_log('[UTM_Core] scputm_replace_utm_macro() - Final HTML: ' . $final_html);
-		$data['body'] = str_replace( '{{scp_unified_ticket}}', $final_html, $data['body'] );
-		error_log('[UTM_Core] scputm_replace_utm_macro() - Final body: ' . $data['body']);
+
+		// Replace the macro in the original data structure.
+		if ( is_array( $data ) && isset( $data['body'] ) ) {
+			$data['body'] = str_replace( '{{scp_unified_ticket}}', $final_html, $data['body'] );
+		} elseif ( is_object( $data ) && isset( $data->body ) ) {
+			$data->body = str_replace( '{{scp_unified_ticket}}', $final_html, $data->body );
+		}
+
+		error_log('[UTM_Core] scputm_replace_utm_macro() - Final data structure: ' . print_r($data, true));
 
 		return $data;
 	}
