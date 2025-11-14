@@ -365,11 +365,11 @@ class SCPUTM_Admin {
 			}
 
 			#scp_utm_move_top .dashicons {
-				transform: rotate(-90deg) scale(1.3);
+				transform: rotate(-90deg);
 			}
 
 			#scp_utm_move_bottom .dashicons {
-				transform: rotate(90deg) scale(1.3);
+				transform: rotate(90deg);
 			}
 
 			.scp-utm-rule-row {
