@@ -364,6 +364,14 @@ class SCPUTM_Admin {
 				transform: rotate(90deg) scale(1.3);
 			}
 
+			#scp_utm_move_top .dashicons {
+				transform: rotate(-90deg) scale(1.3);
+			}
+
+			#scp_utm_move_bottom .dashicons {
+				transform: rotate(90deg) scale(1.3);
+			}
+
 			.scp-utm-rule-row {
 				display: flex;
 				align-items: center;
