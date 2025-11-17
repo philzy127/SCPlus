@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class SupportCandy_Plus {
 
 	private static $instance = null;
+	public $options = [];
 
 	public static function get_instance() {
 		if ( is_null( self::$instance ) ) {
@@ -26,6 +27,7 @@ final class SupportCandy_Plus {
 	}
 
 	private function __construct() {
+		$this->options = get_option( 'scp_settings', [] );
 		$this->define_constants();
 		$this->includes();
 		$this->init_hooks();
@@ -41,10 +43,14 @@ final class SupportCandy_Plus {
 
 	private function includes() {
 		include_once SCP_PLUGIN_PATH . 'includes/class-scp-admin-settings.php';
-		include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
-		SCP_Queue_Macro::get_instance();
+		if ( ! empty( $this->options['enable_queue_macro'] ) ) {
+			include_once SCP_PLUGIN_PATH . 'includes/class-scp-queue-macro.php';
+			SCP_Queue_Macro::get_instance();
+		}
 
 		// Unified Ticket Macro Module
+		// Note: This feature does not have a dedicated on/off switch.
+		// It is fundamental to email generation and should always be loaded.
 		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-admin.php';
 		SCPUTM_Admin::get_instance();
 		include_once SCP_PLUGIN_PATH . 'includes/unified-ticket-macro/class-scputm-core.php';
@@ -56,14 +62,6 @@ final class SupportCandy_Plus {
 			SCP_After_Ticket_Survey::get_instance();
 		}
 
-		// After Hours Notice Module
-		$scp_settings = get_option( 'scp_settings', [] );
-		if ( ! empty( $scp_settings['enable_after_hours_notice'] ) ) {
-			include_once SCP_PLUGIN_PATH . 'includes/modules/after-hours-notice/class-scp-ahn-core.php';
-			if ( class_exists( 'SCP_AHN_Core' ) ) {
-				SCP_AHN_Core::get_instance();
-			}
-		}
 	}
 
 	private function init_hooks() {
@@ -71,6 +69,24 @@ final class SupportCandy_Plus {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'init', array( $this, 'apply_date_time_formats' ) );
+		add_action( 'wp', array( $this, 'conditionally_load_ahn_module_frontend' ) );
+		add_action( 'wpsc_before_send_email', array( $this, 'conditionally_load_ahn_module_email' ) );
+	}
+
+	public function conditionally_load_ahn_module_frontend() {
+		if ( ! is_admin() && ! empty( $this->options['enable_after_hours_notice'] ) ) {
+			// The frontend logic is in JS, but we still need the is_after_hours() check to be available.
+			// The enqueue_scripts hook handles this, so we don't need to do anything here.
+		}
+	}
+
+	public function conditionally_load_ahn_module_email() {
+		if ( ! empty( $this->options['enable_after_hours_notice'] ) ) {
+			include_once SCP_PLUGIN_PATH . 'includes/modules/after-hours-notice/class-scp-ahn-core.php';
+			if ( class_exists( 'SCP_AHN_Core' ) ) {
+				SCP_AHN_Core::get_instance()->init_hooks();
+			}
+		}
 	}
 
 	public function on_plugins_loaded() {
@@ -92,13 +108,12 @@ final class SupportCandy_Plus {
 	 */
 	public function apply_date_time_formats() {
 		$this->log_message( 'Running apply_date_time_formats...' );
-		$options = get_option( 'scp_settings', [] );
-		if ( empty( $options['enable_date_time_formatting'] ) ) {
+		if ( empty( $this->options['enable_date_time_formatting'] ) ) {
 			$this->log_message( 'Date formatting feature is disabled. Aborting.' );
 			return;
 		}
 		$this->log_message( 'Date formatting feature is enabled.' );
-		$rules = isset( $options['date_format_rules'] ) && is_array( $options['date_format_rules'] ) ? $options['date_format_rules'] : [];
+		$rules = isset( $this->options['date_format_rules'] ) && is_array( $this->options['date_format_rules'] ) ? $this->options['date_format_rules'] : [];
 
 		if ( empty( $rules ) ) {
 			$this->log_message( 'No date formatting rules found. Aborting.' );
@@ -229,8 +244,6 @@ final class SupportCandy_Plus {
 	}
 
 	public function enqueue_scripts() {
-		$options = get_option( 'scp_settings', [] );
-
 		wp_register_script(
 			'supportcandy-plus-frontend',
 			SCP_PLUGIN_URL . 'assets/js/supportcandy-plus-frontend.js',
@@ -244,29 +257,29 @@ final class SupportCandy_Plus {
 			'nonce'    => wp_create_nonce( 'wpsc_get_individual_ticket' ),
 			'features' => [
 				'hover_card'         => [
-					'enabled' => ! empty( $options['enable_right_click_card'] ),
+					'enabled' => ! empty( $this->options['enable_right_click_card'] ),
 				],
 				'hide_empty_columns' => [
-					'enabled' => ! empty( $options['enable_hide_empty_columns'] ),
-					'hide_priority' => ! empty( $options['enable_hide_priority_column'] ),
+					'enabled' => ! empty( $this->options['enable_hide_empty_columns'] ),
+					'hide_priority' => ! empty( $this->options['enable_hide_priority_column'] ),
 				],
 				'hide_reply_close' => [
-					'enabled' => ! empty( $options['hide_reply_close_for_users'] ),
+					'enabled' => ! empty( $this->options['hide_reply_close_for_users'] ),
 				],
 				'ticket_type_hiding' => [
-					'enabled'       => ! empty( $options['enable_ticket_type_hiding'] ),
-					'field_id'      => $this->get_custom_field_id_by_name( ! empty( $options['ticket_type_custom_field_name'] ) ? $options['ticket_type_custom_field_name'] : '' ),
-					'types_to_hide' => ! empty( $options['ticket_types_to_hide'] ) ? array_map( 'trim', explode( "\n", $options['ticket_types_to_hide'] ) ) : [],
+					'enabled'       => ! empty( $this->options['enable_ticket_type_hiding'] ),
+					'field_id'      => $this->get_custom_field_id_by_name( ! empty( $this->options['ticket_type_custom_field_name'] ) ? $this->options['ticket_type_custom_field_name'] : '' ),
+					'types_to_hide' => ! empty( $this->options['ticket_types_to_hide'] ) ? array_map( 'trim', explode( "\n", $this->options['ticket_types_to_hide'] ) ) : [],
 				],
 				'conditional_hiding' => [
-					'enabled' => ! empty( $options['enable_conditional_hiding'] ),
-					'rules'   => isset( $options['conditional_hiding_rules'] ) ? $options['conditional_hiding_rules'] : [],
+					'enabled' => ! empty( $this->options['enable_conditional_hiding'] ),
+					'rules'   => isset( $this->options['conditional_hiding_rules'] ) ? $this->options['conditional_hiding_rules'] : [],
 					'columns' => $this->get_supportcandy_columns(),
 				],
 				'after_hours_notice' => [
-					'enabled'      => ! empty( $options['enable_after_hours_notice'] ),
+					'enabled'      => ! empty( $this->options['enable_after_hours_notice'] ),
 					'isAfterHours' => $this->is_after_hours(),
-					'message'      => ! empty( $options['after_hours_message'] ) ? wpautop( wp_kses_post( $options['after_hours_message'] ) ) : '',
+					'message'      => ! empty( $this->options['after_hours_message'] ) ? wpautop( wp_kses_post( $this->options['after_hours_message'] ) ) : '',
 				],
 			],
 		];
@@ -401,15 +414,14 @@ final class SupportCandy_Plus {
 	 * @return boolean
 	 */
 	public function is_after_hours() {
-		$options = get_option( 'scp_settings', [] );
-		if ( empty( $options['enable_after_hours_notice'] ) ) {
+		if ( empty( $this->options['enable_after_hours_notice'] ) ) {
 			return false;
 		}
 
-		$start_hour       = ! empty( $options['after_hours_start'] ) ? (int) $options['after_hours_start'] : 17;
-		$end_hour         = ! empty( $options['before_hours_end'] ) ? (int) $options['before_hours_end'] : 8;
-		$include_weekends = ! empty( $options['include_all_weekends'] );
-		$holidays         = ! empty( $options['holidays'] ) ? array_map( 'trim', explode( "\n", $options['holidays'] ) ) : [];
+		$start_hour       = ! empty( $this->options['after_hours_start'] ) ? (int) $this->options['after_hours_start'] : 17;
+		$end_hour         = ! empty( $this->options['before_hours_end'] ) ? (int) $this->options['before_hours_end'] : 8;
+		$include_weekends = ! empty( $this->options['include_all_weekends'] );
+		$holidays         = ! empty( $this->options['holidays'] ) ? array_map( 'trim', explode( "\n", $this->options['holidays'] ) ) : [];
 
 		$current_timestamp = current_time( 'timestamp' );
 		$current_hour      = (int) date( 'H', $current_timestamp );

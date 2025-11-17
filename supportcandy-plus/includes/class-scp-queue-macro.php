@@ -26,6 +26,13 @@ class SCP_Queue_Macro {
 		if ( ! empty( $options['enable_queue_macro'] ) ) {
 			add_filter( 'wpsc_macros', array( $this, 'register_macro' ) );
 			add_filter( 'wpsc_create_ticket_email_data', array( $this, 'replace_queue_count_in_email' ), 10, 2 );
+			add_action( 'admin_init', array( $this, 'conditionally_add_ajax_hook' ) );
+		}
+	}
+
+	public function conditionally_add_ajax_hook() {
+		$screen = get_current_screen();
+		if ( $screen && 'supportcandy-plus_page_scp-queue-macro' === $screen->id ) {
 			add_action( 'wp_ajax_scp_test_queue_macro', array( $this, 'test_queues_ajax_handler' ) );
 		}
 	}

@@ -16,7 +16,10 @@ class SCP_AHN_Core {
 	}
 
 	private function __construct() {
-		$this->options = get_option( 'scp_settings', [] );
+		$this->options = supportcandy_plus()->options;
+	}
+
+	public function init_hooks() {
 		add_filter( 'wpsc_create_ticket_email_data', [ $this, 'add_after_hours_notice' ] );
 		add_filter( 'wpsc_agent_reply_email_data', [ $this, 'add_after_hours_notice' ] );
 		add_filter( 'wpsc_cust_reply_email_data', [ $this, 'add_after_hours_notice' ] );
