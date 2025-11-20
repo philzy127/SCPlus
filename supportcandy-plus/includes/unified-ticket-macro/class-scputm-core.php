@@ -149,6 +149,9 @@ class SCPUTM_Core {
 
 		$html_output  = '<table>';
 
+		// Get the site's timezone once.
+		$site_timezone = wp_timezone();
+
 		foreach ( $selected_fields as $field_slug ) {
 
 			$field_value = $ticket->{$field_slug};
@@ -201,14 +204,18 @@ class SCPUTM_Core {
 
 				// Date/Time Objects
 				case 'cf_date':
-					$display_value = $field_value->format( get_option( 'date_format' ) );
+					$local_date = clone $field_value;
+					$local_date->setTimezone( $site_timezone );
+					$display_value = $local_date->format( get_option( 'date_format' ) );
 					break;
 				case 'cf_datetime':
 				case 'df_date_created':
 				case 'df_date_updated':
 				case 'df_date_closed':
 				case 'df_last_reply_on':
-					$display_value = $field_value->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+					$local_date = clone $field_value;
+					$local_date->setTimezone( $site_timezone );
+					$display_value = $local_date->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
 					break;
 
 				// Single Object References
